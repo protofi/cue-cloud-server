@@ -4,8 +4,28 @@ html
         title=title
         style
             include ./css/style.css
+
+        script(src="https://www.gstatic.com/firebasejs/5.5.1/firebase.js")
+        script.
+            var config = {
+                apiKey: "AIzaSyBgOJkcSQ9pcCirryYf-dKkyIpW-lj8eQg",
+                authDomain: "iot-cloud-216011.firebaseapp.com",
+                databaseURL: "https://iot-cloud-216011.firebaseio.com",
+                projectId: "iot-cloud-216011",
+                storageBucket: "iot-cloud-216011.appspot.com",
+                messagingSenderId: "1006984432371"
+            };
+            firebase.initializeApp(config);
     body
         h1 Index
+
+        form(id="signup-form")
+            button(type="submit") Sign up
+
+        form(id="signin-form")
+            button(type="submit") Sign in
+
+        button(id="signout" type="button") Sign out        
 
     script
         include ./js/script.js

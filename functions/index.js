@@ -12,3 +12,8 @@ app.get('/', (req, res) => {
 })
 
 exports.app = functions.https.onRequest(app);
+
+exports.userSignin = functions.auth.user().onCreate((user) => {
+    console.log('user signed in')
+    return null
+});
