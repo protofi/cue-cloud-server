@@ -9,7 +9,7 @@ document.getElementById('signup-form').addEventListener('submit', (event) => {
 
     auth
     .createUserWithEmailAndPassword(email, password)
-    .catch(function(error) {
+    .catch((error) => {
         // Handle Errors here.
         var errorCode = error.code;
         var errorMessage = error.message;
@@ -26,7 +26,7 @@ document.getElementById('signin-form').addEventListener('submit', (event) => {
 
     auth
     .signInWithEmailAndPassword(email, password)
-    .catch(function(error) {
+    .catch((error) => {
         // Handle Errors here.
         var errorCode = error.code;
         var errorMessage = error.message;
