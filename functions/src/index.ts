@@ -1,11 +1,8 @@
-const functions = require('firebase-functions');
+import * as functions from 'firebase-functions';
+import * as express from 'express';
+import * as admin from 'firebase-admin';
 
-const express = require('express')
-const path = require('path');
-
-const serviceAccount = require("./serviceAccountKey.json");
-
-const admin = require("firebase-admin");
+const serviceAccount = require("./../serviceAccountKey.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -18,7 +15,7 @@ const app = express()
 app.set('view engine', 'pug')
 
 app.get('/', (req, res) => {
-    res.status('200').render('index', {title: 'Index'})
+    res.status(200).render('index', {title: 'Index'})
 })
 
 exports.app = functions.https.onRequest(app);
@@ -32,5 +29,5 @@ exports.userSignin = functions.auth.user().onCreate(user => {
         email : user.email
     }
 
-    db.collection('users').doc(user.uid).set(data);
+    return db.collection('users').doc(user.uid).set(data);
 });
