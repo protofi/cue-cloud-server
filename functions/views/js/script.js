@@ -34,6 +34,20 @@ document.getElementById('signin-form').addEventListener('submit', (event) => {
     })
 })
 
+document.getElementById('delete-user').addEventListener('click', event => {
+    event.preventDefault();
+
+    const user = auth.currentUser;
+    if(!user) return
+    
+    user.delete().then(function() {
+        console.log('deleted')
+    }).catch(function(error) {
+        console.log(error)
+    });
+
+})
+
 document.getElementById('signout').addEventListener('click', (event) => {
     event.preventDefault();
     auth.signOut()

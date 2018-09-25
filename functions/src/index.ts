@@ -1,6 +1,10 @@
 import * as functions from 'firebase-functions';
 import * as express from 'express';
 import * as admin from 'firebase-admin';
+import { UserRecord } from 'firebase-functions/lib/providers/auth';
+
+const app = express();
+app.set('view engine', 'pug');
 
 const serviceAccount = require("./../serviceAccountKey.json");
 
@@ -10,19 +14,19 @@ admin.initializeApp({
 });
 
 const db = admin.firestore();
-const app = express()
 
-app.set('view engine', 'pug')
+app.get('/', (req: express.Request, res: express.Response) => {
+    
+    const data = {
+        title: 'Index'
+    };
 
-app.get('/', (req, res) => {
-    res.status(200).render('index', {title: 'Index'})
+    res.status(200).render('index', data)
 })
 
 exports.app = functions.https.onRequest(app);
 
-exports.userSignin = functions.auth.user().onCreate(user => {
-    console.log('user signed in')
-
+exports.userSignin = functions.auth.user().onCreate((user: UserRecord) => {
     const data = {
         name : "Tobias",
         id : user.uid,
@@ -30,4 +34,9 @@ exports.userSignin = functions.auth.user().onCreate(user => {
     }
 
     return db.collection('users').doc(user.uid).set(data);
+});
+
+exports.userDelete = functions.auth.user().onDelete((user: UserRecord) => {
+    
+    return db.collection('users').doc(user.uid).delete();
 });
