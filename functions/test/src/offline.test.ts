@@ -25,7 +25,6 @@ describe('OFFLINE', () => {
                             doc: (doc) => {
                                 return {
                                     set: (data) => {
-                                        console.log(data)
                                         return {
 
                                         }
