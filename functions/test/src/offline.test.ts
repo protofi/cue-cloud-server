@@ -9,14 +9,19 @@ const expect = chai.expect;
 describe('OFFLINE', () => {
 
     var test;
+    var firestoreMockData;
+    var adminfirestoreStub;
     var myFunctions;
+    
     beforeEach((done) => {
         
-      test = functionsTest();
+        firestoreMockData = {}
+
+        test = functionsTest();
 
         const adminInitStub = sinon.stub(admin, 'initializeApp');
 
-        const adminfirestoreStub = sinon.stub(admin, 'firestore').get(() => {
+        adminfirestoreStub = sinon.stub(admin, 'firestore').get(() => {
             return () => {
                 return {
                     settings: () => {return null},
@@ -25,9 +30,12 @@ describe('OFFLINE', () => {
                             doc: (doc) => {
                                 return {
                                     set: (data) => {
-                                        return {
-
-                                        }
+                                        console.log(col,doc)
+                                        return null
+                                    },
+                                    get: () => {
+                                        console.log(col,doc)
+                                        return null
                                     }
                                 }
                             }
