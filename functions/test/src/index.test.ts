@@ -6,4 +6,19 @@ import * as functionsTest from 'firebase-functions-test'
 const assert = chai.assert;
 const expect = chai.expect;
 
+const test = functionsTest({
+    databaseURL: "https://iot-cloud-216011.firebaseio.com",
+    projectId: "iot-cloud-216011"
+}, './../serviceAccountKey.json');
+
+// const adminInitStub = sinon.stub(admin, 'initializeApp')
+// const adminfirestoreStub = sinon.stub(admin, 'firestore');
+
+const myFunctions = require('../lib/index');
+
+const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord({uid: "1234", name: "Tobias"});
+const wrappedUserSignin = test.wrap(myFunctions.userSignin);
+
+wrappedUserSignin(userRecord);
+
 assert.equal(true, true)
