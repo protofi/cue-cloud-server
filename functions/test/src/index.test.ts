@@ -6,22 +6,19 @@ import * as functionsTest from 'firebase-functions-test'
 const assert = chai.assert;
 const expect = chai.expect;
 
-const test = functionsTest(/*{
-    databaseURL: "https://iot-cloud-216011.firebaseio.com",
-    projectId: "iot-cloud-216011"
-}, './../serviceAccountKey.json'*/);
+const test = functionsTest();
 
 const adminInitStub = sinon.stub(admin, 'initializeApp');
 const adminfirestoreStub = sinon.stub(admin, 'firestore').get(() => {
     return () => {
         return {
-            collection: (path) => {
+            settings: () => {return null},
+            collection: (col) => {
                 return {
-                    get: () => [{user: 'mock-user-1'}, {user: 'mock-user-2'}],
-                    doc: () => {
+                    doc: (doc) => {
                         return {
-                            set: () => {
-                                console.log('wuut')
+                            set: (data) => {
+                                console.log(data)
                                 return {
 
                                 }
@@ -36,7 +33,7 @@ const adminfirestoreStub = sinon.stub(admin, 'firestore').get(() => {
 
 const myFunctions = require('../lib/index');
 
-const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord({uid: "1234", name: "Tobias"});
+const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord({uid: "1234", name: "Tobias", email: "tobias@mail.com"});
 const wrappedUserSignin = test.wrap(myFunctions.userSignin);
 
 wrappedUserSignin(userRecord);

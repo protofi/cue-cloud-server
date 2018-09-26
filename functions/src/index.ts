@@ -15,8 +15,8 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-// const settings = {timestampsInSnapshots: true};
-// db.settings(settings);
+const settings = {timestampsInSnapshots: true};
+db.settings(settings);
 
 app.get('/', (req: express.Request, res: express.Response) => {
     
