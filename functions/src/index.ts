@@ -9,11 +9,18 @@ app.set('view engine', 'pug');
 const serviceAccount = require("./../serviceAccountKey.json");
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://iot-cloud-216011.firebaseio.com"
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://iot-cloud-216011.firebaseio.com"
 });
 
+//admin.initializeApp();
+
+//admin.initializeApp(functions.config().firebase);
+
 const db = admin.firestore();
+
+const settings = {timestampsInSnapshots: true};
+db.settings(settings);
 
 app.get('/', (req: express.Request, res: express.Response) => {
     
