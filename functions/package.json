@@ -11,7 +11,9 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "test": "tsc -p test --outDir ./test && mocha --reporter spec"
+    "test": "tsc -p test --outDir ./test && mocha --grep",
+    "test:online": "tsc -p test --outDir ./test && mocha --grep ONLINE",
+    "test:offline": "tsc -p test --outDir ./test && mocha --grep OFFLINE"
   },
   "main": "lib/index.js",
   "dependencies": {

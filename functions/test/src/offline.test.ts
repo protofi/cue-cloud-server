@@ -6,43 +6,49 @@ import * as functionsTest from 'firebase-functions-test'
 const assert = chai.assert;
 const expect = chai.expect;
 
-const test = functionsTest();
+describe('OFFLINE', () => {
 
-const adminInitStub = sinon.stub(admin, 'initializeApp');
+    var test;
+    var myFunctions;
+    beforeEach((done) => {
+        
+      test = functionsTest();
 
-const adminfirestoreStub = sinon.stub(admin, 'firestore').get(() => {
-    return () => {
-        return {
-            settings: () => {return null},
-            collection: (col) => {
+        const adminInitStub = sinon.stub(admin, 'initializeApp');
+
+        const adminfirestoreStub = sinon.stub(admin, 'firestore').get(() => {
+            return () => {
                 return {
-                    doc: (doc) => {
+                    settings: () => {return null},
+                    collection: (col) => {
                         return {
-                            set: (data) => {
-                                console.log(data)
+                            doc: (doc) => {
                                 return {
+                                    set: (data) => {
+                                        console.log(data)
+                                        return {
 
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-    }
-})
-
-const myFunctions = require('../lib/index');
-
-const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord({uid: "1234", name: "Tobias", email: "tobias@mail.com"});
-const wrappedUserSignin = test.wrap(myFunctions.userSignin);
-
-wrappedUserSignin(userRecord);
-
-describe('Array', function() {
-    describe('#indexOf()', function() {
-      it('should return -1 when the value is not present', function() {
-        assert.equal([1,2,3].indexOf(4), -1);
-      });
+        })
+        
+        myFunctions = require('../lib/index');
+        
+        done();
     });
-  });
+
+    describe('User', () => {
+        it('Sign in', () => {
+            const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord({uid: "1234", name: "Tobias", email: "tobias@mail.com"});
+            const wrappedUserSignin = test.wrap(myFunctions.userSignin);
+
+            wrappedUserSignin(userRecord);
+        });
+    });
+});
