@@ -8,10 +8,12 @@ app.set('view engine', 'pug');
 
 const serviceAccount = require("./../serviceAccountKey.json");
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://iot-cloud-216011.firebaseio.com"
-});
+// admin.initializeApp(/*{
+//     credential: admin.credential.cert(serviceAccount),
+//     databaseURL: "https://iot-cloud-216011.firebaseio.com"
+// }*/);
+
+admin.initializeApp(functions.config().firebase);
 
 const db = admin.firestore();
 
@@ -25,6 +27,15 @@ app.get('/', (req: express.Request, res: express.Response) => {
     };
 
     res.status(200).render('index', data)
+})
+
+app.get('/json', (req: express.Request, res: express.Response) => {
+    
+    const data = {
+        success: true
+    };
+
+    res.status(200).json(data)
 })
 
 exports.app = functions.https.onRequest(app);

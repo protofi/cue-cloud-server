@@ -9,6 +9,7 @@ const expect = chai.expect;
 const test = functionsTest();
 
 const adminInitStub = sinon.stub(admin, 'initializeApp');
+
 const adminfirestoreStub = sinon.stub(admin, 'firestore').get(() => {
     return () => {
         return {
@@ -38,4 +39,10 @@ const wrappedUserSignin = test.wrap(myFunctions.userSignin);
 
 wrappedUserSignin(userRecord);
 
-assert.equal(true, true)
+describe('Array', function() {
+    describe('#indexOf()', function() {
+      it('should return -1 when the value is not present', function() {
+        assert.equal([1,2,3].indexOf(4), -1);
+      });
+    });
+  });
