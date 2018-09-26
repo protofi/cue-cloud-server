@@ -6,13 +6,33 @@ import * as functionsTest from 'firebase-functions-test'
 const assert = chai.assert;
 const expect = chai.expect;
 
-const test = functionsTest({
+const test = functionsTest(/*{
     databaseURL: "https://iot-cloud-216011.firebaseio.com",
     projectId: "iot-cloud-216011"
-}, './../serviceAccountKey.json');
+}, './../serviceAccountKey.json'*/);
 
-// const adminInitStub = sinon.stub(admin, 'initializeApp')
-// const adminfirestoreStub = sinon.stub(admin, 'firestore');
+const adminInitStub = sinon.stub(admin, 'initializeApp');
+const adminfirestoreStub = sinon.stub(admin, 'firestore').get(() => {
+    return () => {
+        return {
+            collection: (path) => {
+                return {
+                    get: () => [{user: 'mock-user-1'}, {user: 'mock-user-2'}],
+                    doc: () => {
+                        return {
+                            set: () => {
+                                console.log('wuut')
+                                return {
+
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+})
 
 const myFunctions = require('../lib/index');
 
