@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "iot-cloud-216011"
+    "production": "iot-cloud-216011",
+    "staging": "staging-iot-cloud-server"
   }
 }
