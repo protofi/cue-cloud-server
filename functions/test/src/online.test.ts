@@ -12,11 +12,13 @@ describe('ONLINE', () => {
     var myFunctions;
 
     beforeEach((done) => {
-    
+        
+        const stageProjectId = "staging-iot-cloud-server"
+
         test = functionsTest({
-          databaseURL: 'https://test-iot-cloud.firebaseio.com',
-          projectId: 'test-iot-cloud',
-        }, './test/serviceAccountKey.test.json');
+          databaseURL: `https://${stageProjectId}.firebaseio.com`,
+          projectId: stageProjectId,
+        }, `./../${stageProjectId}.serviceAccountKey.json`);
         
         myFunctions = require('../lib/index');
         done();

@@ -6,14 +6,12 @@ import { UserRecord } from 'firebase-functions/lib/providers/auth';
 const app = express();
 app.set('view engine', 'pug');
 
-const serviceAccount = require("./../serviceAccountKey.json");
+const serviceAccount = require(`./../${process.env.GCLOUD_PROJECT}.serviceAccountKey.json`);
 
-// admin.initializeApp(/*{
-//     credential: admin.credential.cert(serviceAccount),
-//     databaseURL: "https://iot-cloud-216011.firebaseio.com"
-// }*/);
-
-admin.initializeApp(functions.config().firebase);
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: `https://${process.env.GCLOUD_PROJECT}.firebaseio.com`
+})
 
 const db = admin.firestore();
 
@@ -41,6 +39,7 @@ app.get('/json', (req: express.Request, res: express.Response) => {
 exports.app = functions.https.onRequest(app);
 
 exports.userSignin = functions.auth.user().onCreate((user: UserRecord) => {
+    
     const data = {
         name : "Tobias",
         id : user.uid,
@@ -48,9 +47,9 @@ exports.userSignin = functions.auth.user().onCreate((user: UserRecord) => {
     }
 
     return db.collection('users').doc(user.uid).set(data);
-});
+})
 
 exports.userDelete = functions.auth.user().onDelete((user: UserRecord) => {
     
     return db.collection('users').doc(user.uid).delete();
-});
+})
