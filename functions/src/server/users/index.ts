@@ -1,6 +1,8 @@
 import * as functions from 'firebase-functions'
 import { UserRecord } from 'firebase-functions/lib/providers/auth'
 
+import Database from './../../lib/Database'
+
 export const signin = (firestore) => {
 
     return functions.auth.user().onCreate((user: UserRecord) => {
@@ -11,7 +13,8 @@ export const signin = (firestore) => {
             email : user.email
         }
 
-        return firestore.collection('users').doc(user.uid).set(data)
+        const db = new Database(firestore);
+        return db.users.set(user.uid, data)
     })
 }
 
