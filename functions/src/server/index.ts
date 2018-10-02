@@ -10,12 +10,14 @@ import { UserRecord } from 'firebase-functions/lib/providers/auth';
 const app = express()
 app.set('view engine', 'pug')
 
-const serviceAccount = require(`./../${process.env.GCLOUD_PROJECT}.serviceAccountKey.json`)
+// const serviceAccount = require(`./../${process.env.GCLOUD_PROJECT}.serviceAccountKey.json`)
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: `https://${process.env.GCLOUD_PROJECT}.firebaseio.com`
-})
+// admin.initializeApp({
+//     credential: admin.credential.cert(serviceAccount),
+//     databaseURL: `https://${process.env.GCLOUD_PROJECT}.firebaseio.com`
+// })
+
+admin.initializeApp();
 
 const db = admin.firestore()
 

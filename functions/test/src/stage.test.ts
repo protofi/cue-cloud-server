@@ -6,7 +6,7 @@ import * as functionsTest from 'firebase-functions-test'
 const assert = chai.assert;
 const expect = chai.expect;
 
-describe('ONLINE', () => {
+describe('STAGE', () => {
 
     var test;
     var myFunctions;
@@ -18,7 +18,7 @@ describe('ONLINE', () => {
         test = functionsTest({
           databaseURL: `https://${stageProjectId}.firebaseio.com`,
           projectId: stageProjectId,
-        }, `./../${stageProjectId}.serviceAccountKey.json`);
+        }, `./${stageProjectId}.serviceAccountKey.json`);
         
         myFunctions = require('../lib/index');
         done();

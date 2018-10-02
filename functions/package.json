@@ -16,7 +16,7 @@
     "deploy": "firebase deploy --only functions,hosting",
     "logs": "firebase functions:log",
     "test": "tsc -p test --outDir ./test && mocha --grep",
-    "test:online": "tsc -p test --outDir ./test && mocha --grep ONLINE",
+    "test:stage": "tsc -p test --outDir ./test && mocha --grep STAGE",
     "test:offline": "tsc -p test --outDir ./test && mocha --grep OFFLINE"
   },
   "main": "lib/index.js",
