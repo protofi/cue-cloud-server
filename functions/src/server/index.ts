@@ -4,8 +4,6 @@ import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
 
 import * as users from './users'
-import { UserRecord } from 'firebase-functions/lib/providers/auth';
-
 
 const app = express()
 app.set('view engine', 'pug')
