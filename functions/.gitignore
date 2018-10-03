@@ -1,4 +1,3 @@
 /node_modules
 /lib
 *.serviceAccountKey.json
-package-lock.json
