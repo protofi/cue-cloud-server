@@ -1,6 +1,7 @@
 import * as chai from 'chai'
 import * as sinon from 'sinon'
 import * as mocha from 'mocha'
+import * as firebase from 'firebase'
 import * as admin from 'firebase-admin';
 import * as functionsTest from 'firebase-functions-test'
 import { UserRecord, user } from 'firebase-functions/lib/providers/auth';
@@ -25,9 +26,9 @@ describe('STAGE', () => {
         }, `./${stageProjectId}.serviceAccountKey.json`);
         
         myFunctions = require('../lib/index');
-        
-        const fs = admin.firestore();
-        db = new Database(fs);
+
+        const adminFs = admin.firestore();
+        db = new Database(adminFs);
 
         done();
     });
@@ -69,8 +70,8 @@ describe('STAGE', () => {
 
     describe('Households', () => {
         
-        it('Creation', (done) => {
-            
+        it('Created', (done) => {
+
             done()
         })
     })

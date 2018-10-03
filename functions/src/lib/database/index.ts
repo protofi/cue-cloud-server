@@ -18,4 +18,3 @@ export default class Database implements Datastore {
         this.households = new Households(db)
     }
 }
-
