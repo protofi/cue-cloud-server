@@ -1,7 +1,7 @@
 import * as functions from 'firebase-functions'
 import { UserRecord } from 'firebase-functions/lib/providers/auth'
 
-import Database from './../../lib/Database'
+import Database from './../lib/database'
 
 export const signin = (firestore) => {
 

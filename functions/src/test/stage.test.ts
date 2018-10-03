@@ -1,10 +1,10 @@
 import * as chai from 'chai'
 import * as sinon from 'sinon'
+import * as mocha from 'mocha'
 import * as admin from 'firebase-admin';
 import * as functionsTest from 'firebase-functions-test'
 import { UserRecord, user } from 'firebase-functions/lib/providers/auth';
-import { DatabaseBuilder } from 'firebase-functions/lib/providers/firestore';
-import Database from './../../src/lib/Database'
+import Database from './lib/database'
 
 const assert = chai.assert;
 const expect = chai.expect;

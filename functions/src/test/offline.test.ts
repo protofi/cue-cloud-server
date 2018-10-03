@@ -1,5 +1,6 @@
 import * as chai from 'chai'
 import * as sinon from 'sinon'
+import * as mocha from 'mocha'
 import * as admin from 'firebase-admin';
 import * as functionsTest from 'firebase-functions-test'
 
