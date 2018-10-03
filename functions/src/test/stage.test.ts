@@ -4,7 +4,7 @@ import * as mocha from 'mocha'
 import * as admin from 'firebase-admin';
 import * as functionsTest from 'firebase-functions-test'
 import { UserRecord, user } from 'firebase-functions/lib/providers/auth';
-import Database from './lib/database'
+import Database, { Datastore } from './lib/database'
 
 const assert = chai.assert;
 const expect = chai.expect;
@@ -13,7 +13,7 @@ describe('STAGE', () => {
 
     var test;
     var myFunctions;
-    var db: Database;
+    var db: Datastore;
 
     beforeEach((done) => {
         
@@ -63,6 +63,15 @@ describe('STAGE', () => {
                     return done(e)
                 }
             })
+        })
+    })
+
+
+    describe('Households', () => {
+        
+        it('Creation', (done) => {
+            
+            done()
         })
     })
 })
