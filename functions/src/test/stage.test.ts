@@ -7,7 +7,6 @@ import * as functionsTest from 'firebase-functions-test'
 import { UserRecord, user } from 'firebase-functions/lib/providers/auth';
 import Database, { Datastore } from './lib/database'
 import { FeaturesList } from 'firebase-functions-test/lib/features';
-import { DocumentSnapshot, DocumentReference, Firestore } from '@google-cloud/firestore';
 import { Collection } from './lib/database/Collections';
 
 const chaiThings = require("chai-things")
@@ -69,7 +68,7 @@ describe('STAGE', () => {
             .then(() => {
             
                 adminDb.users.get(userData.uid)
-                .then((doc: DocumentSnapshot) => {
+                .then((doc: FirebaseFirestore.DocumentSnapshot) => {
                     
                     try
                     {
