@@ -17,7 +17,7 @@
     "deploy:stage:rules": "firebase use staging && firebase deploy --only firestore:rules",
     "logs": "firebase functions:log",
     "test": "tsc -p test --outDir ./test && mocha --grep",
-    "test:stage": "tsc -p test --outDir ./test && mocha --grep STAGE || true",
+    "test:stage": "tsc -p test --outDir ./test && mocha --exit --grep STAGE || true",
     "test:offline": "tsc -p test --outDir ./test && mocha --grep OFFLINE"
   },
   "main": "lib/index.js",

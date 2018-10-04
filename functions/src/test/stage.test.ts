@@ -23,12 +23,13 @@ describe('STAGE', () => {
 
     var test: FeaturesList
     var myFunctions
-    var db: Datastore
     var adminFs: FirebaseFirestore.Firestore
     var fs: firebase.firestore.Firestore
+    var db: Datastore
     var adminDb: Datastore
+    var token
 
-    beforeEach((done) => {
+    before((done) => {
         
         const stageProjectId = "staging-iot-cloud-server"
 
@@ -44,7 +45,13 @@ describe('STAGE', () => {
         db = new Database(fs);
         adminDb = new Database(adminFs);
 
-        done();
+        const testUserid = 'test-user-1'
+
+        admin.auth().createCustomToken(testUserid)
+        .then(customToken => {
+            token = customToken;
+            done()
+        })
     });
 
     afterEach(() => {
@@ -96,14 +103,39 @@ describe('STAGE', () => {
     describe('Rules', () => {
         
         describe('Households', () => {
-            it('Reject unauthorized writes', (done) => {
+
+            it('Reject unauthorized writes.', (done) => {
 
                 db.households
+                .add({})
+                .then((docRef) => {
+                    try
+                    {
+                        assert.notExists(docRef)
+                    }
+                    catch(e)
+                    {
+                        done(e)
+                    }
+                }).catch((e) => {
+                    assert.include(e.message, 'PERMISSION_DENIED')
+                    done();
+                })
+            })
+
+            it('User can only add oneself', (done) => {
+
+                firebase.auth()
+                .signInWithCustomToken(token)
+                .then(() => {
+                    
+                    db.households
                     .add({})
                     .then((docRef) => {
                         try
                         {
                             assert.notExists(docRef)
+                            done()                            
                         }
                         catch(e)
                         {
@@ -114,6 +146,7 @@ describe('STAGE', () => {
                         done();
                     })
                 })
+            })
         })
     })
 })
