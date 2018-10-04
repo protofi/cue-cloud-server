@@ -6,15 +6,28 @@ import * as admin from 'firebase-admin';
 import * as functionsTest from 'firebase-functions-test'
 import { UserRecord, user } from 'firebase-functions/lib/providers/auth';
 import Database, { Datastore } from './lib/database'
+import { FeaturesList } from 'firebase-functions-test/lib/features';
+import { DocumentSnapshot, DocumentReference, Firestore } from '@google-cloud/firestore';
+import { Collection } from './lib/database/Collections';
+
+const chaiThings = require("chai-things")
+const chaiAsPromised = require("chai-as-promised");
+
+chai.should();
+chai.use(chaiThings);
+chai.use(chaiAsPromised);
 
 const assert = chai.assert;
 const expect = chai.expect;
 
 describe('STAGE', () => {
 
-    var test;
-    var myFunctions;
-    var db: Datastore;
+    var test: FeaturesList
+    var myFunctions
+    var db: Datastore
+    var adminFs: FirebaseFirestore.Firestore
+    var fs: firebase.firestore.Firestore
+    var adminDb: Datastore
 
     beforeEach((done) => {
         
@@ -26,53 +39,82 @@ describe('STAGE', () => {
         }, `./${stageProjectId}.serviceAccountKey.json`);
         
         myFunctions = require('../lib/index');
-
-        const adminFs = admin.firestore();
-        db = new Database(adminFs);
+        fs = firebase.firestore()
+        fs.settings({timestampsInSnapshots: true})
+        adminFs = admin.firestore();
+        db = new Database(fs);
+        adminDb = new Database(adminFs);
 
         done();
     });
 
+    afterEach(() => {
+        adminDb.users.delete('abc123')
+    });
+
     describe('User', () => {
+
+        const userData = {
+            uid: "abc123",
+            name: "Tobias",
+            email: "tobias@mail.com"
+        }
         
         it('Sign up', (done) => {
-            
-            const userData = {
-                uid: "1234",
-                name: "Tobias",
-                email: "tobias@mail.com"
-            };
-            const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(userData);
-            const wrappedUserSignin = test.wrap(myFunctions.userSignin);
+
+            const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(userData)
+            const wrappedUserSignin = test.wrap(myFunctions.userSignin)
 
             wrappedUserSignin(userRecord)
-            db.users.get(userData.uid).then((doc) => {
-                
-                try
-                {
-                    const comparisonData = {
-                        name: userData.name,
-                        email: userData.email
-                    };
+            .then(() => {
+            
+                adminDb.users.get(userData.uid)
+                .then((doc: DocumentSnapshot) => {
                     
-                    expect(doc.data()).to.include(comparisonData);
+                    try
+                    {
+                        const comparisonData = {
+                            name: userData.name,
+                            email: userData.email,
+                        }
 
-                    done()
-                }
-                catch(e)
-                {
-                    return done(e)
-                }
+                        expect(doc.data()).to.include(comparisonData);
+
+                        return done()
+                    }
+                    catch(e)
+                    {
+                        return done(e)
+                    }
+                })
+
+            }).catch((e) => {
+                done(e)
             })
         })
     })
 
-
-    describe('Households', () => {
+    describe('Rules', () => {
         
-        it('Created', (done) => {
+        describe('Households', () => {
+            it('Reject unauthorized writes', (done) => {
 
-            done()
+                db.households
+                    .add({})
+                    .then((docRef) => {
+                        try
+                        {
+                            assert.notExists(docRef)
+                        }
+                        catch(e)
+                        {
+                            done(e)
+                        }
+                    }).catch((e) => {
+                        assert.include(e.message, 'PERMISSION_DENIED')
+                        done();
+                    })
+                })
         })
     })
 })

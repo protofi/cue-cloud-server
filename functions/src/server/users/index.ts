@@ -1,9 +1,8 @@
 import * as functions from 'firebase-functions'
 import { UserRecord } from 'firebase-functions/lib/providers/auth'
+import { Datastore } from '../lib/database';
 
-import Database from './../lib/database'
-
-export const signin = (firestore) => {
+export const signin = (db: Datastore) => {
 
     return functions.auth.user().onCreate((user: UserRecord) => {
         
@@ -13,16 +12,15 @@ export const signin = (firestore) => {
             email : user.email
         }
 
-        const db = new Database(firestore);
         return db.users.set(user.uid, data)
     })
 }
 
-export const deleteAccount = (firebase) => {
+export const deleteAccount = (db: Datastore) => {
 
     return functions.auth.user().onDelete((user: UserRecord) => {
         
-        return firebase.collection('users').doc(user.uid).delete()
+        return db.users.delete(user.uid)
     })
 } 
 

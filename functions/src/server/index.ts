@@ -1,9 +1,11 @@
 import * as express from 'express'
-
 import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
+import firebase from '@firebase/app';
+import '@firebase/firestore'
 
 import * as users from './users'
+import Database from './lib/database'
 
 const app = express()
 app.set('view engine', 'pug')
@@ -17,10 +19,22 @@ app.set('view engine', 'pug')
 
 admin.initializeApp();
 
-const db = admin.firestore()
+const adminFs = admin.firestore()
+
+firebase.initializeApp({
+    apiKey: "AIzaSyAjjVn6bfI66Xarf3TvC81WIs8JMlTtO-E",
+    authDomain: "staging-iot-cloud-server.firebaseapp.com",
+    databaseURL: "https://staging-iot-cloud-server.firebaseio.com",
+    projectId: "staging-iot-cloud-server",
+    storageBucket: "staging-iot-cloud-server.appspot.com",
+    messagingSenderId: "876174399478"
+});
+
+const fs = firebase.firestore()
+fs.settings({timestampsInSnapshots: true})
 
 const settings = {timestampsInSnapshots: true}
-db.settings(settings)
+adminFs.settings(settings)
 
 app.get('/admin', (req: express.Request, res: express.Response) => {
     
@@ -41,6 +55,8 @@ app.get('/api', (req: express.Request, res: express.Response) => {
         ]
     })
 })
+
+const db = new Database(adminFs);
 
 exports.userSignin = users.signin(db);
 exports.userDeleteAccount = users.deleteAccount(db)

@@ -1,12 +1,15 @@
+import { DocumentSnapshot } from "@google-cloud/firestore";
+
 export enum Collection {
     USERS = 'users',
     HOUSEHOLDS = 'households'
 }
 
 export interface Collections {
-    get(id: string): Promise<any>
-    set(id: string, data: object)
-    add(data: object)
+    get(id: string): Promise<DocumentSnapshot>
+    set(id: string, data: object): Promise<DocumentSnapshot>
+    add(data: object): Promise<DocumentSnapshot>
+    delete(id: string): Promise<DocumentSnapshot>
 }
 
 export default class CollectionsImpl implements Collections {
@@ -19,19 +22,24 @@ export default class CollectionsImpl implements Collections {
         this.db = db
     }
 
-    get(id: string)
+    async get(id: string): Promise<DocumentSnapshot>
     {
         return this.db.collection(this.name).doc(id).get() 
     }
 
-    set(id: string, data: object)
+    async set(id: string, data: object): Promise<DocumentSnapshot>
     {
-        this.db.collection(this.name).doc(id).set(data)
+        return this.db.collection(this.name).doc(id).set(data)
     }
 
-    add(data: object)
+    async add(data: object): Promise<DocumentSnapshot>
     {
-        this.db.collection(this.name).add(data)
+        return this.db.collection(this.name).add(data)
+    }
+
+    async delete(id: string): Promise<DocumentSnapshot>
+    {
+        return this.db.collection(this.name).doc(id).delete() 
     }
 }
 
