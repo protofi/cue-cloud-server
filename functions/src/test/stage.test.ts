@@ -109,7 +109,7 @@ describe('STAGE', () => {
         
         describe('Households', () => {
 
-            it('Reject unauthorized writes.', async () => {
+            it('Reject unauthorized creations.', async () => {
 
                 try
                 {
@@ -123,59 +123,51 @@ describe('STAGE', () => {
                 }
             })
 
-            it('User cannot add others.', (done) => {
+            it('Reject unauthorized writes.', async () => {
 
-                firebase.auth()
-                .signInWithCustomToken(testUsertokenOne)
-                .then(() => {
-                    
-                    db.households.create({uid: testUserDataTwo.uid})
-                    .then((docRef: FirebaseFirestore.DocumentReference) => {
-                        
-                        try
-                        {
-                            assert.notExists(docRef)
-                            done()
-                        }
-                        catch(e)
-                        {
-                            done(e)
-                        }
-                    }).catch((e) => {
-                        assert.include(e.message, 'PERMISSION_DENIED')
-                        done();
-                    })
-                }).catch((e) => {
-                    done(e);
-                })
+                try
+                {
+                    const docRef: FirebaseFirestore.DocumentReference = await db.households.set('123', {})
+                    assert.notExists(docRef)
+
+                }
+                catch(e)
+                {
+                    assert.include(e.message, 'PERMISSION_DENIED')
+                }
             })
 
-            it('User can create and add oneself.', (done) => {
+            it('User cannot add others.', async () => {
 
-                firebase.auth()
-                .signInWithCustomToken(testUsertokenOne)
-                .then(() => {
+                await firebase.auth().signInWithCustomToken(testUsertokenOne)
                     
-                    db.households.create({uid: testUserDataOne.uid})
-                    .then((docRef: FirebaseFirestore.DocumentReference) => {
-                        
-                        assert.exists(docRef)
+                try
+                {
+                    const docRef: FirebaseFirestore.DocumentReference = await db.households.create({uid: testUserDataTwo.uid})
+                    assert.notExists(docRef)
 
-                        db.households.getResidents(docRef.id).then((snap: FirebaseFirestore.DocumentData) => {
-                            
-                            const residents = snap.docs.map((doc) => {
-                                return doc.data()
-                            })
+                }
+                catch(e)
+                {
+                    assert.include(e.message, 'PERMISSION_DENIED')
+                }
+            })
 
-                            expect(residents).to.deep.include({uid: testUserDataOne.uid});
+            it('User can create and add oneself.', async () => {
 
-                            done()
-                        })
-                    })
+                await firebase.auth().signInWithCustomToken(testUsertokenOne)
+                    
+                const docRef: FirebaseFirestore.DocumentReference = await db.households.create({uid: testUserDataOne.uid})
+                    
+                assert.exists(docRef)
 
-                }).catch((e) => {
-                    done(e)
+                const snap: FirebaseFirestore.DocumentData = await db.households.getResidents(docRef.id)
+                    
+                const residents = snap.docs.map((doc) => {
+                    return doc.data()
                 })
+
+                expect(residents).to.deep.include({uid: testUserDataOne.uid});
             })
             
             it('User can add oneself.', async () => {
