@@ -109,23 +109,18 @@ describe('STAGE', () => {
         
         describe('Households', () => {
 
-            it('Reject unauthorized writes.', (done) => {
+            it('Reject unauthorized writes.', async () => {
 
-                db.households
-                .add({})
-                .then((docRef) => {
-                    try
-                    {
-                        assert.notExists(docRef)
-                    }
-                    catch(e)
-                    {
-                        done(e)
-                    }
-                }).catch((e) => {
+                try
+                {
+                    const docRef: FirebaseFirestore.DocumentReference = await db.households.add({})
+                    assert.notExists(docRef)
+
+                }
+                catch(e)
+                {
                     assert.include(e.message, 'PERMISSION_DENIED')
-                    done();
-                })
+                }
             })
 
             it('User cannot add others.', (done) => {
@@ -182,7 +177,7 @@ describe('STAGE', () => {
                     done(e)
                 })
             })
-
+            
             it('User can add oneself.', async () => {
 
                 const household: FirebaseFirestore.DocumentReference = await adminDb.households.create({uid: testUserDataTwo.uid})
