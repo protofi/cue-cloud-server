@@ -72,36 +72,20 @@ describe('STAGE', () => {
 
     describe('User', () => {
 
-        it('Sign up', (done) => {
+        it('Sign up', async () => {
 
             const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(testUserDataOne)
             const wrappedUserSignin = test.wrap(myFunctions.userSignin)
 
-            wrappedUserSignin(userRecord)
-            .then(() => {
+            await wrappedUserSignin(userRecord)
             
-                adminDb.users.get(testUserDataOne.uid)
-                .then((doc: FirebaseFirestore.DocumentSnapshot) => {
-                    
-                    try
-                    {
-                        const comparisonData = {
-                            email: testUserDataOne.email
-                        }
+            const doc: FirebaseFirestore.DocumentSnapshot = await adminDb.users.get(testUserDataOne.uid)
+                
+            const comparisonData = {
+                email: testUserDataOne.email
+            }
 
-                        expect(doc.data()).to.include(comparisonData);
-
-                        return done()
-                    }
-                    catch(e)
-                    {
-                        return done(e)
-                    }
-                })
-
-            }).catch((e) => {
-                done(e)
-            })
+            expect(doc.data()).to.include(comparisonData);
         })
     })
 
