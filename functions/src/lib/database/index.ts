@@ -4,6 +4,7 @@ import Households from "./HouseholdsCollection";
 export interface Datastore {
     users: Users
     households: Households
+    batch()
 }
 
 export default class Database implements Datastore {
@@ -16,5 +17,10 @@ export default class Database implements Datastore {
         this.db = db
         this.users = new Users(db);
         this.households = new Households(db)
+    }
+    
+    batch()
+    {
+        return this.db.batch()
     }
 }

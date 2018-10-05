@@ -66,8 +66,8 @@ describe('STAGE', () => {
         })
     });
 
-    afterEach(() => {
-        adminDb.users.delete(testUserDataOne.uid)
+    afterEach(async () => {
+        await adminDb.users.delete(testUserDataOne.uid)
     });
 
     describe('User', () => {
@@ -109,13 +109,30 @@ describe('STAGE', () => {
         
         describe('Households', () => {
 
+            const householdIdsToBeDeleted = []
+
+            after( async () => {
+
+                async function asyncForEach(array, callback)
+                {
+                    for (let index = 0; index < array.length; index++)
+                    {
+                        await callback(array[index], index, array)
+                    }
+                }
+
+                await asyncForEach(householdIdsToBeDeleted, async (householdId) => {
+                    await adminDb.households.delete(householdId)
+                })
+            })
+
             it('Reject unauthorized creations.', async () => {
 
                 try
                 {
                     const docRef: FirebaseFirestore.DocumentReference = await db.households.add({})
+                    householdIdsToBeDeleted.push(docRef.id)
                     assert.notExists(docRef)
-
                 }
                 catch(e)
                 {
@@ -128,6 +145,7 @@ describe('STAGE', () => {
                 try
                 {
                     const docRef: FirebaseFirestore.DocumentReference = await db.households.set('123', {})
+                    householdIdsToBeDeleted.push(docRef.id)
                     assert.notExists(docRef)
 
                 }
@@ -140,17 +158,19 @@ describe('STAGE', () => {
             it('User cannot add others.', async () => {
 
                 await firebase.auth().signInWithCustomToken(testUsertokenOne)
-                    
+                var docRef: FirebaseFirestore.DocumentReference;
+
                 try
                 {
-                    const docRef: FirebaseFirestore.DocumentReference = await db.households.create({uid: testUserDataTwo.uid})
-                    assert.notExists(docRef)
-
+                    docRef = await db.households.create({uid: testUserDataTwo.uid})
+                    householdIdsToBeDeleted.push(docRef.id)
                 }
                 catch(e)
                 {
                     assert.include(e.message, 'PERMISSION_DENIED')
                 }
+
+                assert.notExists(docRef)
             })
 
             it('User can create and add oneself.', async () => {
@@ -158,8 +178,9 @@ describe('STAGE', () => {
                 await firebase.auth().signInWithCustomToken(testUsertokenOne)
                     
                 const docRef: FirebaseFirestore.DocumentReference = await db.households.create({uid: testUserDataOne.uid})
-                    
+                        
                 assert.exists(docRef)
+                householdIdsToBeDeleted.push(docRef.id)
 
                 const snap: FirebaseFirestore.DocumentData = await db.households.getResidents(docRef.id)
                     
@@ -173,6 +194,7 @@ describe('STAGE', () => {
             it('User can add oneself.', async () => {
 
                 const household: FirebaseFirestore.DocumentReference = await adminDb.households.create({uid: testUserDataTwo.uid})
+                householdIdsToBeDeleted.push(household.id)
 
                 await firebase.auth().signInWithCustomToken(testUsertokenOne)
                 await db.households.addResident(household.id, {uid: testUserDataOne.uid})

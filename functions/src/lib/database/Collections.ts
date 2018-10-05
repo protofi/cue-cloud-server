@@ -6,6 +6,7 @@ export enum Collection {
 
 export interface Collections {
     get(id: string): Promise<any>
+    getDocRef()
     set(id: string, data: object): Promise<any>
     add(data: object): Promise<any>
     delete(id: string): Promise<any>
@@ -23,8 +24,14 @@ export default class CollectionsImpl implements Collections {
 
     get(id?: string): Promise<any>
     {
-        if(id) return this.db.collection(this.name).doc(id).get()
-        else return this.db.collection(this.name).get() 
+        if(id) return this.getDocRef(id).get()
+        else return this.getDocRef().get() 
+    }
+
+    getDocRef(id?: string)
+    {
+        if(id) return this.db.collection(this.name).doc(id)
+        else return this.db.collection(this.name).doc()
     }
 
     set(id: string, data: object): Promise<any>
