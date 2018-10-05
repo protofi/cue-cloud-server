@@ -12,7 +12,7 @@ export interface Collections {
 }
 
 export default class CollectionsImpl implements Collections {
-    private db: any
+    protected db: any
     name: string
 
     constructor(name: string, db: any)
@@ -21,22 +21,23 @@ export default class CollectionsImpl implements Collections {
         this.db = db
     }
 
-    async get(id: string): Promise<any>
+    get(id?: string): Promise<any>
     {
-        return this.db.collection(this.name).doc(id).get() 
+        if(id) return this.db.collection(this.name).doc(id).get()
+        else return this.db.collection(this.name).get() 
     }
 
-    async set(id: string, data: object): Promise<any>
+    set(id: string, data: object): Promise<any>
     {
         return this.db.collection(this.name).doc(id).set(data)
     }
 
-    async add(data: object): Promise<any>
+    add(data: object): Promise<any>
     {
         return this.db.collection(this.name).add(data)
     }
 
-    async delete(id: string): Promise<any>
+    delete(id: string): Promise<any>
     {
         return this.db.collection(this.name).doc(id).delete() 
     }

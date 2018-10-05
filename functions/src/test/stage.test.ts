@@ -8,6 +8,7 @@ import { UserRecord, user } from 'firebase-functions/lib/providers/auth';
 import Database, { Datastore } from './lib/database'
 import { FeaturesList } from 'firebase-functions-test/lib/features';
 import { Collection } from './lib/database/Collections';
+import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised");
@@ -27,7 +28,20 @@ describe('STAGE', () => {
     var fs: firebase.firestore.Firestore
     var db: Datastore
     var adminDb: Datastore
-    var token
+    var testUsertokenOne
+    
+    const testUserDataOne = {
+        uid: "test-user-1",
+        name: "Andy",
+        email: "andy@mail.com"
+    }
+
+    const testUserDataTwo = {
+        uid: "test-user-2",
+        name: "Benny",
+        email: "Benny@mail.com"
+    }
+    
 
     before((done) => {
         
@@ -45,43 +59,34 @@ describe('STAGE', () => {
         db = new Database(fs);
         adminDb = new Database(adminFs);
 
-        const testUserid = 'test-user-1'
-
-        admin.auth().createCustomToken(testUserid)
+        admin.auth().createCustomToken(testUserDataOne.uid)
         .then(customToken => {
-            token = customToken;
+            testUsertokenOne = customToken;
             done()
         })
     });
 
     afterEach(() => {
-        adminDb.users.delete('abc123')
+        adminDb.users.delete(testUserDataOne.uid)
     });
 
     describe('User', () => {
 
-        const userData = {
-            uid: "abc123",
-            name: "Tobias",
-            email: "tobias@mail.com"
-        }
-        
         it('Sign up', (done) => {
 
-            const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(userData)
+            const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(testUserDataOne)
             const wrappedUserSignin = test.wrap(myFunctions.userSignin)
 
             wrappedUserSignin(userRecord)
             .then(() => {
             
-                adminDb.users.get(userData.uid)
+                adminDb.users.get(testUserDataOne.uid)
                 .then((doc: FirebaseFirestore.DocumentSnapshot) => {
                     
                     try
                     {
                         const comparisonData = {
-                            name: userData.name,
-                            email: userData.email,
+                            email: testUserDataOne.email
                         }
 
                         expect(doc.data()).to.include(comparisonData);
@@ -123,19 +128,19 @@ describe('STAGE', () => {
                 })
             })
 
-            it('User can only add oneself', (done) => {
+            it('User cannot add others.', (done) => {
 
                 firebase.auth()
-                .signInWithCustomToken(token)
+                .signInWithCustomToken(testUsertokenOne)
                 .then(() => {
                     
-                    db.households
-                    .add({})
-                    .then((docRef) => {
+                    db.households.create({uid: testUserDataTwo.uid})
+                    .then((docRef: FirebaseFirestore.DocumentReference) => {
+                        
                         try
                         {
                             assert.notExists(docRef)
-                            done()                            
+                            done()
                         }
                         catch(e)
                         {
@@ -145,7 +150,53 @@ describe('STAGE', () => {
                         assert.include(e.message, 'PERMISSION_DENIED')
                         done();
                     })
+                }).catch((e) => {
+                    done(e);
                 })
+            })
+
+            it('User can create and add oneself.', (done) => {
+
+                firebase.auth()
+                .signInWithCustomToken(testUsertokenOne)
+                .then(() => {
+                    
+                    db.households.create({uid: testUserDataOne.uid})
+                    .then((docRef: FirebaseFirestore.DocumentReference) => {
+                        
+                        assert.exists(docRef)
+
+                        db.households.getResidents(docRef.id).then((snap: FirebaseFirestore.DocumentData) => {
+                            
+                            const residents = snap.docs.map((doc) => {
+                                return doc.data()
+                            })
+
+                            expect(residents).to.deep.include({uid: testUserDataOne.uid});
+
+                            done()
+                        })
+                    })
+
+                }).catch((e) => {
+                    done(e)
+                })
+            })
+
+            it('User can add oneself.', async () => {
+
+                const household: FirebaseFirestore.DocumentReference = await adminDb.households.create({uid: testUserDataTwo.uid})
+
+                await firebase.auth().signInWithCustomToken(testUsertokenOne)
+                await db.households.addResident(household.id, {uid: testUserDataOne.uid})
+
+                const householdSnap: FirebaseFirestore.DocumentData = await db.households.getResidents(household.id)
+                const residents = householdSnap.docs.map((doc) => {
+                    return doc.data()
+                })
+
+                expect(residents).to.deep.include({uid: testUserDataOne.uid});
+                expect(residents).to.deep.include({uid: testUserDataTwo.uid});
             })
         })
     })

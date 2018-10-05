@@ -7,7 +7,6 @@ export const signin = (db: Datastore) => {
     return functions.auth.user().onCreate((user: UserRecord) => {
         
         const data = {
-            name : 'Tobias',
             id : user.uid,
             email : user.email
         }
