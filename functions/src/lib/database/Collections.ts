@@ -1,7 +1,8 @@
 
 export enum Collection {
     USERS = 'users',
-    HOUSEHOLDS = 'households'
+    HOUSEHOLDS = 'households',
+    SENSORS = 'sensors'
 }
 
 export interface Collections {
