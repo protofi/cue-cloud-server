@@ -9,6 +9,7 @@ import Database, { Datastore } from './lib/database'
 import { FeaturesList } from 'firebase-functions-test/lib/features';
 import { Collection } from './lib/database/Collections';
 import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore';
+import { asyncForEach } from './lib/util';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised");
@@ -43,7 +44,7 @@ describe('STAGE', () => {
     }
     
 
-    before((done) => {
+    before(async () => {
         
         const stageProjectId = "staging-iot-cloud-server"
 
@@ -59,11 +60,7 @@ describe('STAGE', () => {
         db = new Database(fs);
         adminDb = new Database(adminFs);
 
-        admin.auth().createCustomToken(testUserDataOne.uid)
-        .then(customToken => {
-            testUsertokenOne = customToken;
-            done()
-        })
+        testUsertokenOne = await admin.auth().createCustomToken(testUserDataOne.uid)
     });
 
     afterEach(async () => {
@@ -97,17 +94,13 @@ describe('STAGE', () => {
 
             after( async () => {
 
-                async function asyncForEach(array, callback)
-                {
-                    for (let index = 0; index < array.length; index++)
-                    {
-                        await callback(array[index], index, array)
-                    }
-                }
-
                 await asyncForEach(householdIdsToBeDeleted, async (householdId) => {
                     await adminDb.households.delete(householdId)
                 })
+
+                // await householdIdsToBeDeleted.map(async (householdId) => {
+                //     await adminDb.households.delete(householdId)
+                // })
             })
 
             it('Reject unauthorized creations.', async () => {
