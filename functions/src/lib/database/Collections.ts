@@ -39,7 +39,7 @@ export default class CollectionsImpl implements Collections {
         return this.db.collection(this.name).doc(id).set(data)
     }
 
-    add(data: object): Promise<any>
+    add(data: object): Promise<FirebaseFirestore.DocumentReference>
     {
         return this.db.collection(this.name).add(data)
     }

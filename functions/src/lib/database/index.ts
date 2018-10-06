@@ -4,7 +4,7 @@ import Households from "./HouseholdsCollection";
 export interface Datastore {
     users: Users
     households: Households
-    batch()
+    batch(): FirebaseFirestore.WriteBatch
 }
 
 export default class Database implements Datastore {
@@ -19,7 +19,7 @@ export default class Database implements Datastore {
         this.households = new Households(db)
     }
     
-    batch()
+    batch(): FirebaseFirestore.WriteBatch
     {
         return this.db.batch()
     }
