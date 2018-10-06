@@ -9,5 +9,9 @@ service cloud.firestore {
         allow read: if request.auth.uid != null;
       }
     }
+
+    match /sensors/{sensorId} {
+      allow write, create: if request.auth.uid != null;
+    }
   }
 }
