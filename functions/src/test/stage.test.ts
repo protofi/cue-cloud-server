@@ -185,7 +185,7 @@ describe('STAGE', () => {
             })
         })
 
-        describe.only('Sensors', () => {
+        describe('Sensors', () => {
 
             const sensorIdsToBeDeleted = []
 
