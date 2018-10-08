@@ -58,7 +58,7 @@ describe('STAGE', () => {
         describe('CRUD', () => {
 
             it('Create doc new ref.', async () => {
-                const docRef: FirebaseFirestore.DocumentReference = db.user().getDocRef()
+                const docRef: FirebaseFirestore.DocumentReference = await db.user().getDocRef()
                 expect(docRef).exist
                 expect(docRef.id).exist
                 expect(docRef.path).exist
@@ -69,7 +69,7 @@ describe('STAGE', () => {
             it('Create doc new ref with certain id.', async () => {
                 const id: string = '123';
 
-                const docRef: FirebaseFirestore.DocumentReference = db.user().getDocRef(id)
+                const docRef: FirebaseFirestore.DocumentReference = await db.user().getDocRef(id)
                 expect(docRef).exist
                 expect(docRef.id).to.equals(id)
                 expect(docRef.path).exist
@@ -79,8 +79,8 @@ describe('STAGE', () => {
 
             it('Get ref returns the same ref after initialization.', async () => {
                 const user1: ModelImpl = db.user()
-                const docRef1: FirebaseFirestore.DocumentReference = user1.getDocRef()
-                const docRef2: FirebaseFirestore.DocumentReference = user1.getDocRef()
+                const docRef1: FirebaseFirestore.DocumentReference = await user1.getDocRef()
+                const docRef2: FirebaseFirestore.DocumentReference = await user1.getDocRef()
 
                 expect(docRef1.id).to.equals(docRef2.id)
             })
@@ -196,56 +196,38 @@ describe('STAGE', () => {
 
         describe('Relations.', () => {
 
-            it('Maps', async () => {
+            it.only('Related models method should return the relation every time', async () => {
+                const u = db.user() as User
+
+                const households1 = u.households()
+                const households2 = u.households()
                 
-                const u: User = await db.user().create({
-                    households : {
-                        '123': {name : 'tester'}
-                    }
-                }) as User
+                expect(households1).to.equals(households2)
+            })
 
-                const h = await u.getField('households')
+            it.only('Create root documents and relation by attaching two models in many to many rel', async () => {
+                const user1 = db.user() as User
+                const house = db.household() as Household
 
-                await u.update({
-                    households : {
-                        '456' : { name : 'tester 2'}
-                    }
+                const rel: RelationImpl = await user1.households().attach(house)
+            })
+
+            it('Attach data to model and to many to many relation', async () => {
+                const u = db.user() as User
+                await u.create({
+                    name : 'Benny'
                 })
 
-                const hn = await u.getField('households')
-
-                usersToBeDeleted.push(await u.getId())
-
-                expect(hn).to.deep.include(h)
-            })
-
-            // it.only('Create many to many relation', async () => {
-
-            //     const u = db.user() as User
-            //     await u.households().create({
-            //         name : 'test-household'
-            //     })
-
-            //     const id = await u.getId()
-
-            //     console.log(id)
-            // })
-
-            it.only('Attach many to many relation', async () => {
-                const u = db.user() as User
                 const house = db.household() as Household
 
-                await u.households().attach(house)
-            })
-
-            it.only('Attach data to many to many relation', async () => {
-                const u = db.user() as User
-                const house = db.household() as Household
-
+                await house.create({
+                    name : 'My Home'
+                })
+                
                 const rel: RelationImpl = await u.households().attach(house)
                 
                 await rel.pivot({
-                    name : 'lol'
+                    setting : 'true'
                 })
             })
         })

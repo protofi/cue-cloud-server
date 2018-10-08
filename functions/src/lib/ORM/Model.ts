@@ -2,11 +2,13 @@ import RelationImpl, { Relation, ManyToMany } from "./Relations";
 
 export enum Models {
     USER = 'users',
-    HOUSEHOLD = 'households'
+    HOUSEHOLD = 'households',
+    ROOMS = 'rooms',
+    SENSOR = 'sensors'
 }
 
 export interface Model{
-    getDocRef(): FirebaseFirestore.DocumentReference
+    getDocRef(): Promise<FirebaseFirestore.DocumentReference>
     getId(): Promise<string>
     create(data: object): Promise<ModelImpl>
     find(id: string): Promise<ModelImpl>
@@ -14,7 +16,7 @@ export interface Model{
     update(data: object): Promise<ModelImpl>
     delete()
 
-    hasMany(property: ModelImpl): RelationImpl
+    hasMany(model: String): RelationImpl
     belongsToMany(owner: ModelImpl): RelationImpl
 }
 export default class ModelImpl implements Model {
@@ -23,11 +25,14 @@ export default class ModelImpl implements Model {
     ref: FirebaseFirestore.DocumentReference
     doc: FirebaseFirestore.DocumentSnapshot
     db: FirebaseFirestore.Firestore
+
+    relations: Map<string, RelationImpl>
     
     constructor(name: string, db: FirebaseFirestore.Firestore)
     {
         this.name = name
         this.db = db
+        this.relations = new Map()
     }
 
     protected getColRef(): FirebaseFirestore.CollectionReference
@@ -35,7 +40,7 @@ export default class ModelImpl implements Model {
         return this.db.collection(this.name)
     }
 
-    getDocRef(id?: string): FirebaseFirestore.DocumentReference
+    async getDocRef(id?: string): Promise<FirebaseFirestore.DocumentReference>
     {
         if(id) this.ref = this.getColRef().doc(id)
         if(!this.ref) this.ref = this.getColRef().doc()
@@ -44,18 +49,21 @@ export default class ModelImpl implements Model {
 
     async getId(): Promise<string>
     {
-        return await this.getDocRef().id
+        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
+        return docRef.id
     }
 
     async create(data: object): Promise<ModelImpl>
     {
-        await this.getDocRef().set(data)
+        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
+        await docRef.set(data)
         return this
     }
 
     async find(id: string): Promise<ModelImpl>
     {
-        this.doc = await this.getDocRef(id).get()
+        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef(id)
+        this.doc = await docRef.get()
         return this
     }
 
@@ -72,7 +80,9 @@ export default class ModelImpl implements Model {
 
     async update(data: object): Promise<ModelImpl>
     {
-        await this.getDocRef().set(data, {
+        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
+        
+        await docRef.set(data, {
             merge: true
         })
 
@@ -82,19 +92,50 @@ export default class ModelImpl implements Model {
 
     async delete()
     {
-        await this.getDocRef().delete()
+        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
+        await docRef.delete()
         this.doc = null
         this.ref = null
     }
 
-    hasMany(property: ModelImpl): RelationImpl
+    hasMany(model: string): RelationImpl
     {
-        return new ManyToMany(this, property, this.db)
+        if(!this.relations.has(model))
+        {
+            const property: ModelImpl = new ModelImpl(model, this.db)
+            const relation: RelationImpl = new ManyToMany(this, property, this.db)
+            this.relations.set(model,relation)
+        }
+        
+        return this.relations.get(model)
     }
 
     belongsToMany(owner: ModelImpl): RelationImpl
     {
         return new ManyToMany(owner, this, this.db)
+    }
+}
+
+export class RelationModel extends ModelImpl{
+
+    owner: ModelImpl
+    property: ModelImpl
+
+    constructor(owner: ModelImpl, property: ModelImpl, db: any)
+    {
+        const name = `${owner.name}_${property.name}`
+        super(name, db)
+
+        this.owner = owner
+        this.property = property
+    }
+
+    async getDocRef(id?: string): Promise<FirebaseFirestore.DocumentReference>
+    {
+        const ownerId = await this.owner.getId()
+        const propertyId = await this.property.getId()
+
+        return super.getDocRef(`${ownerId}_${propertyId}`)
     }
 }
 
@@ -107,8 +148,7 @@ export class User extends ModelImpl {
 
     households(): RelationImpl
     {
-        const households: ModelImpl = new ModelImpl(Models.HOUSEHOLD, this.db)
-        return this.hasMany(households)
+        return this.hasMany(Models.HOUSEHOLD)
     }
 }
 
@@ -123,5 +163,13 @@ export class Household extends ModelImpl {
     { 
         const users: ModelImpl = new ModelImpl(Models.USER, this.db)
         return this.belongsToMany(users)
+    }
+}
+
+export class Sensor extends ModelImpl {
+
+    constructor(db: any)
+    {
+        super(Models.SENSOR, db)
     }
 }

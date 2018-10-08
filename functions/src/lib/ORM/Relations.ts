@@ -5,6 +5,7 @@ export interface Relation {
     getDocRef(): Promise<FirebaseFirestore.DocumentReference>
     getId(): Promise<string>
     attach(model: ModelImpl): Promise<RelationImpl>
+    update(data: any): Promise<RelationImpl>
     pivot(data: any): Promise<RelationImpl>
 }
 
@@ -27,6 +28,11 @@ export default class RelationImpl implements Relation {
         return this.db.collection(`${this.owner.name}_${this.property.name}`)
     }
 
+    private setPropertyModel(property: ModelImpl)
+    {
+        this.property = property
+    }
+
     async getId(): Promise<string>
     {
         const ownerId = await this.owner.getId()
@@ -43,12 +49,35 @@ export default class RelationImpl implements Relation {
     
     async attach(model: ModelImpl): Promise<RelationImpl>
     {
+        this.setPropertyModel(model)
+
         const docRef = await this.getDocRef()
-        const pivotData = {
-            [this.owner.name] : { id : await this.owner.getId()},
+
+        const relData = {
+            [this.owner.name]    : { id : await this.owner.getId()},
             [this.property.name] : { id : await this.property.getId()},
         }
-        await docRef.set(pivotData, { merge: true })
+
+        await docRef.set(relData, { merge: true })
+
+        await this.owner.update({
+            [this.property.name] : { id : await this.property.getId()}
+        })
+
+        await this.property.update({
+            [this.owner.name] : { id : await this.owner.getId()}
+        })
+
+        return this
+    }
+
+    async update(data: any): Promise<RelationImpl>
+    {
+        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
+        
+        await docRef.set(data, {
+            merge: true
+        })
 
         return this
     }
@@ -56,17 +85,12 @@ export default class RelationImpl implements Relation {
     async pivot(pivotData: any): Promise<RelationImpl>
     {
         const docRef = await this.getDocRef()
-        await docRef.set(pivotData, { merge: true })
+        await docRef.set({
+            pivot : pivotData
+        }, { merge: true })
 
         return this
     }
-
-    // async create(data: any): Promise<Relation>
-    // {
-    //     const docRef = await this.getDocRef()
-    //     await docRef.set(data)
-    //     return this
-    // }
 }
 
 export class ManyToMany extends RelationImpl {
