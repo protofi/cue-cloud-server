@@ -1,20 +1,23 @@
-import { throws } from "assert";
+import RelationImpl, { Relation, ManyToMany } from "./Relations";
 
 export enum Models {
-    USER = 'Users'
+    USER = 'users',
+    HOUSEHOLD = 'households'
 }
 
 export interface Model{
     getDocRef(): FirebaseFirestore.DocumentReference
-    getId(): string
-    create(data: object): Promise<ModelImp>
-    find(id: string): Promise<ModelImp>
+    getId(): Promise<string>
+    create(data: object): Promise<ModelImpl>
+    find(id: string): Promise<ModelImpl>
     getField(key: string): any
-    update(data: object): Promise<ModelImp>
+    update(data: object): Promise<ModelImpl>
     delete()
-}
 
-export default class ModelImp implements Model {
+    hasMany(property: ModelImpl): RelationImpl
+    belongsToMany(owner: ModelImpl): RelationImpl
+}
+export default class ModelImpl implements Model {
 
     name: string
     ref: FirebaseFirestore.DocumentReference
@@ -39,18 +42,18 @@ export default class ModelImp implements Model {
         return this.ref
     }
 
-    getId(): string
+    async getId(): Promise<string>
     {
-        return this.getDocRef().id
+        return await this.getDocRef().id
     }
 
-    async create(data: object): Promise<ModelImp>
+    async create(data: object): Promise<ModelImpl>
     {
         await this.getDocRef().set(data)
         return this
     }
 
-    async find(id: string): Promise<ModelImp>
+    async find(id: string): Promise<ModelImpl>
     {
         this.doc = await this.getDocRef(id).get()
         return this
@@ -60,13 +63,14 @@ export default class ModelImp implements Model {
     {
         if(this.doc) return this.doc.get(key)
 
-        if(!this.getId()) return null
+        const id = await this.getId()
+        if(!id) return null
 
-        await this.find(this.getId())
+        await this.find(id)
         return this.getField(key)
     }
 
-    async update(data: object): Promise<ModelImp>
+    async update(data: object): Promise<ModelImpl>
     {
         await this.getDocRef().set(data, {
             merge: true
@@ -82,12 +86,42 @@ export default class ModelImp implements Model {
         this.doc = null
         this.ref = null
     }
+
+    hasMany(property: ModelImpl): RelationImpl
+    {
+        return new ManyToMany(this, property, this.db)
+    }
+
+    belongsToMany(owner: ModelImpl): RelationImpl
+    {
+        return new ManyToMany(owner, this, this.db)
+    }
 }
 
-export class User extends ModelImp {
+export class User extends ModelImpl {
 
-    constructor(name: string,  db: any)
+    constructor(db: any)
     {
-        super(name, db)
+        super(Models.USER, db)
+    }
+
+    households(): RelationImpl
+    {
+        const households: ModelImpl = new ModelImpl(Models.HOUSEHOLD, this.db)
+        return this.hasMany(households)
+    }
+}
+
+export class Household extends ModelImpl {
+
+    constructor(db: any)
+    {
+        super(Models.HOUSEHOLD, db)
+    }
+
+    users(): RelationImpl
+    { 
+        const users: ModelImpl = new ModelImpl(Models.USER, this.db)
+        return this.belongsToMany(users)
     }
 }

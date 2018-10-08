@@ -1,7 +1,8 @@
-import ModelImp, { Models, User } from "./Model";
+import ModelImpl, { Models, User, Household } from "./Model";
 
 export interface DataORM {
-    users(): ModelImp
+    user(): ModelImpl
+    household(): ModelImpl
 }
 
 export default class DataORMImpl implements DataORM{
@@ -12,8 +13,13 @@ export default class DataORMImpl implements DataORM{
         this.db = db
     }
 
-    users(): ModelImp
+    user(): User
     {
-        return new User(Models.USER, this.db)
+        return new User(this.db) as User
+    }
+
+    household(): Household
+    {
+        return new Household(this.db) as Household
     }
 }
