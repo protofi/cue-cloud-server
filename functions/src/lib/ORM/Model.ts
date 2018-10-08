@@ -41,8 +41,7 @@ export default class ModelImp implements Model {
 
     getId(): string
     {
-        if(this.ref) return this.ref.id
-        return null
+        return this.getDocRef().id
     }
 
     async create(data: object): Promise<ModelImp>
