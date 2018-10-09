@@ -325,6 +325,12 @@ describe('STAGE', () => {
                 await pivot.update({
                     settings : true
                 })
+
+                //clean up
+                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((await house.getDocRef()).path)
+                docsToBeDeleted.push((await pivot.getDocRef()).path)
+
             }).timeout(4000)
         })
     })
