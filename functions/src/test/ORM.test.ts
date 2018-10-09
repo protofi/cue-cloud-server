@@ -213,11 +213,11 @@ describe('STAGE', () => {
 
                 const rel: RelationModel = await user.households().attach(house)
 
-                const userHouse = await user.getField(house.name)
-                const houseUser = await house.getField(user.name)
+                const userHouses = await user.getField(house.name)
+                const houseUsers = await house.getField(user.name)
 
-                expect(userHouse.id, 'Foreign key on user').to.equals(await house.getId())
-                expect(houseUser.id, 'Foreign key on household').to.equals(await user.getId())
+                expect(Object.keys(userHouses), 'Foreign key on user').to.include(await house.getId())
+                expect(Object.keys(houseUsers), 'Foreign key on household').to.include(await user.getId())
 
                 const relUser = await rel.getField(user.name)
                 const relHouse = await rel.getField(house.name)
@@ -231,8 +231,19 @@ describe('STAGE', () => {
 
             }).timeout(4000)
 
+            it('Attach multiple models to one many-to-many related model', async () => {
+                const user = db.user() as User
+                const house1 = db.household() as Household
+                const house2 = db.household() as Household
+
+                const rel1: RelationModel = await user.households().attach(house1)
+                const rel2: RelationModel = await user.households().attach(house2)
+
+                expect('').empty
+            }).timeout(4000)
+
             it('Attach data to model and to many to many relation', async () => {
-                const u = db.user() as User
+                    const u = db.user() as User
                 await u.create({
                     name : 'Benny'
                 })

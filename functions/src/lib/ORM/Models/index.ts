@@ -161,11 +161,11 @@ export class RelationModel extends ModelImpl implements Relation{
         await docRef.set(relData, { merge: true })
 
         await this.owner.update({
-            [this.property.name] : { id : await this.property.getId()}
+            [this.property.name] : {[await this.property.getId()] : true}
         })
 
         await this.property.update({
-            [this.owner.name] : { id : await this.owner.getId()}
+            [this.owner.name] : {[await this.owner.getId()] : true}
         })
 
         return this
