@@ -5,22 +5,17 @@ export enum Models {
     USER = 'users'
 }
 
-export interface Relation {
-    attach(model: ModelImpl): Promise<RelationModel>
-    pivot(data: any): Promise<RelationModel>
-}
-
 export interface Model{
     getDocRef(): Promise<FirebaseFirestore.DocumentReference>
     getId(): Promise<string>
     create(data: object): Promise<ModelImpl>
     find(id: string): Promise<ModelImpl>
+    where(fieldPath: string, operator: FirebaseFirestore.WhereFilterOp, value: string): FirebaseFirestore.Query
     getField(key: string): any
     update(data: object): Promise<ModelImpl>
     delete()
 
-    haveMany(model: String): RelationModel
-    belongToMany(owner: ModelImpl): RelationModel
+    hasMany(model: String): RelationModel
 }
 
 export default class ModelImpl implements Model {
@@ -30,13 +25,14 @@ export default class ModelImpl implements Model {
     doc: FirebaseFirestore.DocumentSnapshot
     db: FirebaseFirestore.Firestore
 
-    relations: Map<string, RelationModel>
+    private relations: Map<string, RelationModel>
     
-    constructor(name: string, db: FirebaseFirestore.Firestore)
+    constructor(name: string, db: FirebaseFirestore.Firestore, id?: string)
     {
         this.name = name
         this.db = db
         this.relations = new Map()
+        if(id) this.getDocRef(id)
     }
 
     protected getColRef(): FirebaseFirestore.CollectionReference
@@ -71,6 +67,11 @@ export default class ModelImpl implements Model {
         return this
     }
 
+    where(fieldPath: string, operator: FirebaseFirestore.WhereFilterOp, value: string): FirebaseFirestore.Query
+    {
+        return this.getColRef().where(fieldPath, operator, value)
+    }
+
     async getField(key: string): Promise<any>
     {
         if(this.doc) return this.doc.get(key)
@@ -102,82 +103,101 @@ export default class ModelImpl implements Model {
         this.ref = null
     }
 
-    haveMany(model: string): RelationModel
+    hasMany(model: string): RelationModel
     {
         if(!this.relations.has(model))
         {
-            const property: ModelImpl = new ModelImpl(model, this.db)
-            const relation: RelationModel = new RelationModel(this, property, this.db)
+            const relation: RelationModel = new RelationModel(this, model, this.db)
             this.relations.set(model, relation)
         }
 
         return this.relations.get(model)
     }
-
-    belongToMany(owner: ModelImpl): RelationModel
-    {
-        return new RelationModel(owner, this, this.db)
-    }
 }
 
-export class RelationModel extends ModelImpl implements Relation{
+export interface Relation {
+    attach(model: ModelImpl): Promise<RelationModel>
+    get(): Promise<Array<ModelImpl>>
+    pivot(id: string): Promise<ModelImpl>
+}
 
+export class RelationModel implements Relation{
+
+    db: any
+    name: string
     owner: ModelImpl
-    property: ModelImpl
+    propertyModelName: string
+    private properties: Set<ModelImpl>
 
-    constructor(owner: ModelImpl, property: ModelImpl, db: any)
+    constructor(owner: ModelImpl, propertyModelName: string, db: any)
     {
-        const name = `${owner.name}_${property.name}`
-        super(name, db)
+        this.name = [owner.name, propertyModelName].sort().join('_')
+        
+        this.db = db
 
+        this.properties = new Set<ModelImpl>()
         this.owner = owner
-        this.property = property
+        this.propertyModelName = propertyModelName
     }
 
-    private setPropertyModel(property: ModelImpl)
+    private async generatePivotId(id: string): Promise<string>
     {
-        this.property = property
+        return [{
+                    name: this.propertyModelName,
+                    id: id
+                },{
+                    name: this.owner.name,
+                    id: await this.owner.getId()
+                }
+            ].sort((A, B) => {
+                if (A.name < B.name) return -1
+                if (A.name > B.name) return 1
+                return 0 
+            }).map((part) => {
+                return part.id
+            }).join('_')
     }
 
-    async getDocRef(id?: string): Promise<FirebaseFirestore.DocumentReference>
+    async attach(newPropModel: ModelImpl): Promise<RelationModel>
     {
-        const ownerId = await this.owner.getId()
-        const propertyId = await this.property.getId()
+        this.properties.add(newPropModel)
 
-        return super.getDocRef(`${ownerId}_${propertyId}`)
-    }
+        const id: string = await this.generatePivotId(await newPropModel.getId())
 
-    async attach(model: ModelImpl): Promise<RelationModel>
-    {
-        this.setPropertyModel(model)
-
-        const docRef = await this.getDocRef()
+        const pivotModel: ModelImpl = new ModelImpl(this.name, this.db, id)
 
         const relData = {
-            [this.owner.name]    : { id : await this.owner.getId()},
-            [this.property.name] : { id : await this.property.getId()},
+            [this.owner.name]           : { id : await this.owner.getId()},
+            [this.propertyModelName]    : { id : await newPropModel.getId()}
         }
 
-        await docRef.set(relData, { merge: true })
+        await pivotModel.create(relData)
 
         await this.owner.update({
-            [this.property.name] : {[await this.property.getId()] : true}
+            [this.propertyModelName] : {[await newPropModel.getId()] : true}
         })
 
-        await this.property.update({
+        await newPropModel.update({
             [this.owner.name] : {[await this.owner.getId()] : true}
         })
 
         return this
     }
 
-    async pivot(pivotData: any): Promise<RelationModel>
+    async pivot(id: string): Promise<ModelImpl>
     {
-        const docRef = await this.getDocRef()
-        await docRef.set({
-            pivot : pivotData
-        }, { merge: true })
+        const pivotId: string = await this.generatePivotId(id)
+        return new ModelImpl(this.name, this.db, pivotId)
+    }
 
-        return this
+    async get(): Promise<Array<ModelImpl>>
+    {
+        const properties: Object = await this.owner.getField(this.propertyModelName)
+
+        const models = Object.keys(properties).map((propertyId) => {
+            return new ModelImpl(this.propertyModelName, this.db, propertyId)
+        })
+
+        return models
     }
 }

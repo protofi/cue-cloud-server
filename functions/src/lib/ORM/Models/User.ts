@@ -9,6 +9,6 @@ export class User extends ModelImpl {
 
     households(): RelationModel
     {
-        return this.haveMany(Models.HOUSEHOLD)
+        return this.hasMany(Models.HOUSEHOLD)
     }
 }

@@ -8,9 +8,9 @@ import { FeaturesList } from 'firebase-functions-test/lib/features';
 
 import DataORMImpl from "./lib/ORM"
 import { asyncForEach } from './lib/util'
-import ModelImpl, { Models, RelationModel } from './lib/ORM/Models';
 import { User } from './lib/ORM/Models/User';
 import { Household } from './lib/ORM/Models/Household';
+import ModelImpl, { RelationModel, Models } from './lib/ORM/Models';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised");
@@ -198,7 +198,7 @@ describe('STAGE', () => {
 
         describe('Relations.', () => {
 
-            it('Related models method should return the relation every time', async () => {
+            it('Related models method should return the same relation every time', async () => {
                 const u = db.user() as User
 
                 const households1 = u.households()
@@ -207,27 +207,25 @@ describe('STAGE', () => {
                 expect(households1).to.equals(households2)
             })
 
-            it.only('Create root documents and relation by attaching two models in many to many rel', async () => {
+            it('Create root documents and relation by attaching two models in many to many rel', async () => {
                 const user = db.user() as User
                 const house = db.household() as Household
 
-                const rel: RelationModel = await user.households().attach(house)
+                await user.households().attach(house)
 
                 const userHouses = await user.getField(house.name)
                 const houseUsers = await house.getField(user.name)
 
-                expect(Object.keys(userHouses), 'Foreign key on user').to.include(await house.getId())
-                expect(Object.keys(houseUsers), 'Foreign key on household').to.include(await user.getId())
+                const houseId = await house.getId()
+                const userId = await user.getId()
 
-                const relUser = await rel.getField(user.name)
-                const relHouse = await rel.getField(house.name)
+                expect(Object.keys(userHouses), 'Foreign key on user').to.include(houseId)
+                expect(Object.keys(houseUsers), 'Foreign key on household').to.include(userId)
 
-                expect(relUser.id).to.equals(await user.getId())
-                expect(relHouse.id).to.equals(await house.getId())
-
+                //clean up
                 docsToBeDeleted.push((await user.getDocRef()).path)
                 docsToBeDeleted.push((await house.getDocRef()).path)
-                docsToBeDeleted.push((await rel.getDocRef()).path)
+                docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
 
             }).timeout(4000)
 
@@ -236,30 +234,98 @@ describe('STAGE', () => {
                 const house1 = db.household() as Household
                 const house2 = db.household() as Household
 
-                const rel1: RelationModel = await user.households().attach(house1)
-                const rel2: RelationModel = await user.households().attach(house2)
+                await user.households().attach(house1)
+                await user.households().attach(house2)
 
-                expect('').empty
-            }).timeout(4000)
+                const userHouses = await user.getField(house1.name)
+                const house1Users = await house1.getField(user.name)
+                const house2Users = await house2.getField(user.name)
 
-            it('Attach data to model and to many to many relation', async () => {
-                    const u = db.user() as User
-                await u.create({
-                    name : 'Benny'
-                })
+                const userId: string = await user.getId()
+                const house1Id: string = await house1.getId()
+                const house2Id: string = await house2.getId()
 
+                expect(Object.keys(userHouses), 'Foreign key from house1 on user').to.include(house1Id)
+                expect(Object.keys(userHouses), 'Foreign key from house2 on user').to.include(house2Id)
+                expect(Object.keys(house1Users), 'Foreign key on household1').to.include(userId)
+                expect(Object.keys(house2Users), 'Foreign key on household2').to.include(userId)
+
+                //clean up
+                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((await house1.getDocRef()).path)
+                docsToBeDeleted.push((await house2.getDocRef()).path)
+                docsToBeDeleted.push(`${house1.name}_${user.name}/${house1Id}_${userId}`)
+                docsToBeDeleted.push(`${house2.name}_${user.name}/${house2Id}_${userId}`)
+
+            }).timeout(5000)
+
+            it('Retrive attached blank model of many-to-many relation', async () => {
+
+                const user = db.user() as User
                 const house = db.household() as Household
 
-                await house.create({
-                    name : 'My Home'
+                await user.households().attach(house)
+
+                const households: Array<ModelImpl> = await user.households().get()
+
+                const attachedHouseId = await households[0].getId()
+                const houseId = await house.getId()
+
+                expect(houseId).to.equal(attachedHouseId)
+
+                const userId: string = await user.getId()
+
+                //clean up
+                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((await house.getDocRef()).path)
+
+                docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
+
+            }).timeout(4000)
+
+            it('Retrive attached model with data of many-to-many relation', async () => {
+                const user = db.user() as User
+                const house = db.household() as Household
+
+                const name: string = 'My home'
+
+                house.update({
+                    name: name
                 })
+
+                await user.households().attach(house)
+
+                const households: Array<ModelImpl> = await user.households().get()
+
+                const attachedHouse = await households[0]
                 
-                const rel: RelationModel = await u.households().attach(house)
-                
-                // await rel.pivot({
-                //     setting : 'true'
-                // })
-            })
+                const attName: string = await attachedHouse.getField('name')
+
+                expect(attName).to.equal(name)
+
+                //clean up
+                const houseId = await house.getId()
+                const userId: string = await user.getId()
+
+                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((await house.getDocRef()).path)
+
+                docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
+
+            }).timeout(4000)
+
+            it('Attach pivot data to many-to-many relation', async () => {
+                const user = db.user() as User
+                const house = db.household() as Household
+                const houseId = await house.getId()
+
+                await user.households().attach(house)
+
+                const pivot: ModelImpl = await user.households().pivot(houseId)
+                await pivot.update({
+                    settings : true
+                })
+            }).timeout(4000)
         })
     })
 })
