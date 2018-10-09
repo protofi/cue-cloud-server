@@ -1,10 +1,13 @@
-import RelationImpl, { Relation, ManyToMany } from "./Relations";
-
 export enum Models {
-    USER = 'users',
     HOUSEHOLD = 'households',
+    SENSOR = 'sensors',
     ROOMS = 'rooms',
-    SENSOR = 'sensors'
+    USER = 'users'
+}
+
+export interface Relation {
+    attach(model: ModelImpl): Promise<RelationModel>
+    pivot(data: any): Promise<RelationModel>
 }
 
 export interface Model{
@@ -16,9 +19,10 @@ export interface Model{
     update(data: object): Promise<ModelImpl>
     delete()
 
-    hasMany(model: String): RelationImpl
-    belongsToMany(owner: ModelImpl): RelationImpl
+    hasMany(model: String): RelationModel
+    belongsToMany(owner: ModelImpl): RelationModel
 }
+
 export default class ModelImpl implements Model {
 
     name: string
@@ -26,7 +30,7 @@ export default class ModelImpl implements Model {
     doc: FirebaseFirestore.DocumentSnapshot
     db: FirebaseFirestore.Firestore
 
-    relations: Map<string, RelationImpl>
+    relations: Map<string, RelationModel>
     
     constructor(name: string, db: FirebaseFirestore.Firestore)
     {
@@ -98,25 +102,25 @@ export default class ModelImpl implements Model {
         this.ref = null
     }
 
-    hasMany(model: string): RelationImpl
+    hasMany(model: string): RelationModel
     {
         if(!this.relations.has(model))
         {
             const property: ModelImpl = new ModelImpl(model, this.db)
-            const relation: RelationImpl = new ManyToMany(this, property, this.db)
-            this.relations.set(model,relation)
+            const relation: RelationModel = new RelationModel(this, property, this.db)
+            this.relations.set(model, relation)
         }
-        
+
         return this.relations.get(model)
     }
 
-    belongsToMany(owner: ModelImpl): RelationImpl
+    belongsToMany(owner: ModelImpl): RelationModel
     {
-        return new ManyToMany(owner, this, this.db)
+        return new RelationModel(owner, this, this.db)
     }
 }
 
-export class RelationModel extends ModelImpl{
+export class RelationModel extends ModelImpl implements Relation{
 
     owner: ModelImpl
     property: ModelImpl
@@ -130,6 +134,11 @@ export class RelationModel extends ModelImpl{
         this.property = property
     }
 
+    private setPropertyModel(property: ModelImpl)
+    {
+        this.property = property
+    }
+
     async getDocRef(id?: string): Promise<FirebaseFirestore.DocumentReference>
     {
         const ownerId = await this.owner.getId()
@@ -137,39 +146,38 @@ export class RelationModel extends ModelImpl{
 
         return super.getDocRef(`${ownerId}_${propertyId}`)
     }
-}
 
-export class User extends ModelImpl {
-
-    constructor(db: any)
+    async attach(model: ModelImpl): Promise<RelationModel>
     {
-        super(Models.USER, db)
+        this.setPropertyModel(model)
+
+        const docRef = await this.getDocRef()
+
+        const relData = {
+            [this.owner.name]    : { id : await this.owner.getId()},
+            [this.property.name] : { id : await this.property.getId()},
+        }
+
+        await docRef.set(relData, { merge: true })
+
+        await this.owner.update({
+            [this.property.name] : { id : await this.property.getId()}
+        })
+
+        await this.property.update({
+            [this.owner.name] : { id : await this.owner.getId()}
+        })
+
+        return this
     }
 
-    households(): RelationImpl
+    async pivot(pivotData: any): Promise<RelationModel>
     {
-        return this.hasMany(Models.HOUSEHOLD)
-    }
-}
+        const docRef = await this.getDocRef()
+        await docRef.set({
+            pivot : pivotData
+        }, { merge: true })
 
-export class Household extends ModelImpl {
-
-    constructor(db: any)
-    {
-        super(Models.HOUSEHOLD, db)
-    }
-
-    users(): RelationImpl
-    { 
-        const users: ModelImpl = new ModelImpl(Models.USER, this.db)
-        return this.belongsToMany(users)
-    }
-}
-
-export class Sensor extends ModelImpl {
-
-    constructor(db: any)
-    {
-        super(Models.SENSOR, db)
+        return this
     }
 }
