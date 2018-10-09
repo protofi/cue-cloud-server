@@ -45,12 +45,15 @@ describe('STAGE', () => {
 
     describe('ORM', () => {
 
-        const usersToBeDeleted = []
+        var docsToBeDeleted
+
+        beforeEach(() => {
+            docsToBeDeleted = []
+        })
 
         afterEach(async () => {
-            asyncForEach(usersToBeDeleted, async (id: string ) => {
-                const u = await db.user().find(id)
-                await u.delete()
+            await asyncForEach(docsToBeDeleted, async (path: string ) => {
+                await adminFs.doc(path).delete()
             })
         })
 
@@ -85,45 +88,45 @@ describe('STAGE', () => {
             })
 
             it('Get ID of new Model.', async () => {
-                const user1: ModelImpl = db.user()
-                const id: string = await user1.getId()
+                const user: ModelImpl = db.user()
+                const id: string = await user.getId()
 
                 expect(id).exist
             })
 
             it('Get ID of created docRef.', async () => {
-                const user1: ModelImpl = await db.user().create({
+                const user: ModelImpl = await db.user().create({
                     name : 'Tob'
                 })
 
-                const id: string = await user1.getId()
+                const id: string = await user.getId()
                 
-                usersToBeDeleted.push(id)
+                docsToBeDeleted.push((await user.getDocRef()).path)
                 
                 expect(id).exist
             })
 
             it('Create.', async () => {
 
-                const u: ModelImpl = db.user()
-                await u.create({
+                const user: ModelImpl = db.user()
+                await user.create({
                     name: 'Bob'
                 })
 
-                usersToBeDeleted.push(await u.getId())
+                docsToBeDeleted.push((await user.getDocRef()).path)
 
-                const name: string = await u.getField('name')
+                const name: string = await user.getField('name')
                 expect(name).to.equals('Bob')
             })
 
             it('Retrieve certain model.', async () => {
-                const u: ModelImpl = await db.user().create({
+                const user: ModelImpl = await db.user().create({
                     name: 'Bob'
                 })
 
-                const uid: string = await u.getId()
+                const uid: string = await user.getId()
                 
-                usersToBeDeleted.push(uid)
+                docsToBeDeleted.push((await user.getDocRef()).path)
 
                 const u2: ModelImpl = await db.user().find(uid)
                 const name = await u2.getField('name')
@@ -132,62 +135,62 @@ describe('STAGE', () => {
             })
 
             it('Retrieve certain data not existing.', async () => {
-                const u: ModelImpl = await db.user().create({
+                const user: ModelImpl = await db.user().create({
                     name: 'Bob'
                 })
 
-                const age = await u.getField('age')
+                const age = await user.getField('age')
 
-                usersToBeDeleted.push(await u.getId())
+                docsToBeDeleted.push((await user.getDocRef()).path)
 
                 expect(age).to.not.exist
             })
 
             it('Update.', async () => {
-                const u: ModelImpl = db.user()
+                const user: ModelImpl = db.user()
 
-                await u.create({
+                await user.create({
                     name: 'Bobby'
                 })
 
-                await u.update({
+                await user.update({
                     age: 28
                 })
 
-                const name = await u.getField('name')
-                const age = await u.getField('age')
+                const name = await user.getField('name')
+                const age = await user.getField('age')
 
-                usersToBeDeleted.push(await u.getId())
-
+                docsToBeDeleted.push((await user.getDocRef()).path)
+                
                 expect(name).equals('Bobby')
                 expect(age).equals(28)
             })
 
             it('Delete.', async () => {
 
-                const u: ModelImpl = db.user()
+                const user: ModelImpl = db.user()
 
-                await u.create({
+                await user.create({
                     name: 'Bobby'
                 })
 
-                await u.update({
+                await user.update({
                     age: 28
                 })
 
-                const id = await u.getId()
-                const name = await u.getField('name')
-                const age = await u.getField('age')
+                const id = await user.getId()
+                const name = await user.getField('name')
+                const age = await user.getField('age')
 
-                usersToBeDeleted.push(id)
+                docsToBeDeleted.push((await user.getDocRef()).path)
 
                 expect(name).equals('Bobby')
                 expect(age).equals(28)
 
-                await u.delete()
+                await user.delete()
 
-                await u.find(id)
-                const age2 = await u.getField('age')
+                await user.find(id)
+                const age2 = await user.getField('age')
                 
                 expect(age2).to.not.exist
             }).timeout(4000)
@@ -195,7 +198,7 @@ describe('STAGE', () => {
 
         describe('Relations.', () => {
 
-            it.only('Related models method should return the relation every time', async () => {
+            it('Related models method should return the relation every time', async () => {
                 const u = db.user() as User
 
                 const households1 = u.households()
@@ -205,12 +208,27 @@ describe('STAGE', () => {
             })
 
             it.only('Create root documents and relation by attaching two models in many to many rel', async () => {
-                const user1 = db.user() as User
+                const user = db.user() as User
                 const house = db.household() as Household
 
-                const rel: RelationModel = await user1.households().attach(house)
+                const rel: RelationModel = await user.households().attach(house)
 
-                expect(true).to.equals(true)
+                const userHouse = await user.getField(house.name)
+                const houseUser = await house.getField(user.name)
+
+                expect(userHouse.id, 'Foreign key on user').to.equals(await house.getId())
+                expect(houseUser.id, 'Foreign key on household').to.equals(await user.getId())
+
+                const relUser = await rel.getField(user.name)
+                const relHouse = await rel.getField(house.name)
+
+                expect(relUser.id).to.equals(await user.getId())
+                expect(relHouse.id).to.equals(await house.getId())
+
+                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((await house.getDocRef()).path)
+                docsToBeDeleted.push((await rel.getDocRef()).path)
+
             }).timeout(4000)
 
             it('Attach data to model and to many to many relation', async () => {

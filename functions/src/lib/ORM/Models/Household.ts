@@ -10,6 +10,6 @@ export class Household extends ModelImpl {
     users(): RelationModel
     {
         const users: ModelImpl = new ModelImpl(Models.USER, this.db)
-        return this.belongsToMany(users)
+        return this.belongToMany(users)
     }
 }

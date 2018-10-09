@@ -19,8 +19,8 @@ export interface Model{
     update(data: object): Promise<ModelImpl>
     delete()
 
-    hasMany(model: String): RelationModel
-    belongsToMany(owner: ModelImpl): RelationModel
+    haveMany(model: String): RelationModel
+    belongToMany(owner: ModelImpl): RelationModel
 }
 
 export default class ModelImpl implements Model {
@@ -102,7 +102,7 @@ export default class ModelImpl implements Model {
         this.ref = null
     }
 
-    hasMany(model: string): RelationModel
+    haveMany(model: string): RelationModel
     {
         if(!this.relations.has(model))
         {
@@ -114,7 +114,7 @@ export default class ModelImpl implements Model {
         return this.relations.get(model)
     }
 
-    belongsToMany(owner: ModelImpl): RelationModel
+    belongToMany(owner: ModelImpl): RelationModel
     {
         return new RelationModel(owner, this, this.db)
     }
