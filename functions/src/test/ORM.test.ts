@@ -202,10 +202,20 @@ describe('STAGE', () => {
         describe('Relations.', () => {
 
             describe('I2I', async () => {
-                return
+                
+                it('Related models method should return the same relation every time', async () => {
+                    
+                    const sensor: Sensor = db.sensor()
+
+                    const room1 = sensor.room()
+                    const room2 = sensor.room()
+                    
+                    expect(room1).to.deep.equals(room2)
+                })
+
             })
 
-            describe.only('I2M', async () => {
+            describe('I2M', async () => {
 
                 it('Related models method should return the same relation every time', async () => {
                     
@@ -238,21 +248,58 @@ describe('STAGE', () => {
 
                 }).timeout(4000)
 
-                it.only('Make sure models can be attached in and received "inverse"', async () => {
+                it('Make sure models can be attached and received "inverse"', async () => {
 
                     const room: Room = db.room()
                     const sensor: Sensor = db.sensor()
 
                     const roomId = await room.getId()
-                    const sensorId = await sensor.getId()
 
                     await room.sensors().attach(sensor)
 
                     const attRoom = await sensor.room().get()
 
                     expect(roomId).to.equal(await attRoom.getId())
+
+                    //clean up
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    
                 }).timeout(4000)
 
+                it('Retrive cached relational data', async () => {
+                    const sensor = db.sensor()
+                    const room = db.room()
+                    const sensorId = await sensor.getId();
+
+                    await room.sensors().attach(sensor)
+                    
+                    const sensorData = {[sensorId] : {
+                        name: 'Doorbell'
+                    }}
+
+                    await room.update({
+                        [sensor.name] : { 
+                            [sensorId] : {
+                                name: 'Doorbell'
+                            },
+                            '123' : {
+                                name: 'Dryer'
+                            }
+                        }
+                    })
+
+                    const cache1 = await room.sensors().cache()
+                    const cache2 = await room.sensors().cache(sensorId)
+
+                    expect(cache1).to.deep.include(sensorData)
+                    expect(cache2).to.deep.equal(sensorData[sensorId])
+
+                    //clean up
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push((await room.getDocRef()).path)
+                   
+                }).timeout(4000)
 
             })
 
@@ -400,6 +447,14 @@ describe('STAGE', () => {
                     expect(cache1).to.deep.include(houseData)
                     expect(cache2).to.deep.equal(houseData[houseId])
 
+                    //clean up
+                    const userId: string = await user.getId()
+
+                    docsToBeDeleted.push((await user.getDocRef()).path)
+                    docsToBeDeleted.push((await house.getDocRef()).path)
+
+                    docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
+
                 }).timeout(4000)
 
                 it('Attach pivot data to many-to-many relation', async () => {
@@ -435,6 +490,13 @@ describe('STAGE', () => {
                     const pivot2: ModelImpl = await house.users().pivot(userId)
 
                     expect(await pivot1.getId()).to.equal(await pivot2.getId())
+
+                     //clean up
+                     docsToBeDeleted.push((await user.getDocRef()).path)
+                     docsToBeDeleted.push((await house.getDocRef()).path)
+ 
+                     docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
+
                 }).timeout(4000)
             })
         })
