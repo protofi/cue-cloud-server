@@ -1,5 +1,7 @@
-import { Household } from "./Models/Household";
-import { User } from "./Models/User";
+import Household from "./Models/Household";
+import User from "./Models/User";
+import Sensor from "./Models/Sensor";
+import Room from "./Models/Room";
 
 export interface DataORM {
     user(): User
@@ -22,5 +24,15 @@ export default class DataORMImpl implements DataORM{
     household(): Household
     {
         return new Household(this.db) as Household
+    }
+
+    sensor(): Sensor
+    {
+        return new Sensor(this.db)
+    }
+
+    room(): Room
+    {
+        return new Room(this.db)
     }
 }

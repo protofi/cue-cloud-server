@@ -1,6 +1,7 @@
-import ModelImpl, { Models, RelationImpl } from "./";
+import ModelImpl, { Models } from "./";
+import RelationImpl from "./../Relation";
 
-export class User extends ModelImpl {
+export default class User extends ModelImpl {
 
     constructor(db: any)
     {
@@ -9,6 +10,6 @@ export class User extends ModelImpl {
 
     households(): RelationImpl
     {
-        return this.hasMany(Models.HOUSEHOLD)
+        return this.belongsToMany(Models.HOUSEHOLD)
     }
 }

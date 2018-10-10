@@ -1,6 +1,6 @@
 import ModelImpl, { Models } from "./";
 
-export default class Sensor extends ModelImpl {
+export default class Room extends ModelImpl {
 
     constructor(db: any)
     {
