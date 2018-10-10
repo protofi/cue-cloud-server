@@ -1,4 +1,4 @@
-import ModelImpl, { Models, RelationModel } from "./";
+import ModelImpl, { Models, RelationImpl } from "./";
 
 export class User extends ModelImpl {
 
@@ -7,7 +7,7 @@ export class User extends ModelImpl {
         super(Models.USER, db)
     }
 
-    households(): RelationModel
+    households(): RelationImpl
     {
         return this.hasMany(Models.HOUSEHOLD)
     }

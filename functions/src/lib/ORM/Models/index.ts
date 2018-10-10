@@ -15,7 +15,7 @@ export interface Model{
     update(data: object): Promise<ModelImpl>
     delete()
 
-    hasMany(model: String): RelationModel
+    hasMany(model: String): RelationImpl
 }
 
 export default class ModelImpl implements Model {
@@ -25,7 +25,7 @@ export default class ModelImpl implements Model {
     doc: FirebaseFirestore.DocumentSnapshot
     db: FirebaseFirestore.Firestore
 
-    private relations: Map<string, RelationModel>
+    private relations: Map<string, RelationImpl>
     
     constructor(name: string, db: FirebaseFirestore.Firestore, id?: string)
     {
@@ -103,11 +103,11 @@ export default class ModelImpl implements Model {
         this.ref = null
     }
 
-    hasMany(model: string): RelationModel
+    hasMany(model: string): RelationImpl
     {
         if(!this.relations.has(model))
         {
-            const relation: RelationModel = new RelationModel(this, model, this.db)
+            const relation: RelationImpl = new RelationImpl(this, model, this.db)
             this.relations.set(model, relation)
         }
 
@@ -116,12 +116,12 @@ export default class ModelImpl implements Model {
 }
 
 export interface Relation {
-    attach(model: ModelImpl): Promise<RelationModel>
+    attach(model: ModelImpl): Promise<RelationImpl>
     get(): Promise<Array<ModelImpl>>
     pivot(id: string): Promise<ModelImpl>
 }
 
-export class RelationModel implements Relation{
+export class RelationImpl implements Relation{
 
     db: any
     name: string
@@ -158,7 +158,7 @@ export class RelationModel implements Relation{
             }).join('_')
     }
 
-    async attach(newPropModel: ModelImpl): Promise<RelationModel>
+    async attach(newPropModel: ModelImpl): Promise<RelationImpl>
     {
         this.properties.add(newPropModel)
 

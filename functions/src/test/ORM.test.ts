@@ -10,7 +10,7 @@ import DataORMImpl from "./lib/ORM"
 import { asyncForEach } from './lib/util'
 import { User } from './lib/ORM/Models/User';
 import { Household } from './lib/ORM/Models/Household';
-import ModelImpl, { RelationModel, Models } from './lib/ORM/Models';
+import ModelImpl, { RelationImpl, Models } from './lib/ORM/Models';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised");
