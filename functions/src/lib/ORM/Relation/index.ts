@@ -1,29 +1,77 @@
 import ModelImpl from "../Models";
 
 export interface Relation {
-    attach(model: ModelImpl): Promise<RelationImpl>
-    get(): Promise<Array<ModelImpl>>
+   
     cache(id?: string): Promise<any>
-    pivot(id: string): Promise<ModelImpl>
 }
 
 export default class RelationImpl implements Relation{
 
-    name: string
-    private db: any
-    private owner: ModelImpl
-    private propertyModelName: string
-    private properties: Set<ModelImpl>
+    protected db: any
+    protected owner: ModelImpl
+    protected propertyModelName: string
 
     constructor(owner: ModelImpl, propertyModelName: string, db: any)
     {
-        this.name = [owner.name, propertyModelName].sort().join('_')
-        
         this.db = db
 
-        this.properties = new Set<ModelImpl>()
         this.owner = owner
         this.propertyModelName = propertyModelName
+    }
+
+    async cache(id?: string): Promise<any>
+    {
+        const cache: any = await this.owner.getField(this.propertyModelName)
+        if(id) return cache[id]
+        return cache
+    }
+}
+
+export interface N2ManyRelation {
+    
+    get(): Promise<Array<ModelImpl>>
+    attach(model: ModelImpl): Promise<RelationImpl>
+}
+export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
+    
+    protected properties: Set<ModelImpl>
+
+    constructor(owner: ModelImpl, propertyModelName: string, db: any)
+    {
+        super(owner, propertyModelName, db)
+        this.properties = new Set<ModelImpl>()
+    }
+
+    async attach(newPropModel: ModelImpl): Promise<RelationImpl>
+    {
+        this.properties.add(newPropModel)
+        
+        await this.owner.update({
+            [this.propertyModelName] : {[await newPropModel.getId()] : true}
+        })
+
+        return this
+    }
+
+    async get(): Promise<Array<ModelImpl>>
+    {
+        const properties: Object = await this.owner.getField(this.propertyModelName)
+
+        const models = Object.keys(properties).map((propertyId) => {
+            return new ModelImpl(this.propertyModelName, this.db, propertyId)
+        })
+
+        return models
+    }
+
+}
+export class Many2ManyRelation extends N2ManyRelation {
+    protected name: string
+
+    constructor(owner: ModelImpl, propertyModelName: string, db: any)
+    {
+        super(owner, propertyModelName, db)
+        this.name = [owner.name, propertyModelName].sort().join('_')
     }
 
     private async generatePivotId(id: string): Promise<string>
@@ -44,10 +92,16 @@ export default class RelationImpl implements Relation{
             }).join('_')
     }
 
+    async pivot(id: string): Promise<ModelImpl>
+    {
+        const pivotId: string = await this.generatePivotId(id)
+        return new ModelImpl(this.name, this.db, pivotId)
+    }
+
     async attach(newPropModel: ModelImpl): Promise<RelationImpl>
     {
-        this.properties.add(newPropModel)
-
+        await super.attach(newPropModel)
+        
         const id: string = await this.generatePivotId(await newPropModel.getId())
 
         const pivotModel: ModelImpl = new ModelImpl(this.name, this.db, id)
@@ -59,38 +113,50 @@ export default class RelationImpl implements Relation{
 
         await pivotModel.create(pivotData)
 
-        await this.owner.update({
-            [this.propertyModelName] : {[await newPropModel.getId()] : true}
-        })
-
         await newPropModel.update({
             [this.owner.name] : {[await this.owner.getId()] : true}
         })
 
         return this
     }
+}
 
-    async pivot(id: string): Promise<ModelImpl>
+export class One2ManyRelation extends N2ManyRelation {
+
+    constructor(owner: ModelImpl, propertyModelName: string, db: any)
     {
-        const pivotId: string = await this.generatePivotId(id)
-        return new ModelImpl(this.name, this.db, pivotId)
+        super(owner, propertyModelName, db)
     }
 
-    async get(): Promise<Array<ModelImpl>>
+    async attach(newPropModel: ModelImpl): Promise<RelationImpl>
     {
-        const properties: Object = await this.owner.getField(this.propertyModelName)
+        super.attach(newPropModel)
 
-        const models = Object.keys(properties).map((propertyId) => {
-            return new ModelImpl(this.propertyModelName, this.db, propertyId)
+        await newPropModel.update({
+            [this.owner.name] : {
+                id : await this.owner.getId()
+            }
         })
 
-        return models
+        return this
+    }
+}
+
+export class One2OneRelation extends RelationImpl {
+    
+    constructor(owner: ModelImpl, propertyModelName: string, db: any)
+    {
+        super(owner, propertyModelName, db)
     }
 
-    async cache(id?: string): Promise<any>
+    async get(): Promise<ModelImpl>
     {
-        const cache: any = await this.owner.getField(this.propertyModelName)
-        if(id) return cache[id]
-        return cache
+        const property: any = await this.owner.getField(this.propertyModelName)
+        return new ModelImpl(this.propertyModelName, this.db, property.id)
+    }
+
+    async cache(): Promise<any>
+    {
+        return super.cache()
     }
 }

@@ -1,9 +1,9 @@
-import RelationImpl from "../Relation";
+import RelationImpl, { Many2ManyRelation, N2ManyRelation, One2ManyRelation, One2OneRelation } from "../Relation";
 
 export enum Models {
     HOUSEHOLD = 'households',
     SENSOR = 'sensors',
-    ROOMS = 'rooms',
+    ROOM = 'rooms',
     USER = 'users'
 }
 
@@ -105,14 +105,36 @@ export default class ModelImpl implements Model {
         this.ref = null
     }
 
-    belongsToMany(model: string): RelationImpl
+    belongsToMany(model: string): Many2ManyRelation
     {
         if(!this.relations.has(model))
         {
-            const relation: RelationImpl = new RelationImpl(this, model, this.db)
+            const relation: Many2ManyRelation = new Many2ManyRelation(this, model, this.db)
             this.relations.set(model, relation)
         }
 
-        return this.relations.get(model)
+        return this.relations.get(model) as Many2ManyRelation
+    }
+    
+    hasMany(model: string): One2ManyRelation
+    {
+        if(!this.relations.has(model))
+        {
+            const relation: One2ManyRelation = new One2ManyRelation(this, model, this.db)
+            this.relations.set(model, relation)
+        }
+
+        return this.relations.get(model) as One2ManyRelation
+    }
+
+    belongsTo(model: string): One2OneRelation
+    {
+        if(!this.relations.has(model))
+        {
+            const relation: One2OneRelation = new One2OneRelation(this, model, this.db)
+            this.relations.set(model, relation)
+        }
+
+        return this.relations.get(model) as One2OneRelation
     }
 }

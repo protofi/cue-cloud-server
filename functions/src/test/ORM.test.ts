@@ -201,16 +201,59 @@ describe('STAGE', () => {
 
         describe('Relations.', () => {
 
-            describe('I2M', async () => {
+            describe('I2I', async () => {
+                return
+            })
 
-                it('create', async () => {
+            describe.only('I2M', async () => {
+
+                it('Related models method should return the same relation every time', async () => {
                     
-                    const sensor: Sensor = db.sensor()
                     const room: Room = db.room()
 
-
-                    expect('').empty
+                    const sensors1 = room.sensors()
+                    const sensors2 = room.sensors()
+                    
+                    expect(sensors1).to.equals(sensors2)
                 })
+
+                it('Create root documents and relation by attaching two models', async () => {
+                    const room: Room = db.room()
+                    const sensor: Sensor = db.sensor()
+
+                    await room.sensors().attach(sensor)
+
+                    const roomSensors = await room.getField(sensor.name)
+                    const sensorRoom = await sensor.getField(room.name)
+
+                    const roomId = await room.getId()
+                    const sensorId = await sensor.getId()
+
+                    expect(Object.keys(roomSensors), 'Foreign key on room').to.include(sensorId)
+                    expect(roomId, 'Foreign key on sensor').equals(sensorRoom.id)
+
+                    //clean up
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push((await room.getDocRef()).path)
+
+                }).timeout(4000)
+
+                it.only('Make sure models can be attached in and received "inverse"', async () => {
+
+                    const room: Room = db.room()
+                    const sensor: Sensor = db.sensor()
+
+                    const roomId = await room.getId()
+                    const sensorId = await sensor.getId()
+
+                    await room.sensors().attach(sensor)
+
+                    const attRoom = await sensor.room().get()
+
+                    expect(roomId).to.equal(await attRoom.getId())
+                }).timeout(4000)
+
+
             })
 
             describe('M2M', () => {
@@ -224,7 +267,7 @@ describe('STAGE', () => {
                     expect(households1).to.equals(households2)
                 })
 
-                it('Create root documents and relation by attaching two models in many to many rel', async () => {
+                it('Create root documents and relation by attaching two models', async () => {
                     const user = db.user() as User
                     const house = db.household() as Household
 
@@ -329,7 +372,7 @@ describe('STAGE', () => {
 
                 }).timeout(4000)
 
-                it.only('Retrive cached relational data', async () => {
+                it('Retrive cached relational data', async () => {
                     const user = db.user() as User
                     const house = db.household() as Household
                     const houseId = await house.getId();
@@ -378,7 +421,7 @@ describe('STAGE', () => {
 
                 }).timeout(4000)
 
-                it('Make sure models can be attached in "reverse"', async () => {
+                it('Make sure models can be attached in "inverse"', async () => {
 
                     const user = db.user() as User
                     const house = db.household() as Household

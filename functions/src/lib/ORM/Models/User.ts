@@ -1,5 +1,5 @@
 import ModelImpl, { Models } from "./";
-import RelationImpl from "./../Relation";
+import RelationImpl, { Many2ManyRelation } from "./../Relation";
 
 export default class User extends ModelImpl {
 
@@ -8,8 +8,8 @@ export default class User extends ModelImpl {
         super(Models.USER, db)
     }
 
-    households(): RelationImpl
+    households(): Many2ManyRelation
     {
-        return this.belongsToMany(Models.HOUSEHOLD)
+        return this.belongsToMany(Models.HOUSEHOLD) as Many2ManyRelation
     }
 }
