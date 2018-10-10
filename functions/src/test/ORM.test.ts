@@ -209,10 +209,9 @@ describe('STAGE', () => {
 
                     const room1 = sensor.room()
                     const room2 = sensor.room()
-                    
+
                     expect(room1).to.deep.equals(room2)
                 })
-
             })
 
             describe('I2M', async () => {
