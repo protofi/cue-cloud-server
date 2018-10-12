@@ -107,7 +107,7 @@ describe('STAGE', () => {
                 docsToBeDeleted.push((await user.getDocRef()).path)
                 
                 expect(id).exist
-            })
+            }).timeout(3000)
 
             it('Create.', async () => {
 
@@ -212,6 +212,21 @@ describe('STAGE', () => {
 
                     expect(room1).to.deep.equals(room2)
                 })
+
+                it.only('Save model to each other', async () => {
+                    
+                    const sensor: Sensor = await db.sensor()
+                    const room: Room = db.room()
+
+                    await sensor.room().set(room)
+
+                    const roomId = await room.getId()
+                    const sensorId = await sensor.getId()
+                    
+                    const attRoom = await sensor.getField(room.name)
+
+                    expect(roomId).to.deep.equals(attRoom.id)
+                }).timeout(3000)
             })
 
             describe('I2M', async () => {
@@ -299,7 +314,6 @@ describe('STAGE', () => {
                     docsToBeDeleted.push((await room.getDocRef()).path)
                    
                 }).timeout(4000)
-
             })
 
             describe('M2M', () => {

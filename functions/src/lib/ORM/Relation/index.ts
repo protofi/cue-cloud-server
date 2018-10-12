@@ -159,4 +159,13 @@ export class One2OneRelation extends RelationImpl {
     {
         return super.cache()
     }
+
+    async set(model: ModelImpl)
+    {
+        this.owner.update({
+            [this.propertyModelName] : {
+                id: await model.getId()
+            }
+        })
+    }
 }

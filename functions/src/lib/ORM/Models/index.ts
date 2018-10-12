@@ -15,9 +15,11 @@ export interface Model{
     where(fieldPath: string, operator: FirebaseFirestore.WhereFilterOp, value: string): FirebaseFirestore.Query
     getField(key: string): any
     update(data: object): Promise<ModelImpl>
-    delete()
+    delete(): Promise<void>
 
     belongsToMany(model: String): RelationImpl
+    belongsTo(model: string): One2OneRelation
+    hasMany(model: string): One2ManyRelation
 }
 
 export default class ModelImpl implements Model {
@@ -97,7 +99,7 @@ export default class ModelImpl implements Model {
         return this
     }
 
-    async delete()
+    async delete(): Promise<void>
     {
         const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
         await docRef.delete()
