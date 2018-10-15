@@ -1,8 +1,9 @@
-import RelationImpl, { Many2ManyRelation, N2ManyRelation, One2ManyRelation, One2OneRelation } from "../Relation";
+import RelationImpl, { Many2ManyRelation, N2ManyRelation, One2ManyRelation, N2OneRelation } from "../Relation";
 
 export enum Models {
     HOUSEHOLD = 'households',
     SENSOR = 'sensors',
+    EVENT = 'events',
     ROOM = 'rooms',
     USER = 'users'
 }
@@ -18,7 +19,7 @@ export interface Model{
     delete(): Promise<void>
 
     belongsToMany(model: String): RelationImpl
-    belongsTo(model: string): One2OneRelation
+    belongsTo(model: string): N2OneRelation
     hasMany(model: string): One2ManyRelation
 }
 
@@ -107,6 +108,9 @@ export default class ModelImpl implements Model {
         this.ref = null
     }
 
+    /**
+     * Attach many models to many others
+     */
     belongsToMany(model: string): Many2ManyRelation
     {
         if(!this.relations.has(model))
@@ -117,7 +121,10 @@ export default class ModelImpl implements Model {
 
         return this.relations.get(model) as Many2ManyRelation
     }
-    
+
+    /**
+     * Attach one model to many others
+     */
     hasMany(model: string): One2ManyRelation
     {
         if(!this.relations.has(model))
@@ -129,14 +136,17 @@ export default class ModelImpl implements Model {
         return this.relations.get(model) as One2ManyRelation
     }
 
-    belongsTo(model: string): One2OneRelation
+    /**
+     * Attach one or more models to one other
+     */
+    belongsTo(model: string): N2OneRelation
     {
         if(!this.relations.has(model))
         {
-            const relation: One2OneRelation = new One2OneRelation(this, model, this.db)
+            const relation: N2OneRelation = new N2OneRelation(this, model, this.db)
             this.relations.set(model, relation)
         }
 
-        return this.relations.get(model) as One2OneRelation
+        return this.relations.get(model) as N2OneRelation
     }
 }

@@ -142,7 +142,7 @@ export class One2ManyRelation extends N2ManyRelation {
     }
 }
 
-export class One2OneRelation extends RelationImpl {
+export class N2OneRelation extends RelationImpl {
     
     constructor(owner: ModelImpl, propertyModelName: string, db: any)
     {
@@ -160,9 +160,13 @@ export class One2OneRelation extends RelationImpl {
         return super.cache()
     }
 
-    async set(model: ModelImpl)
-    {
-        this.owner.update({
+    async set(model: ModelImpl): Promise<ModelImpl>
+    {   
+        //only works for one to many relations
+        const rel = model[this.owner.name]()
+        await rel.attach(this.owner)
+
+        return this.owner.update({
             [this.propertyModelName] : {
                 id: await model.getId()
             }

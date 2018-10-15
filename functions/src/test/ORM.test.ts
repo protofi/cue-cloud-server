@@ -12,8 +12,9 @@ import User from './lib/ORM/Models/User';
 import Household from './lib/ORM/Models/Household';
 import Sensor from './lib/ORM/Models/Sensor';
 import ModelImpl, { Models } from './lib/ORM/Models';
-import RelationImpl from './lib/ORM/Relation';
 import Room from './lib/ORM/Models/Room';
+import Event from './lib/ORM/Models/Event';
+import { N2OneRelation } from './lib/ORM/Relation';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised");
@@ -213,7 +214,26 @@ describe('STAGE', () => {
                     expect(room1).to.deep.equals(room2)
                 })
 
-                it.only('Save model to each other', async () => {
+                it('Save model to an other', async () => {
+                    
+                    const sensor: Sensor = await db.sensor()
+                    const room: Room = db.room()
+
+                    await sensor.room().set(room)
+
+                    const roomId = await room.getId()
+                    
+                    const attRoom = await sensor.getField(room.name)
+                    
+                    expect(roomId).to.deep.equals(attRoom.id)
+
+                    //clean up
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    
+                }).timeout(3000)
+
+                it.only('Save model to an other reverse I2M', async () => {
                     
                     const sensor: Sensor = await db.sensor()
                     const room: Room = db.room()
@@ -224,9 +244,46 @@ describe('STAGE', () => {
                     const sensorId = await sensor.getId()
                     
                     const attRoom = await sensor.getField(room.name)
+                    const attSensors = await room.getField(sensor.name)
 
                     expect(roomId).to.deep.equals(attRoom.id)
+                    expect(Object.keys(attSensors), 'Foreign key on room').to.include(sensorId)
+              
+                    //clean up
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push((await room.getDocRef()).path)
+
                 }).timeout(3000)
+               
+                it.only('A model can have multiple relations', async () => {
+                    const sensor: Sensor = db.sensor()
+                    const room: Room = db.room()
+                    const event: Event = db.event()
+
+                    await event.sensor().set(sensor)
+                    await room.sensors().attach(sensor)
+
+                    const attRoom = await sensor.getField(room.name)
+                    const attEvents = await sensor.getField(event.name)
+
+                    const attSensors = await room.getField(sensor.name)
+                    const attSensor = await event.getField(sensor.name)
+
+                    const sensorId = await sensor.getId()
+                    const roomId = await room.getId()
+                    const eventId = await event.getId()
+
+                    expect(roomId).to.deep.equals(attRoom.id)
+                    expect(sensorId).to.deep.equals(attSensor.id)
+                    expect(Object.keys(attEvents), 'Foreign key on sensor').to.include(eventId)
+                    expect(Object.keys(attSensors), 'Foreign key on room').to.include(sensorId)
+
+                    //clean up
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    docsToBeDeleted.push((await event.getDocRef()).path)
+
+                }).timeout(4000)
             })
 
             describe('I2M', async () => {

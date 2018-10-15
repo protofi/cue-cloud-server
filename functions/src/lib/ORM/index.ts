@@ -1,7 +1,8 @@
 import Household from "./Models/Household";
-import User from "./Models/User";
 import Sensor from "./Models/Sensor";
+import Event from "./Models/Event";
 import Room from "./Models/Room";
+import User from "./Models/User";
 
 export interface DataORM {
     user(): User
@@ -34,5 +35,10 @@ export default class DataORMImpl implements DataORM{
     room(): Room
     {
         return new Room(this.db)
+    }
+
+    event(): Event
+    {
+        return new Event(this.db)
     }
 }

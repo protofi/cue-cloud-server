@@ -1,5 +1,5 @@
 import ModelImpl, { Models } from "./";
-import { One2OneRelation } from "../Relation";
+import { N2OneRelation, One2ManyRelation } from "../Relation";
 
 export default class Sensor extends ModelImpl {
 
@@ -8,8 +8,13 @@ export default class Sensor extends ModelImpl {
         super(Models.SENSOR, db)
     }
 
-    room(): One2OneRelation
+    room(): N2OneRelation
     {
-        return this.belongsTo(Models.ROOM)
+        return this.belongsTo(Models.ROOM) as N2OneRelation
+    }
+
+    events(): One2ManyRelation
+    {
+        return this.hasMany(Models.EVENT) as One2ManyRelation
     }
 }
