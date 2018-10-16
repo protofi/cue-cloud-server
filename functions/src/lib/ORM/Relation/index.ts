@@ -30,7 +30,7 @@ export default class RelationImpl implements Relation{
 export interface N2ManyRelation {
     
     get(): Promise<Array<ModelImpl>>
-    attach(model: ModelImpl): Promise<RelationImpl>
+    attach(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<RelationImpl>
 }
 export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
     
@@ -42,13 +42,13 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         this.properties = new Set<ModelImpl>()
     }
 
-    async attach(newPropModel: ModelImpl): Promise<RelationImpl>
+    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<RelationImpl>
     {
         this.properties.add(newPropModel)
         
         await this.owner.update({
             [this.propertyModelName] : {[await newPropModel.getId()] : true}
-        })
+        }, transaction)
 
         return this
     }
@@ -98,9 +98,9 @@ export class Many2ManyRelation extends N2ManyRelation {
         return new ModelImpl(this.name, this.db, pivotId)
     }
 
-    async attach(newPropModel: ModelImpl): Promise<RelationImpl>
+    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<RelationImpl>
     {
-        await super.attach(newPropModel)
+        await super.attach(newPropModel, transaction)
         
         const id: string = await this.generatePivotId(await newPropModel.getId())
 
@@ -115,7 +115,7 @@ export class Many2ManyRelation extends N2ManyRelation {
 
         await newPropModel.update({
             [this.owner.name] : {[await this.owner.getId()] : true}
-        })
+        }, transaction)
 
         return this
     }
@@ -128,15 +128,15 @@ export class One2ManyRelation extends N2ManyRelation {
         super(owner, propertyModelName, db)
     }
 
-    async attach(newPropModel: ModelImpl): Promise<RelationImpl>
+    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<RelationImpl>
     {
-        super.attach(newPropModel)
+        super.attach(newPropModel, transaction)
 
         await newPropModel.update({
             [this.owner.name] : {
                 id : await this.owner.getId()
             }
-        })
+        }, transaction)
 
         return this
     }
@@ -160,16 +160,12 @@ export class N2OneRelation extends RelationImpl {
         return super.cache()
     }
 
-    async set(model: ModelImpl): Promise<ModelImpl>
+    async set(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
     {   
         //only works for one to many relations
-        const rel = model[this.owner.name]()
-        await rel.attach(this.owner)
+        const reverseRelation = model[this.owner.name]()
+        await reverseRelation.attach(this.owner, transaction)
 
-        return this.owner.update({
-            [this.propertyModelName] : {
-                id: await model.getId()
-            }
-        })
+        return this.owner
     }
 }

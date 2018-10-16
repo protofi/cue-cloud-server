@@ -58,10 +58,16 @@ export default class ModelImpl implements Model {
         return docRef.id
     }
 
-    async create(data: object): Promise<ModelImpl>
+    async create(data: object, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
     {
         const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
-        await docRef.set(data)
+    
+        if(transaction)
+        {
+            transaction.set(docRef, data)
+        }
+        else await docRef.set(data)
+    
         return this
     }
 
@@ -88,13 +94,22 @@ export default class ModelImpl implements Model {
         return this.getField(key)
     }
 
-    async update(data: object): Promise<ModelImpl>
+    async update(data: object, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
     {
         const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
         
-        await docRef.set(data, {
-            merge: true
-        })
+        if(transaction)
+        {
+            transaction.set(docRef, data, {
+                merge: true
+            })
+        }
+        else 
+        {
+            await docRef.set(data, {
+                merge: true
+            })
+        }
 
         this.doc = null
         return this

@@ -7,6 +7,7 @@ import User from "./Models/User";
 export interface DataORM {
     user(): User
     household(): Household
+    batch(): FirebaseFirestore.WriteBatch
 }
 
 export default class DataORMImpl implements DataORM{
@@ -15,6 +16,11 @@ export default class DataORMImpl implements DataORM{
     constructor(db: any)
     {
         this.db = db
+    }
+
+    batch(): FirebaseFirestore.WriteBatch
+    {
+        return this.db.batch()
     }
 
     user(): User

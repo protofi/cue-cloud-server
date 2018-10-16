@@ -117,10 +117,36 @@ describe('STAGE', () => {
                     name: 'Bob'
                 })
 
-                docsToBeDeleted.push((await user.getDocRef()).path)
-
                 const name: string = await user.getField('name')
                 expect(name).to.equals('Bob')
+
+                // Clean up
+                docsToBeDeleted.push((await user.getDocRef()).path)
+            })
+
+            it('Create w. batch', async () => {
+                const batch = db.batch()
+                const user = await db.user().create({
+                    name: 'Bob'
+                }, batch)
+
+                await batch.commit()
+                
+                const name: string = await user.getField('name')
+                expect(name).to.equals('Bob')
+                
+                //Clean up
+                docsToBeDeleted.push((await user.getDocRef()).path)
+            })
+
+            it('Create w. batch fail', async () => {
+                const batch = db.batch()
+                const user = await db.user().create({
+                    name: 'Bob'
+                }, batch)
+
+                const name: string = await user.getField('name')
+                expect(name).not.exist
             })
 
             it('Retrieve certain model.', async () => {
@@ -163,11 +189,59 @@ describe('STAGE', () => {
 
                 const name = await user.getField('name')
                 const age = await user.getField('age')
-
-                docsToBeDeleted.push((await user.getDocRef()).path)
                 
                 expect(name).equals('Bobby')
                 expect(age).equals(28)
+
+                //Clean up
+                docsToBeDeleted.push((await user.getDocRef()).path)
+            })
+
+            it('Update w. batch', async () => {
+                const batch = db.batch()
+                
+                const user = await db.user().create({
+                    name: 'Bobby'
+                }, batch)
+
+                await user.update({
+                    age: 28
+                }, batch)
+
+                await batch.commit()
+
+                const userId = await user.getId()
+
+                const doc = await adminFs.doc(`${Models.USER}/${userId}`).get()
+                const name = doc.get('name')
+                const age = doc.get('age')
+                
+                expect(name).equals('Bobby')
+                expect(age).equals(28)
+
+                //Clean up
+                docsToBeDeleted.push((await user.getDocRef()).path)
+            })
+
+            it('Update w. batch fail', async () => {
+                const batch = db.batch()
+                
+                const user = await db.user().create({
+                    name: 'Bobby'
+                }, batch)
+
+                await user.update({
+                    age: 28
+                }, batch)
+
+                const userId = await user.getId()
+
+                const doc = await adminFs.doc(`${Models.USER}/${userId}`).get()
+                const name = doc.get('name')
+                const age = doc.get('age')
+
+                expect(name).not.exist
+                expect(age).not.exist
             })
 
             it('Delete.', async () => {
@@ -233,7 +307,7 @@ describe('STAGE', () => {
                     
                 }).timeout(3000)
 
-                it.only('Save model to an other reverse I2M', async () => {
+                it('Save model to an other reverse I2M', async () => {
                     
                     const sensor: Sensor = await db.sensor()
                     const room: Room = db.room()
@@ -255,7 +329,7 @@ describe('STAGE', () => {
 
                 }).timeout(3000)
                
-                it.only('A model can have multiple relations', async () => {
+                it('A model can have multiple relations', async () => {
                     const sensor: Sensor = db.sensor()
                     const room: Room = db.room()
                     const event: Event = db.event()
@@ -284,6 +358,52 @@ describe('STAGE', () => {
                     docsToBeDeleted.push((await event.getDocRef()).path)
 
                 }).timeout(4000)
+
+                it.only('Save model to an other reverse I2M BATCH', async () => {
+                    
+                    const sensor: Sensor = await db.sensor()
+                    const room: Room = db.room()
+
+                    const batch = db.batch()
+
+                    await sensor.room().set(room, batch)
+
+                    await batch.commit()
+
+                    const roomId = await room.getId()
+                    const sensorId = await sensor.getId()
+                    
+                    const attRoom = await sensor.getField(room.name)
+                    const attSensors = await room.getField(sensor.name)
+
+                    expect(roomId).to.deep.equals(attRoom.id)
+                    expect(Object.keys(attSensors), 'Foreign key on room').to.include(sensorId)
+              
+                    //clean up
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push((await room.getDocRef()).path)
+
+                }).timeout(4000)
+
+                it.only('Save model to an other reverse I2M BATCH FAIL', async () => {
+                    const sensor: Sensor = await db.sensor()
+                    const room: Room = db.room()
+
+                    const batch = db.batch()
+
+                    await sensor.room().set(room, batch)
+
+                    const roomId = await room.getId()
+                    const sensorId = await sensor.getId()
+                    
+                    const sensorDoc = await adminFs.doc(`${Models.SENSOR}/${sensorId}`).get()
+                    const roomDoc = await adminFs.doc(`${Models.ROOM}/${roomId}`).get()
+                    const attRoom = sensorDoc.get(Models.ROOM)
+                    const attSensors = roomDoc.get(Models.SENSOR)
+
+                    expect(attRoom).not.exist
+                    expect(attSensors).not.exist  
+                })
             })
 
             describe('I2M', async () => {
@@ -319,7 +439,7 @@ describe('STAGE', () => {
 
                 }).timeout(4000)
 
-                it('Make sure models can be attached and received "inverse"', async () => {
+                it('Make sure models can be attached and retrieved "inverse"', async () => {
 
                     const room: Room = db.room()
                     const sensor: Sensor = db.sensor()
