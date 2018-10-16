@@ -139,7 +139,7 @@ describe('STAGE', () => {
                 docsToBeDeleted.push((await user.getDocRef()).path)
             })
 
-            it('Create w. batch fail', async () => {
+            it('Create w. batch should fail', async () => {
                 const batch = db.batch()
                 const user = await db.user().create({
                     name: 'Bob'
@@ -223,7 +223,7 @@ describe('STAGE', () => {
                 docsToBeDeleted.push((await user.getDocRef()).path)
             })
 
-            it('Update w. batch fail', async () => {
+            it('Update w. batch should fail', async () => {
                 const batch = db.batch()
                 
                 const user = await db.user().create({
@@ -359,7 +359,7 @@ describe('STAGE', () => {
 
                 }).timeout(4000)
 
-                it.only('Save model to an other reverse I2M BATCH', async () => {
+                it('Save model to an other reverse I2M BATCH', async () => {
                     
                     const sensor: Sensor = await db.sensor()
                     const room: Room = db.room()
@@ -385,7 +385,7 @@ describe('STAGE', () => {
 
                 }).timeout(4000)
 
-                it.only('Save model to an other reverse I2M BATCH FAIL', async () => {
+                it('Save model to an other reverse I2M BATCH SOULD FAIL', async () => {
                     const sensor: Sensor = await db.sensor()
                     const room: Room = db.room()
 
