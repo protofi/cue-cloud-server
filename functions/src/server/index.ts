@@ -7,6 +7,9 @@ import '@firebase/firestore'
 import * as users from './users'
 import Database from './lib/database'
 
+import * as glob from 'glob'
+import * as camelCase from 'camelcase'
+
 const app = express()
 app.set('view engine', 'pug')
 
@@ -35,6 +38,31 @@ adminFs.settings(settings)
 
 const fs = firebase.firestore()
 fs.settings(settings)
+
+// app.get('/autoloader', (req: express.Request, res: express.Response) => {
+    
+    const files = glob.sync('./controllers/*.js', { cwd: __dirname, ignore: './node_modules/**'});
+    // const funcs = []
+
+    for(let f=0,fl=files.length; f<fl; f++)
+    {
+        const file = files[f];
+        const functionName = camelCase(file.slice(0, -3).split('/').join('_')); // Strip off '.f.js'
+        // funcs.push(functionName)
+
+        if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === functionName)
+        {
+            const controller = require(file)
+            exports[functionName] = controller.onUpdate
+        }
+    }
+
+//     res.status(200).json({
+//         success : true,
+//         data : files,
+//         functions: funcs
+//     })
+// })
 
 app.get('/admin', (req: express.Request, res: express.Response) => {
     
