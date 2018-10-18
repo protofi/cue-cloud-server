@@ -25,12 +25,12 @@ export default class DataORMImpl implements DataORM{
 
     user(): User
     {
-        return new User(this.db) as User
+        return new User(this.db)
     }
 
     household(): Household
     {
-        return new Household(this.db) as Household
+        return new Household(this.db)
     }
 
     sensor(): Sensor

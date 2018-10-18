@@ -15,5 +15,5 @@ interface households {
 }
 
 interface sensors {
-    
+    users: Map</*id*/string, boolean | object>
 }

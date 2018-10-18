@@ -1,5 +1,5 @@
 import ModelImpl, { Models } from ".";
-import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from "../Relation";
+import { N2OneRelation } from "../Relation";
 
 export default class Event extends ModelImpl {
 
@@ -10,6 +10,6 @@ export default class Event extends ModelImpl {
 
     sensor(): N2OneRelation
     {
-        return this.belongsTo(Models.SENSOR) as N2OneRelation
+        return this.belongsTo(Models.SENSOR)
     }
 }

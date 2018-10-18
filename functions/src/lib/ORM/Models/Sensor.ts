@@ -10,11 +10,11 @@ export default class Sensor extends ModelImpl {
 
     room(): N2OneRelation
     {
-        return this.belongsTo(Models.ROOM) as N2OneRelation
+        return this.belongsTo(Models.ROOM)
     }
 
     events(): One2ManyRelation
     {
-        return this.hasMany(Models.EVENT) as One2ManyRelation
+        return this.hasMany(Models.EVENT)
     }
 }

@@ -130,7 +130,7 @@ export class One2ManyRelation extends N2ManyRelation {
 
     async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<RelationImpl>
     {
-        super.attach(newPropModel, transaction)
+        await super.attach(newPropModel, transaction)
 
         await newPropModel.update({
             [this.owner.name] : {

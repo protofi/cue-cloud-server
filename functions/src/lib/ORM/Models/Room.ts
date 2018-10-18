@@ -10,6 +10,6 @@ export default class Room extends ModelImpl {
 
     sensors(): One2ManyRelation
     {
-        return this.hasMany(Models.SENSOR) as One2ManyRelation
+        return this.hasMany(Models.SENSOR)
     }
 }

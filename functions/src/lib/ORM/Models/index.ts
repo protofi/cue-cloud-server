@@ -1,4 +1,4 @@
-import RelationImpl, { Many2ManyRelation, N2ManyRelation, One2ManyRelation, N2OneRelation } from "../Relation";
+import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from "../Relation";
 
 export enum Models {
     HOUSEHOLD = 'households',
@@ -9,7 +9,7 @@ export enum Models {
 }
 
 export interface Model{
-    getDocRef(): Promise<FirebaseFirestore.DocumentReference>
+    getDocRef(id?: string): FirebaseFirestore.DocumentReference
     getId(): Promise<string>
     create(data: object): Promise<ModelImpl>
     find(id: string): Promise<ModelImpl>
@@ -45,7 +45,7 @@ export default class ModelImpl implements Model {
         return this.db.collection(this.name)
     }
 
-    async getDocRef(id?: string): Promise<FirebaseFirestore.DocumentReference>
+    getDocRef(id?: string): FirebaseFirestore.DocumentReference
     {
         if(id) this.ref = this.getColRef().doc(id)
         if(!this.ref) this.ref = this.getColRef().doc()
