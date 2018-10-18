@@ -61,13 +61,13 @@ const db = new Database(adminFs);
 exports.userSignin = users.signin(db);
 exports.userDeleteAccount = users.deleteAccount(db)
 
-const config = {
-    dev: false,
-    buildDir: 'nuxt',
-    build: {
-        publicPath: '/'
-    }
-}
+// const config = {
+//     dev: false,
+//     buildDir: 'nuxt',
+//     build: {
+//         publicPath: '/'
+//     }
+// }
 
 // const nuxt = new Nuxt(config)
 
@@ -84,8 +84,8 @@ const config = {
 // }
 
 //match all GET routes not staring with /api/ and /admin/
-const excludedPaths = ['api','admin'].join('|')
-const nuxtPath = new RegExp('^(?!\/('+excludedPaths+').*$).*')
+// const excludedPaths = ['api','admin'].join('|')
+// const nuxtPath = new RegExp('^(?!\/('+excludedPaths+').*$).*')
 
 // app.get(nuxtPath, nuxtHandler)
 

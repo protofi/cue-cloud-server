@@ -12,4 +12,9 @@ export default class User extends ModelImpl {
     {
         return this.belongsToMany(Models.HOUSEHOLD) as Many2ManyRelation
     }
+
+    sensors(): Many2ManyRelation
+    {
+        return this.belongsToMany(Models.SENSOR) as Many2ManyRelation
+    }
 }
