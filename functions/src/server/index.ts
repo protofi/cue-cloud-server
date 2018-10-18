@@ -19,8 +19,6 @@ app.set('view engine', 'pug')
 
 admin.initializeApp();
 
-const adminFs = admin.firestore()
-
 firebase.initializeApp({
     apiKey: "AIzaSyAjjVn6bfI66Xarf3TvC81WIs8JMlTtO-E",
     authDomain: "staging-iot-cloud-server.firebaseapp.com",
@@ -30,11 +28,13 @@ firebase.initializeApp({
     messagingSenderId: "876174399478"
 });
 
-const fs = firebase.firestore()
-fs.settings({timestampsInSnapshots: true})
+const settings = { timestampsInSnapshots: true }
 
-const settings = {timestampsInSnapshots: true}
+const adminFs = admin.firestore()
 adminFs.settings(settings)
+
+const fs = firebase.firestore()
+fs.settings(settings)
 
 app.get('/admin', (req: express.Request, res: express.Response) => {
     
@@ -83,7 +83,7 @@ exports.userDeleteAccount = users.deleteAccount(db)
 //         })
 // }
 
-//match all GET routes not staring with /api/ and /admin/
+// // match all GET routes not staring with /api/ and /admin/
 // const excludedPaths = ['api','admin'].join('|')
 // const nuxtPath = new RegExp('^(?!\/('+excludedPaths+').*$).*')
 
