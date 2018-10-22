@@ -3,9 +3,9 @@ import { Many2ManyRelation } from "./../Relation";
 
 export default class User extends ModelImpl {
 
-    constructor(db: any)
+    constructor(db: any, id?: string)
     {
-        super(Models.USER, db)
+        super(Models.USER, db, id)
     }
 
     households(): Many2ManyRelation

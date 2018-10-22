@@ -7,7 +7,7 @@ document.getElementById('signup-form').addEventListener('submit', (event) => {
     event.preventDefault();
     console.log('signup')
 
-    const email = "tobiasharbo@gmail.com";
+    const email = "tobias@mail.com";
     const password = "notsecure123";
 
     auth

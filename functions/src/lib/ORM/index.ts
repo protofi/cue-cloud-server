@@ -5,7 +5,7 @@ import Room from "./Models/Room";
 import User from "./Models/User";
 
 export interface DataORM {
-    user(): User
+    user(id?: string): User
     household(): Household
     batch(): FirebaseFirestore.WriteBatch
 }
@@ -23,9 +23,9 @@ export default class DataORMImpl implements DataORM{
         return this.db.batch()
     }
 
-    user(): User
+    user(id?: string): User
     {
-        return new User(this.db)
+        return new User(this.db, id)
     }
 
     household(): Household

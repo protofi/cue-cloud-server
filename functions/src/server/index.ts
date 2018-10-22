@@ -39,29 +39,18 @@ adminFs.settings(settings)
 const fs = firebase.firestore()
 fs.settings(settings)
 
-// app.get('/autoloader', (req: express.Request, res: express.Response) => {
-    
-    const files = glob.sync('./controllers/**/*.f.js', { cwd: __dirname, ignore: './node_modules/**'});
-    // const funcs = []
+//function autoloader
+const files = glob.sync('./**/*.f.js', { cwd: __dirname, ignore: './node_modules/**'});
+for(let f=0,fl=files.length; f<fl; f++)
+{
+    const file = files[f];
+    const functionName = camelCase(file.slice(0, -5).split('/').join('_')); // Strip off '.f.js'
 
-    for(let f=0,fl=files.length; f<fl; f++)
+    if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === functionName)
     {
-        const file = files[f];
-        const functionName = camelCase(file.slice(0, -5).split('/').join('_')); // Strip off '.f.js'
-        // funcs.push(functionName)
-
-        if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === functionName)
-        {
-            exports[functionName] = require(file)
-        }
+        exports[functionName] = require(file)
     }
-
-//     res.status(200).json({
-//         success : true,
-//         data : files,
-//         functions: funcs
-//     })
-// })
+}
 
 app.get('/admin', (req: express.Request, res: express.Response) => {
     
@@ -82,11 +71,6 @@ app.get('/api', (req: express.Request, res: express.Response) => {
         ]
     })
 })
-
-const db = new Database(adminFs);
-
-exports.userSignin = users.signin(db);
-exports.userDeleteAccount = users.deleteAccount(db)
 
 // const config = {
 //     dev: false,
