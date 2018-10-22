@@ -41,19 +41,18 @@ fs.settings(settings)
 
 // app.get('/autoloader', (req: express.Request, res: express.Response) => {
     
-    const files = glob.sync('./controllers/*.js', { cwd: __dirname, ignore: './node_modules/**'});
+    const files = glob.sync('./controllers/**/*.f.js', { cwd: __dirname, ignore: './node_modules/**'});
     // const funcs = []
 
     for(let f=0,fl=files.length; f<fl; f++)
     {
         const file = files[f];
-        const functionName = camelCase(file.slice(0, -3).split('/').join('_')); // Strip off '.f.js'
+        const functionName = camelCase(file.slice(0, -5).split('/').join('_')); // Strip off '.f.js'
         // funcs.push(functionName)
 
         if (!process.env.FUNCTION_NAME || process.env.FUNCTION_NAME === functionName)
         {
-            const controller = require(file)
-            exports[functionName] = controller.onUpdate
+            exports[functionName] = require(file)
         }
     }
 
