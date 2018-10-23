@@ -1,0 +1,216 @@
+import * as chai from 'chai'
+import * as sinon from 'sinon'
+import * as mocha from 'mocha'
+import * as firebase from 'firebase'
+import * as admin from 'firebase-admin';
+import * as functionsTest from 'firebase-functions-test'
+import { FeaturesList } from 'firebase-functions-test/lib/features';
+
+import DataORMImpl from "./lib/ORM"
+import { asyncForEach } from './lib/util'
+import User from './lib/ORM/Models/User';
+import Household from './lib/ORM/Models/Household';
+import Sensor from './lib/ORM/Models/Sensor';
+import ModelImpl, { Models } from './lib/ORM/Models';
+import Room from './lib/ORM/Models/Room';
+import Event from './lib/ORM/Models/Event';
+import { N2OneRelation } from './lib/ORM/Relation';
+
+const chaiThings = require("chai-things")
+const chaiAsPromised = require("chai-as-promised");
+
+chai.should();
+chai.use(chaiThings);
+chai.use(chaiAsPromised);
+
+const assert = chai.assert;
+const expect = chai.expect;
+
+describe.only('STAGE', () => {
+
+    var test: FeaturesList
+    var myFunctions
+    var adminFs: FirebaseFirestore.Firestore
+    var adminDb: DataORMImpl
+    var fs: firebase.firestore.Firestore
+    var db: DataORMImpl
+
+    const testUserDataOne = {
+        uid: "test-user-1",
+        name: "Andy",
+        email: "andy@mail.com",
+        token: null
+    }
+
+    const testUserDataTwo = {
+        uid: "test-user-2",
+        name: "Benny",
+        email: "Benny@mail.com",
+        token: null
+    }
+
+    const testUserDataThree = {
+        uid: "test-user-3",
+        name: "Charlie",
+        email: "Charlie@mail.com",
+        token: null
+    }
+
+    before(async () => {
+
+        const stageProjectId = "staging-iot-cloud-server"
+
+        test = functionsTest({
+            databaseURL: `https://${stageProjectId}.firebaseio.com`,
+            projectId: stageProjectId,
+        }, `./${stageProjectId}.serviceAccountKey.json`);
+
+        myFunctions = require('../lib/index');
+        adminFs = admin.firestore();
+        adminDb = new DataORMImpl(adminFs);
+        
+        fs = firebase.firestore()
+        db = new DataORMImpl(fs);
+    
+        testUserDataOne.token = await admin.auth().createCustomToken(testUserDataOne.uid)
+        testUserDataTwo.token = await admin.auth().createCustomToken(testUserDataTwo.uid)
+    });
+
+    describe.only('Rules', () => {
+
+        var docsToBeDeleted
+
+        beforeEach(() => {
+            docsToBeDeleted = []
+        })
+
+        afterEach(async () => {
+            await asyncForEach(docsToBeDeleted, async (path: string) => {
+                await adminFs.doc(path).delete()
+            })
+        
+            await firebase.auth().signOut()
+        })
+
+        it('Users can create households', async () => {
+            await firebase.auth().signInWithCustomToken(testUserDataOne.token)
+
+            const docRef: firebase.firestore.DocumentReference = await fs.collection(Models.HOUSEHOLD).add({ [Models.USER] : true})
+
+            expect(docRef).to.exist
+
+            //clean up
+            docsToBeDeleted.push(docRef.path)
+        })
+
+        it('Users can add themselves to a newly created household as admin', async () => {
+            await firebase.auth().signInWithCustomToken(testUserDataOne.token)
+
+            const docRef: firebase.firestore.DocumentReference = await fs.collection(Models.HOUSEHOLD).add({ [Models.USER] : {
+                [testUserDataOne.uid] : {
+                    role : 'admin'
+                }
+            }})
+
+            const docSnap : FirebaseFirestore.DocumentSnapshot = await adminFs.collection(Models.HOUSEHOLD).doc(docRef.id).get()
+            const users = docSnap.get(Models.USER)
+
+            expect(Object.keys(users)).to.deep.equal([testUserDataOne.uid])
+
+            //clean up
+            docsToBeDeleted.push(docRef.path)
+        }).timeout(4000)
+
+        it('Users not autherized cannot create households', async () => {
+            var docRef: firebase.firestore.DocumentReference
+            
+            try
+            {
+                docRef = await fs.collection(Models.HOUSEHOLD).add({})
+            }
+            catch (e) {
+                assert.include(e.message, 'PERMISSION_DENIED')
+            }
+
+            expect(docRef).to.not.exist
+        })
+
+        it('Users cannot add other users to households', async () => {
+
+            var docRef: FirebaseFirestore.DocumentReference = await adminFs.collection(Models.HOUSEHOLD).add({
+                [Models.USER] : {[testUserDataOne.uid] : true}
+            })
+    
+            await firebase.auth().signInWithCustomToken(testUserDataOne.token)
+
+            try
+            {
+                await fs.collection(Models.HOUSEHOLD).doc(docRef.id).set({
+                    [Models.USER] : {[testUserDataTwo.uid] : true}
+                }, {merge: true})
+            }
+            catch (e) {
+                assert.include(e.message, 'PERMISSION_DENIED')
+            }
+
+            const docSnap : FirebaseFirestore.DocumentSnapshot = await adminFs.collection(Models.HOUSEHOLD).doc(docRef.id).get()
+            const users = docSnap.get(Models.USER)
+
+            expect(Object.keys(users)).to.not.include.members([testUserDataTwo.uid])
+
+            //clean up
+            docsToBeDeleted.push(docRef.path)
+
+        }).timeout(4000)
+
+        it('Admins of households should be able to add other users to the household', async () => {
+            await firebase.auth().signInWithCustomToken(testUserDataOne.token)
+
+            var docRef: FirebaseFirestore.DocumentReference = await adminFs.collection(Models.HOUSEHOLD).add({
+                [Models.USER] : {[testUserDataOne.uid] : {
+                    role : 'admin'
+                }}
+            })
+            
+            await fs.collection(Models.HOUSEHOLD).doc(docRef.id).set({
+                [Models.USER] : {[testUserDataTwo.uid] : true}
+            }, {merge: true})
+
+            const docSnap : FirebaseFirestore.DocumentSnapshot = await adminFs.collection(Models.HOUSEHOLD).doc(docRef.id).get()
+            const users = docSnap.get(Models.USER)
+
+            expect(Object.keys(users)).to.deep.equal([testUserDataOne.uid, testUserDataTwo.uid])
+
+            //clean up
+            docsToBeDeleted.push(docRef.path)
+        }).timeout(4000)
+
+        it('Users should not be able to change their role in a home', async () => {
+
+            var docRef: FirebaseFirestore.DocumentReference = await adminFs.collection(Models.HOUSEHOLD).add({
+                users : {[testUserDataOne.uid] : true}
+            })
+
+            try
+            {
+                await fs.collection(Models.HOUSEHOLD).doc(docRef.id).set({
+                    [testUserDataOne.uid] : {
+                        role : 'admin'
+                    }
+                }, {merge: true})
+            }
+            catch (e) {
+                assert.include(e.message, 'PERMISSION_DENIED')
+            }
+
+            const docSnap : FirebaseFirestore.DocumentSnapshot = await adminFs.collection(Models.HOUSEHOLD).doc(docRef.id).get()
+            const users = docSnap.get(Models.USER)
+
+            expect(users[testUserDataOne.uid].role).to.not.equal('admin')
+
+            //clean up
+            docsToBeDeleted.push(docRef.path)
+
+        }).timeout(4000)
+    })
+})
