@@ -4,9 +4,6 @@ import * as admin from 'firebase-admin'
 import firebase from '@firebase/app';
 import '@firebase/firestore'
 
-import * as users from './users'
-import Database from './lib/database'
-
 import * as glob from 'glob'
 import * as camelCase from 'camelcase'
 
