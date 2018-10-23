@@ -179,7 +179,7 @@ describe.only('STAGE', () => {
             const docSnap : FirebaseFirestore.DocumentSnapshot = await adminFs.collection(Models.HOUSEHOLD).doc(docRef.id).get()
             const users = docSnap.get(Models.USER)
 
-            expect(Object.keys(users)).to.deep.equal([testUserDataOne.uid, testUserDataTwo.uid])
+            expect(Object.keys(users)).to.include.members([testUserDataOne.uid, testUserDataTwo.uid])
 
             //clean up
             docsToBeDeleted.push(docRef.path)
