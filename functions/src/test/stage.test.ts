@@ -21,7 +21,7 @@ chai.use(chaiAsPromised);
 const assert = chai.assert;
 const expect = chai.expect;
 
-describe('STAGE', () => {
+describe.only('STAGE', () => {
 
     var test: FeaturesList
     var myFunctions

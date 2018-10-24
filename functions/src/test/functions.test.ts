@@ -8,7 +8,7 @@ import { Models } from './lib/ORM/Models';
 const assert = chai.assert;
 const expect = chai.expect;
 
-describe.only('OFFLINE', () => {
+describe('OFFLINE', () => {
 
     var test;
     var adminInitStub;

@@ -108,7 +108,7 @@ describe('STAGE', () => {
                 docsToBeDeleted.push((await user.getDocRef()).path)
                 
                 expect(id).exist
-            }).timeout(3000)
+            })
 
             it('Create.', async () => {
 
@@ -271,7 +271,7 @@ describe('STAGE', () => {
                 const age2 = await user.getField('age')
                 
                 expect(age2).to.not.exist
-            }).timeout(4000)
+            })
         })
 
         describe('Relations.', () => {
@@ -305,7 +305,7 @@ describe('STAGE', () => {
                     docsToBeDeleted.push((await sensor.getDocRef()).path)
                     docsToBeDeleted.push((await room.getDocRef()).path)
                     
-                }).timeout(3000)
+                })
 
                 it('Save model to an other reverse I2M', async () => {
                     
@@ -327,7 +327,7 @@ describe('STAGE', () => {
                     docsToBeDeleted.push((await sensor.getDocRef()).path)
                     docsToBeDeleted.push((await room.getDocRef()).path)
 
-                }).timeout(3000)
+                })
                
                 it('A model can have multiple relations', async () => {
                     const sensor: Sensor = db.sensor()
@@ -357,7 +357,7 @@ describe('STAGE', () => {
                     docsToBeDeleted.push((await room.getDocRef()).path)
                     docsToBeDeleted.push((await event.getDocRef()).path)
 
-                }).timeout(4000)
+                })
 
                 it('Save model to an other reverse I2M BATCH', async () => {
                     
@@ -383,7 +383,7 @@ describe('STAGE', () => {
                     docsToBeDeleted.push((await sensor.getDocRef()).path)
                     docsToBeDeleted.push((await room.getDocRef()).path)
 
-                }).timeout(4000)
+                })
 
                 it('Save model to an other reverse I2M BATCH SOULD FAIL', async () => {
                     const sensor: Sensor = await db.sensor()
@@ -437,7 +437,7 @@ describe('STAGE', () => {
                     docsToBeDeleted.push((await sensor.getDocRef()).path)
                     docsToBeDeleted.push((await room.getDocRef()).path)
 
-                }).timeout(4000)
+                })
 
                 it('Make sure models can be attached and retrieved "inverse"', async () => {
 
@@ -456,7 +456,7 @@ describe('STAGE', () => {
                     docsToBeDeleted.push((await sensor.getDocRef()).path)
                     docsToBeDeleted.push((await room.getDocRef()).path)
                     
-                }).timeout(4000)
+                })
 
                 it('Retrive cached relational data', async () => {
                     const sensor = db.sensor()
@@ -490,7 +490,7 @@ describe('STAGE', () => {
                     docsToBeDeleted.push((await sensor.getDocRef()).path)
                     docsToBeDeleted.push((await room.getDocRef()).path)
                    
-                }).timeout(4000)
+                })
             })
 
             describe('M2M', () => {
@@ -524,7 +524,7 @@ describe('STAGE', () => {
                     docsToBeDeleted.push((await house.getDocRef()).path)
                     docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
 
-                }).timeout(4000)
+                })
 
                 it('Attach multiple models to one many-to-many related model', async () => {
                     const user = db.user() as User
@@ -578,7 +578,7 @@ describe('STAGE', () => {
 
                     docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
 
-                }).timeout(4000)
+                })
 
                 it('Retrive attached model with data of many-to-many relation', async () => {
                     const user = db.user() as User
@@ -607,7 +607,7 @@ describe('STAGE', () => {
 
                     docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
 
-                }).timeout(4000)
+                })
 
                 it('Retrive cached relational data', async () => {
                     const user = db.user() as User
@@ -645,7 +645,7 @@ describe('STAGE', () => {
 
                     docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
 
-                }).timeout(4000)
+                })
 
                 it('Attach pivot data to many-to-many relation', async () => {
                     const user = db.user() as User
@@ -664,7 +664,7 @@ describe('STAGE', () => {
                     docsToBeDeleted.push((await house.getDocRef()).path)
                     docsToBeDeleted.push((await pivot.getDocRef()).path)
 
-                }).timeout(4000)
+                })
 
                 it('Make sure models can be attached in "inverse"', async () => {
 
@@ -687,7 +687,7 @@ describe('STAGE', () => {
  
                      docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
 
-                }).timeout(4000)
+                })
             })
         })
     })
