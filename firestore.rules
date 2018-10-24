@@ -6,8 +6,8 @@ service cloud.firestore {
     match /households/{householdId} {
     	function validUpdate()
       {
-      	return !(request.resource.data.keys().hasAll(["users"]))
-        				|| (resource.data.users[request.auth.uid].role == "owner");
+          return !(request.resource.data.keys().hasAll(["users"]))
+                || (resource.data.users[request.auth.uid].role == "admin");
 			}
 
 			allow update: if validUpdate();
