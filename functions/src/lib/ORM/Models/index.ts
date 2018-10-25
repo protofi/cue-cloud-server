@@ -100,20 +100,40 @@ export default class ModelImpl implements Model {
         
         if(transaction)
         {
-            transaction.set(docRef, data, {
-                merge: true
-            })
+            transaction.update(docRef, data)
         }
         else 
         {
-            await docRef.set(data, {
-                merge: true
-            })
+            await docRef.update(data)
         }
 
         this.doc = null
         return this
     }
+
+    async updateOrCreate(data: object, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
+    {
+        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
+        
+        if(transaction)
+        {
+            transaction.set(docRef, data,
+                {
+                    merge: true
+                })
+        }
+        else 
+        {
+            await docRef.set(data,
+                {
+                    merge: true
+                })
+        }
+
+        this.doc = null
+        return this
+    }
+
 
     async delete(): Promise<void>
     {

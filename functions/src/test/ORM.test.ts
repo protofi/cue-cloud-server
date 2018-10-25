@@ -47,6 +47,10 @@ describe('STAGE', () => {
         db = new DataORMImpl(adminFs);
     });
 
+    after(async () => {
+        test.cleanup()
+    })
+
     describe('ORM', () => {
 
         var docsToBeDeleted
@@ -279,7 +283,7 @@ describe('STAGE', () => {
             describe('I2I', async () => {
                 
                 it('Related models method should return the same relation every time', async () => {
-                    
+
                     const sensor: Sensor = db.sensor()
 
                     const room1 = sensor.room()
@@ -458,7 +462,7 @@ describe('STAGE', () => {
                     
                 })
 
-                it('Retrive cached relational data', async () => {
+                it('Retrieve cached relational data', async () => {
                     const sensor = db.sensor()
                     const room = db.room()
                     const sensorId = await sensor.getId();
@@ -556,7 +560,7 @@ describe('STAGE', () => {
 
                 }).timeout(5000)
 
-                it('Retrive attached blank model of many-to-many relation', async () => {
+                it('Retrieve attached blank model of many-to-many relation', async () => {
 
                     const user = db.user() as User
                     const house = db.household() as Household
@@ -580,13 +584,13 @@ describe('STAGE', () => {
 
                 })
 
-                it('Retrive attached model with data of many-to-many relation', async () => {
+                it('Retrieve attached model with data of many-to-many relation', async () => {
                     const user = db.user() as User
                     const house = db.household() as Household
 
                     const name: string = 'My home'
 
-                    house.update({
+                    await house.create({
                         name: name
                     })
 
@@ -609,7 +613,7 @@ describe('STAGE', () => {
 
                 })
 
-                it('Retrive cached relational data', async () => {
+                it('Retrieve cached relational data', async () => {
                     const user = db.user() as User
                     const house = db.household() as Household
                     const houseId = await house.getId();
