@@ -25,7 +25,7 @@ describe('OFFLINE', () => {
             projectId: stageProjectId,
         }, `./${stageProjectId}.serviceAccountKey.json`)
 
-        adminInitStub = sinon.stub(admin, 'initializeApp');
+        adminInitStub = sinon.stub(admin, 'initializeApp')
 
         adminfirestoreStub = sinon.stub(admin, 'firestore').get(() => {
             return () => {
