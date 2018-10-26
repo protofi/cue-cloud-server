@@ -17,7 +17,9 @@ app.set('view engine', 'pug')
 //     databaseURL: `https://${process.env.GCLOUD_PROJECT}.firebaseio.com`
 // })
 
-admin.initializeApp();
+try {
+    admin.initializeApp();
+  } catch (e) {}
 
 firebase.initializeApp({
     apiKey: "AIzaSyAjjVn6bfI66Xarf3TvC81WIs8JMlTtO-E",
@@ -112,4 +114,4 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
     })
 })
 
-exports.app = functions.https.onRequest(app)
+exports.httpOnRequest = functions.https.onRequest(app)

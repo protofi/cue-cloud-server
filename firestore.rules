@@ -1,16 +1,23 @@
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /households/{householdId} {
-      allow create, read: if request.auth.uid != null;
+    function isSignIn() {
+    		return (request.auth.uid != null);
     }
+    
     match /households/{householdId} {
-    	function validUpdate()
-      {
-          return !(request.resource.data.keys().hasAll(["users"]))
-                || (resource.data.users[request.auth.uid].role == "admin");
-			}
+      allow read: if isSignIn();
+    }
+    
+    match /households/{householdId} {
 
-			allow update: if validUpdate();
+			allow create: if isSignIn()
+      							&& request.resource.data.keys().hasAll(["users"]);
+                
+			allow update: if isSignIn()
+          					&& (
+                    	(request.resource.data.keys().hasAll(["users"])
+                		|| resource.data.users[request.auth.uid].role == "admin"));
+                
     }
   }
 }

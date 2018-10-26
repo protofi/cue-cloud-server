@@ -2,29 +2,29 @@ import * as chai from 'chai'
 import * as sinon from 'sinon'
 import * as mocha from 'mocha'
 import * as firebase from 'firebase'
-import * as admin from 'firebase-admin';
+import * as admin from 'firebase-admin'
 import * as functionsTest from 'firebase-functions-test'
-import { FeaturesList } from 'firebase-functions-test/lib/features';
+import { FeaturesList } from 'firebase-functions-test/lib/features'
 
 import DataORMImpl from "./lib/ORM"
 import { asyncForEach } from './lib/util'
-import User from './lib/ORM/Models/User';
-import Household from './lib/ORM/Models/Household';
-import Sensor from './lib/ORM/Models/Sensor';
-import ModelImpl, { Models } from './lib/ORM/Models';
-import Room from './lib/ORM/Models/Room';
-import Event from './lib/ORM/Models/Event';
-import { N2OneRelation } from './lib/ORM/Relation';
+import User from './lib/ORM/Models/User'
+import Household from './lib/ORM/Models/Household'
+import Sensor from './lib/ORM/Models/Sensor'
+import ModelImpl, { Models } from './lib/ORM/Models'
+import Room from './lib/ORM/Models/Room'
+import Event from './lib/ORM/Models/Event'
+import { N2OneRelation } from './lib/ORM/Relation'
 
 const chaiThings = require("chai-things")
-const chaiAsPromised = require("chai-as-promised");
+const chaiAsPromised = require("chai-as-promised")
 
-chai.should();
-chai.use(chaiThings);
-chai.use(chaiAsPromised);
+chai.should()
+chai.use(chaiThings)
+chai.use(chaiAsPromised)
 
-const assert = chai.assert;
-const expect = chai.expect;
+const assert = chai.assert
+const expect = chai.expect
 
 describe('STAGE', () => {
 
@@ -40,18 +40,18 @@ describe('STAGE', () => {
         test = functionsTest({
             databaseURL: `https://${stageProjectId}.firebaseio.com`,
             projectId: stageProjectId,
-        }, `./${stageProjectId}.serviceAccountKey.json`);
+        }, `./${stageProjectId}.serviceAccountKey.json`)
 
-        myFunctions = require('../lib/index');
-        adminFs = admin.firestore();
-        db = new DataORMImpl(adminFs);
+        myFunctions = require('../lib/index')
+        adminFs = admin.firestore()
+        db = new DataORMImpl(adminFs)
     });
 
     after(async () => {
         test.cleanup()
     })
 
-    describe('ORM', () => {
+    describe('ORM', async () => {
 
         var docsToBeDeleted
 
@@ -65,7 +65,7 @@ describe('STAGE', () => {
             })
         })
 
-        describe('CRUD', () => {
+        describe('CRUD', async () => {
 
             it('Create doc new ref.', async () => {
                 const docRef: FirebaseFirestore.DocumentReference = await db.user().getDocRef()
@@ -121,11 +121,11 @@ describe('STAGE', () => {
                     name: 'Bob'
                 })
 
-                const name: string = await user.getField('name')
-                expect(name).to.equals('Bob')
-
                 // Clean up
                 docsToBeDeleted.push((await user.getDocRef()).path)
+
+                const name: string = await user.getField('name')
+                expect(name).to.equals('Bob')
             })
 
             it('Create w. batch', async () => {
@@ -134,13 +134,13 @@ describe('STAGE', () => {
                     name: 'Bob'
                 }, batch)
 
+                //Clean up
+                docsToBeDeleted.push((await user.getDocRef()).path)
+
                 await batch.commit()
                 
                 const name: string = await user.getField('name')
                 expect(name).to.equals('Bob')
-                
-                //Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
             })
 
             it('Create w. batch should fail', async () => {
@@ -187,6 +187,9 @@ describe('STAGE', () => {
                     name: 'Bobby'
                 })
 
+                //Clean up
+                docsToBeDeleted.push((await user.getDocRef()).path)
+
                 await user.update({
                     age: 28
                 })
@@ -196,9 +199,6 @@ describe('STAGE', () => {
                 
                 expect(name).equals('Bobby')
                 expect(age).equals(28)
-
-                //Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
             })
 
             it('Update w. batch', async () => {
@@ -207,6 +207,9 @@ describe('STAGE', () => {
                 const user = await db.user().create({
                     name: 'Bobby'
                 }, batch)
+
+                //Clean up
+                docsToBeDeleted.push((await user.getDocRef()).path)
 
                 await user.update({
                     age: 28
@@ -222,9 +225,6 @@ describe('STAGE', () => {
                 
                 expect(name).equals('Bobby')
                 expect(age).equals(28)
-
-                //Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
             })
 
             it('Update w. batch should fail', async () => {
@@ -233,6 +233,9 @@ describe('STAGE', () => {
                 const user = await db.user().create({
                     name: 'Bobby'
                 }, batch)
+
+                //Clean up
+                docsToBeDeleted.push((await user.getDocRef()).path)
 
                 await user.update({
                     age: 28
@@ -255,6 +258,9 @@ describe('STAGE', () => {
                 await user.create({
                     name: 'Bobby'
                 })
+
+                //Clean up
+                docsToBeDeleted.push((await user.getDocRef()).path)
 
                 await user.update({
                     age: 28
@@ -299,16 +305,15 @@ describe('STAGE', () => {
 
                     await sensor.room().set(room)
 
+                    //clean up
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    
                     const roomId = await room.getId()
                     
                     const attRoom = await sensor.getField(room.name)
                     
                     expect(roomId).to.deep.equals(attRoom.id)
-
-                    //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
-                    
                 })
 
                 it('Save model to an other reverse I2M', async () => {
@@ -318,6 +323,10 @@ describe('STAGE', () => {
 
                     await sensor.room().set(room)
 
+                    //clean up
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    
                     const roomId = await room.getId()
                     const sensorId = await sensor.getId()
                     
@@ -326,11 +335,6 @@ describe('STAGE', () => {
 
                     expect(roomId).to.deep.equals(attRoom.id)
                     expect(Object.keys(attSensors), 'Foreign key on room').to.include(sensorId)
-              
-                    //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
-
                 })
                
                 it('A model can have multiple relations', async () => {
@@ -341,6 +345,11 @@ describe('STAGE', () => {
                     await event.sensor().set(sensor)
                     await room.sensors().attach(sensor)
 
+                    //clean up
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    docsToBeDeleted.push((await event.getDocRef()).path)
+                    
                     const attRoom = await sensor.getField(room.name)
                     const attEvents = await sensor.getField(event.name)
 
@@ -355,12 +364,6 @@ describe('STAGE', () => {
                     expect(sensorId).to.deep.equals(attSensor.id)
                     expect(Object.keys(attEvents), 'Foreign key on sensor').to.include(eventId)
                     expect(Object.keys(attSensors), 'Foreign key on room').to.include(sensorId)
-
-                    //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
-                    docsToBeDeleted.push((await event.getDocRef()).path)
-
                 })
 
                 it('Save model to an other reverse I2M BATCH', async () => {
@@ -372,6 +375,10 @@ describe('STAGE', () => {
 
                     await sensor.room().set(room, batch)
 
+                    //clean up
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    
                     await batch.commit()
 
                     const roomId = await room.getId()
@@ -382,11 +389,6 @@ describe('STAGE', () => {
 
                     expect(roomId).to.deep.equals(attRoom.id)
                     expect(Object.keys(attSensors), 'Foreign key on room').to.include(sensorId)
-              
-                    //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
-
                 })
 
                 it('Save model to an other reverse I2M BATCH SOULD FAIL', async () => {
@@ -428,6 +430,10 @@ describe('STAGE', () => {
 
                     await room.sensors().attach(sensor)
 
+                    //clean up
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    
                     const roomSensors = await room.getField(sensor.name)
                     const sensorRoom = await sensor.getField(room.name)
 
@@ -436,11 +442,6 @@ describe('STAGE', () => {
 
                     expect(Object.keys(roomSensors), 'Foreign key on room').to.include(sensorId)
                     expect(roomId, 'Foreign key on sensor').equals(sensorRoom.id)
-
-                    //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
-
                 })
 
                 it('Make sure models can be attached and retrieved "inverse"', async () => {
@@ -452,14 +453,13 @@ describe('STAGE', () => {
 
                     await room.sensors().attach(sensor)
 
-                    const attRoom = await sensor.room().get()
-
-                    expect(roomId).to.equal(await attRoom.getId())
-
                     //clean up
                     docsToBeDeleted.push((await sensor.getDocRef()).path)
                     docsToBeDeleted.push((await room.getDocRef()).path)
                     
+                    const attRoom = await sensor.room().get()
+
+                    expect(roomId).to.equal(await attRoom.getId())
                 })
 
                 it('Retrieve cached relational data', async () => {
@@ -468,6 +468,10 @@ describe('STAGE', () => {
                     const sensorId = await sensor.getId();
 
                     await room.sensors().attach(sensor)
+                    
+                    //clean up
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push((await room.getDocRef()).path)
                     
                     const sensorData = {[sensorId] : {
                         name: 'Doorbell'
@@ -488,12 +492,7 @@ describe('STAGE', () => {
                     const cache2 = await room.sensors().cache(sensorId)
 
                     expect(cache1).to.deep.include(sensorData)
-                    expect(cache2).to.deep.equal(sensorData[sensorId])
-
-                    //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
-                   
+                    expect(cache2).to.deep.equal(sensorData[sensorId])              
                 })
             })
 
@@ -520,14 +519,13 @@ describe('STAGE', () => {
                     const houseId = await house.getId()
                     const userId = await user.getId()
 
-                    expect(Object.keys(userHouses), 'Foreign key on user').to.include(houseId)
-                    expect(Object.keys(houseUsers), 'Foreign key on household').to.include(userId)
-
                     //clean up
                     docsToBeDeleted.push((await user.getDocRef()).path)
                     docsToBeDeleted.push((await house.getDocRef()).path)
                     docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
-
+                    
+                    expect(Object.keys(userHouses), 'Foreign key on user').to.include(houseId)
+                    expect(Object.keys(houseUsers), 'Foreign key on household').to.include(userId)
                 })
 
                 it('Attach multiple models to one many-to-many related model', async () => {
@@ -546,11 +544,6 @@ describe('STAGE', () => {
                     const house1Id: string = await house1.getId()
                     const house2Id: string = await house2.getId()
 
-                    expect(Object.keys(userHouses), 'Foreign key from house1 on user').to.include(house1Id)
-                    expect(Object.keys(userHouses), 'Foreign key from house2 on user').to.include(house2Id)
-                    expect(Object.keys(house1Users), 'Foreign key on household1').to.include(userId)
-                    expect(Object.keys(house2Users), 'Foreign key on household2').to.include(userId)
-
                     //clean up
                     docsToBeDeleted.push((await user.getDocRef()).path)
                     docsToBeDeleted.push((await house1.getDocRef()).path)
@@ -558,7 +551,11 @@ describe('STAGE', () => {
                     docsToBeDeleted.push(`${house1.name}_${user.name}/${house1Id}_${userId}`)
                     docsToBeDeleted.push(`${house2.name}_${user.name}/${house2Id}_${userId}`)
 
-                }).timeout(5000)
+                    expect(Object.keys(userHouses), 'Foreign key from house1 on user').to.include(house1Id)
+                    expect(Object.keys(userHouses), 'Foreign key from house2 on user').to.include(house2Id)
+                    expect(Object.keys(house1Users), 'Foreign key on household1').to.include(userId)
+                    expect(Object.keys(house2Users), 'Foreign key on household2').to.include(userId)
+                })
 
                 it('Retrieve attached blank model of many-to-many relation', async () => {
 

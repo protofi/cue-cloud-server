@@ -14,7 +14,7 @@
     "rewrites": [
       {
         "source": "**",
-        "function": "app"
+        "function": "httpOnRequest"
       }
     ]
   },

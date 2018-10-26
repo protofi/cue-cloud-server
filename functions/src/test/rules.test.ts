@@ -2,33 +2,31 @@ import * as chai from 'chai'
 import * as sinon from 'sinon'
 import * as mocha from 'mocha'
 import * as firebase from 'firebase'
-import * as admin from 'firebase-admin';
+import * as admin from 'firebase-admin'
 import * as functionsTest from 'firebase-functions-test'
-import { FeaturesList } from 'firebase-functions-test/lib/features';
+import { FeaturesList } from 'firebase-functions-test/lib/features'
 
 import DataORMImpl from "./lib/ORM"
 import { asyncForEach } from './lib/util'
-import { Models } from './lib/ORM/Models';
-import { Roles } from './lib/const';
+import { Models } from './lib/ORM/Models'
+import { Roles } from './lib/const'
 
 const chaiThings = require("chai-things")
-const chaiAsPromised = require("chai-as-promised");
+const chaiAsPromised = require("chai-as-promised")
 
-chai.should();
-chai.use(chaiThings);
-chai.use(chaiAsPromised);
+chai.should()
+chai.use(chaiThings)
+chai.use(chaiAsPromised)
 
-const assert = chai.assert;
-const expect = chai.expect;
+const assert = chai.assert
+const expect = chai.expect
 
 describe('STAGE', () => {
 
     var test: FeaturesList
     var myFunctions
     var adminFs: FirebaseFirestore.Firestore
-    var adminDb: DataORMImpl
     var fs: firebase.firestore.Firestore
-    var db: DataORMImpl
 
     const testUserDataOne = {
         uid: "test-user-1",
@@ -58,18 +56,21 @@ describe('STAGE', () => {
         test = functionsTest({
             databaseURL: `https://${stageProjectId}.firebaseio.com`,
             projectId: stageProjectId,
-        }, `./${stageProjectId}.serviceAccountKey.json`);
+        }, `./${stageProjectId}.serviceAccountKey.json`)
 
-        myFunctions = require('../lib/index');
-        adminFs = admin.firestore();
-        adminDb = new DataORMImpl(adminFs);
+        myFunctions = require('../lib/index')
+        adminFs = admin.firestore()
         
         fs = firebase.firestore()
-        db = new DataORMImpl(fs);
-    
+        fs.settings({ timestampsInSnapshots: true })
+        
         testUserDataOne.token = await admin.auth().createCustomToken(testUserDataOne.uid)
         testUserDataTwo.token = await admin.auth().createCustomToken(testUserDataTwo.uid)
-    });
+    })
+
+    after(async () => {
+        test.cleanup()
+    })
 
     describe('Rules', () => {
 
@@ -151,7 +152,7 @@ describe('STAGE', () => {
             const docSnap : FirebaseFirestore.DocumentSnapshot = await adminFs.collection(Models.HOUSEHOLD).doc(docRef.id).get()
             const users = docSnap.get(Models.USER)
 
-            expect(Object.keys(users)).to.not.include.members([testUserDataTwo.uid])
+            expect([testUserDataTwo.uid]).to.not.include.members(Object.keys(users))
 
             //clean up
             docsToBeDeleted.push(docRef.path)
@@ -166,14 +167,14 @@ describe('STAGE', () => {
                 }}
             })
             
-            await fs.collection(Models.HOUSEHOLD).doc(docRef.id).set({
+            await fs.collection(Models.HOUSEHOLD).doc(docRef.id).update({
                 [Models.USER] : {[testUserDataTwo.uid] : true}
-            }, {merge: true})
+            })
 
             const docSnap : FirebaseFirestore.DocumentSnapshot = await adminFs.collection(Models.HOUSEHOLD).doc(docRef.id).get()
             const users = docSnap.get(Models.USER)
 
-            expect(Object.keys(users)).to.include.members([testUserDataOne.uid, testUserDataTwo.uid])
+            expect([testUserDataOne.uid, testUserDataTwo.uid]).to.include.members(Object.keys(users))
 
             //clean up
             docsToBeDeleted.push(docRef.path)
@@ -200,7 +201,7 @@ describe('STAGE', () => {
             const docSnap : FirebaseFirestore.DocumentSnapshot = await adminFs.collection(Models.HOUSEHOLD).doc(docRef.id).get()
             const users = docSnap.get(Models.USER)
 
-            expect(users[testUserDataOne.uid].role).to.not.equal(Roles.ADMIN)
+            expect(users[testUserDataOne.uid].role).to.not.equal([Roles.ADMIN])
 
             //clean up
             docsToBeDeleted.push(docRef.path)

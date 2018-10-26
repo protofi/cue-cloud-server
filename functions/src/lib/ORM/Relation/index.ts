@@ -46,7 +46,7 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
     {
         this.properties.add(newPropModel)
         
-        await this.owner.update({
+        await this.owner.updateOrCreate({
             [this.propertyModelName] : {[await newPropModel.getId()] : true}
         }, transaction)
 
@@ -111,9 +111,9 @@ export class Many2ManyRelation extends N2ManyRelation {
             [this.propertyModelName]    : { id : await newPropModel.getId()}
         }
 
-        await pivotModel.create(pivotData)
+        await pivotModel.updateOrCreate(pivotData)
 
-        await newPropModel.update({
+        await newPropModel.updateOrCreate({
             [this.owner.name] : {[await this.owner.getId()] : true}
         }, transaction)
 
@@ -132,7 +132,7 @@ export class One2ManyRelation extends N2ManyRelation {
     {
         await super.attach(newPropModel, transaction)
 
-        await newPropModel.update({
+        await newPropModel.updateOrCreate({
             [this.owner.name] : {
                 id : await this.owner.getId()
             }
