@@ -1,5 +1,5 @@
 import ModelImpl, { Models } from "./";
-import { Many2ManyRelation } from "./../Relation";
+import { Many2ManyRelation, N2OneRelation } from "./../Relation";
 
 export default class User extends ModelImpl {
 
@@ -8,9 +8,9 @@ export default class User extends ModelImpl {
         super(Models.USER, db, id)
     }
 
-    households(): Many2ManyRelation
+    households(): N2OneRelation
     {
-        return this.belongsToMany(Models.HOUSEHOLD)
+        return this.belongsTo(Models.HOUSEHOLD)
     }
 
     sensors(): Many2ManyRelation

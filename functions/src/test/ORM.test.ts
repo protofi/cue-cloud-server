@@ -516,184 +516,180 @@ describe('STAGE', () => {
 
                 it('Create root documents and relation by attaching two models', async () => {
                     const user = db.user() as User
-                    const house = db.household() as Household
+                    const sensor = db.sensor() as Sensor
 
-                    await user.households().attach(house)
+                    await user.sensors().attach(sensor)
 
-                    const userHouses = await user.getField(house.name)
-                    const houseUsers = await house.getField(user.name)
+                    const userSensors = await user.getField(sensor.name)
+                    const sensorUsers = await sensor.getField(user.name)
 
-                    const houseId = await house.getId()
+                    const sensorId = await sensor.getId()
                     const userId = await user.getId()
 
                     //clean up
                     docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await house.getDocRef()).path)
-                    docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                     
-                    expect(Object.keys(userHouses), 'Foreign key on user').to.include(houseId)
-                    expect(Object.keys(houseUsers), 'Foreign key on household').to.include(userId)
+                    expect(Object.keys(userSensors), 'Foreign key on user').to.include(sensorId)
+                    expect(Object.keys(sensorUsers), 'Foreign key on sensor').to.include(userId)
                 })
 
                 it('Attach multiple models to one many-to-many related model', async () => {
                     const user = db.user() as User
-                    const house1 = db.household() as Household
-                    const house2 = db.household() as Household
+                    const sensor1 = db.sensor() as Sensor
+                    const sensor2 = db.sensor() as Sensor
 
-                    await user.households().attach(house1)
-                    await user.households().attach(house2)
+                    await user.sensors().attach(sensor1)
+                    await user.sensors().attach(sensor2)
 
-                    const userHouses = await user.getField(house1.name)
-                    const house1Users = await house1.getField(user.name)
-                    const house2Users = await house2.getField(user.name)
+                    const userSensors = await user.getField(sensor1.name)
+                    const sensor1Users = await sensor1.getField(user.name)
+                    const sensor2Users = await sensor2.getField(user.name)
 
                     const userId: string = await user.getId()
-                    const house1Id: string = await house1.getId()
-                    const house2Id: string = await house2.getId()
+                    const sensor1Id: string = await sensor1.getId()
+                    const sensor2Id: string = await sensor2.getId()
 
                     //clean up
                     docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await house1.getDocRef()).path)
-                    docsToBeDeleted.push((await house2.getDocRef()).path)
-                    docsToBeDeleted.push(`${house1.name}_${user.name}/${house1Id}_${userId}`)
-                    docsToBeDeleted.push(`${house2.name}_${user.name}/${house2Id}_${userId}`)
+                    docsToBeDeleted.push((await sensor1.getDocRef()).path)
+                    docsToBeDeleted.push((await sensor2.getDocRef()).path)
+                    docsToBeDeleted.push(`${sensor1.name}_${user.name}/${sensor1Id}_${userId}`)
+                    docsToBeDeleted.push(`${sensor2.name}_${user.name}/${sensor2Id}_${userId}`)
 
-                    expect(Object.keys(userHouses), 'Foreign key from house1 on user').to.include(house1Id)
-                    expect(Object.keys(userHouses), 'Foreign key from house2 on user').to.include(house2Id)
-                    expect(Object.keys(house1Users), 'Foreign key on household1').to.include(userId)
-                    expect(Object.keys(house2Users), 'Foreign key on household2').to.include(userId)
+                    expect(Object.keys(userSensors), 'Foreign key from sensor1 on user').to.include(sensor1Id)
+                    expect(Object.keys(userSensors), 'Foreign key from sensor2 on user').to.include(sensor2Id)
+                    expect(Object.keys(sensor1Users), 'Foreign key on sensor1').to.include(userId)
+                    expect(Object.keys(sensor2Users), 'Foreign key on sensor2').to.include(userId)
                 })
 
                 it('Retrieve attached blank model of many-to-many relation', async () => {
 
                     const user = db.user() as User
-                    const house = db.household() as Household
+                    const sensor = db.sensor() as Sensor
 
-                    await user.households().attach(house)
+                    await user.sensors().attach(sensor)
 
-                    const households: Array<ModelImpl> = await user.households().get()
+                    const sensors: Array<ModelImpl> = await user.sensors().get()
 
-                    const attachedHouseId = await households[0].getId()
-                    const houseId = await house.getId()
+                    const attachedSensorId = await sensors[0].getId()
+                    const sensorId = await sensor.getId()
 
-                    expect(houseId).to.equal(attachedHouseId)
+                    expect(sensorId).to.equal(attachedSensorId)
 
                     const userId: string = await user.getId()
 
                     //clean up
                     docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await house.getDocRef()).path)
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
 
-                    docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
-
+                    docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
                 it('Retrieve attached model with data of many-to-many relation', async () => {
                     const user = db.user() as User
-                    const house = db.household() as Household
+                    const sensor = db.sensor() as Sensor
 
-                    const name: string = 'My home'
+                    const location: string = 'Office'
 
-                    await house.create({
-                        name: name
+                    await sensor.create({
+                        location: location
                     })
 
-                    await user.households().attach(house)
+                    await user.sensors().attach(sensor)
 
-                    const households: Array<ModelImpl> = await user.households().get()
-                    const attachedHouse = await households[0]
-                    const attName: string = await attachedHouse.getField('name')
+                    const sensors: Array<ModelImpl> = await user.sensors().get()
+                    const attachedSensor = await sensors[0]
+                    const attLocation: string = await attachedSensor.getField('location')
 
-                    expect(attName).to.equal(name)
+                    expect(attLocation).to.equal(location)
 
                     //clean up
-                    const houseId = await house.getId()
+                    const senorId = await sensor.getId()
                     const userId: string = await user.getId()
 
                     docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await house.getDocRef()).path)
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
 
-                    docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
-
+                    docsToBeDeleted.push(`${sensor.name}_${user.name}/${senorId}_${userId}`)
                 })
 
                 it('Retrieve cached relational data', async () => {
                     const user = db.user() as User
-                    const house = db.household() as Household
-                    const houseId = await house.getId();
+                    const sensor = db.sensor() as Sensor
+                    const sensorId = await sensor.getId();
 
-                    await user.households().attach(house)
+                    await user.sensors().attach(sensor)
                     
-                    const houseData = {[houseId] : {
-                        name: 'My Home'
+                    const sensorData = {[sensorId] : {
+                        location: 'Office'
                     }}
 
                     await user.update({
-                        [house.name] : { 
-                            [houseId] : {
-                                name: 'My Home'
+                        [sensor.name] : { 
+                            [sensorId] : {
+                                location: 'Office'
                             },
                             '123' : {
-                                name: 'Summer house'
+                                location: 'Entrance'
                             }
                         }
                     })
 
-                    const cache1 = await user.households().cache()
-                    const cache2 = await user.households().cache(houseId)
+                    const cache1 = await user.sensors().cache()
+                    const cache2 = await user.sensors().cache(sensorId)
 
-                    expect(cache1).to.deep.include(houseData)
-                    expect(cache2).to.deep.equal(houseData[houseId])
+                    expect(cache1).to.deep.include(sensorData)
+                    expect(cache2).to.deep.equal(sensorData[sensorId])
 
                     //clean up
                     const userId: string = await user.getId()
 
                     docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await house.getDocRef()).path)
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
 
-                    docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
-
+                    docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
                 it('Attach pivot data to many-to-many relation', async () => {
                     const user = db.user() as User
-                    const house = db.household() as Household
-                    const houseId = await house.getId()
+                    const sensor = db.sensor() as Sensor
+                    const sensorId = await sensor.getId()
 
-                    await user.households().attach(house)
+                    await user.sensors().attach(sensor)
 
-                    const pivot: ModelImpl = await user.households().pivot(houseId)
+                    const pivot: ModelImpl = await user.sensors().pivot(sensorId)
                     await pivot.update({
                         settings : true
                     })
 
                     //clean up
                     docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await house.getDocRef()).path)
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
                     docsToBeDeleted.push((await pivot.getDocRef()).path)
-
                 })
 
                 it('Make sure models can be attached in "inverse"', async () => {
 
                     const user = db.user() as User
-                    const house = db.household() as Household
-                    const houseId = await house.getId()
+                    const sensor = db.sensor() as Sensor
+                    const sensorId = await sensor.getId()
                     const userId = await user.getId()
 
-                    await user.households().attach(house)
-                    await house.users().attach(user)
+                    await user.sensors().attach(sensor)
+                    await sensor.users().attach(user)
 
-                    const pivot1: ModelImpl = await user.households().pivot(houseId)
-                    const pivot2: ModelImpl = await house.users().pivot(userId)
+                    const pivot1: ModelImpl = await user.sensors().pivot(sensorId)
+                    const pivot2: ModelImpl = await sensor.users().pivot(userId)
 
                     expect(await pivot1.getId()).to.equal(await pivot2.getId())
 
                     //clean up
                     docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await house.getDocRef()).path)
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
 
-                    docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
+                    docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
             })
         })
