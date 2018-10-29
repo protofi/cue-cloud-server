@@ -10,9 +10,7 @@ exports = module.exports = functions.firestore.document('households/{householdId
     const db = new DataORMImpl(adminFs)
 
     const data = snap.data();
-    const adminId = Object.keys(data[Models.USER])[0];
-
-    console.log(Object.keys(data[Models.USER])[0]);
+    const adminId = Object.keys(data[Models.USER])[0]; // Get the id of the first user
     
     return db.household(snap.id).update({
         [Models.USER] : {

@@ -5,6 +5,7 @@ import * as admin from 'firebase-admin'
 import * as functionsTest from 'firebase-functions-test'
 import { Models } from './lib/ORM/Models'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
+import { Roles } from './lib/const';
 
 const assert = chai.assert;
 const expect = chai.expect;
@@ -12,10 +13,11 @@ const expect = chai.expect;
 describe('OFFLINE', () => {
 
     var test: FeaturesList;
-    var adminInitStub;
-    var firestoreMockData;
-    var adminfirestoreStub;
+    var adminInitStub: sinon.SinonStub;
+    var adminfirestoreStub: sinon.SinonStub;
     var myFunctions;
+
+    var firestoreMockData: any = {}
 
     const testUserDataOne = {
         uid: "test-user-1",
@@ -32,8 +34,6 @@ describe('OFFLINE', () => {
     }
     
     before(async () => {
-        
-        firestoreMockData = {}
 
         const stageProjectId = "staging-iot-cloud-server"
 
@@ -42,39 +42,44 @@ describe('OFFLINE', () => {
             projectId: stageProjectId,
         }, `./${stageProjectId}.serviceAccountKey.json`)
 
-        // adminInitStub = sinon.stub(admin, 'initializeApp');
+        adminInitStub = sinon.stub(admin, 'initializeApp');
 
-        // adminfirestoreStub = sinon.stub(admin, 'firestore')
-        // .get(() => {
-        //     return () => {
-        //         return {
-        //             settings: () => {return null},
-        //             collection: (col) => {
-        //                 return {
-        //                     doc: (doc) => {
-        //                         return {
-        //                             set: (data) => {
-        //                                 console.log(col,doc)
-        //                                 return null
-        //                             },
-        //                             get: () => {
-        //                                 console.log(col,doc)
-        //                                 return null
-        //                             }
-        //                         }
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // })
-        
+        adminfirestoreStub = sinon.stub(admin, 'firestore')
+        .get(() => {
+            return () => {
+                return {
+                    settings: () => {return null},
+                    collection: (col) => {
+                        return {
+                            doc: (doc) => {
+                                return {
+                                    set: (data) => {
+                                        firestoreMockData[`${col}/${doc}`] = data
+                                        return null
+                                    },
+                                    get: () => {
+                                        return firestoreMockData[`${col}/${doc}`]
+                                    },
+                                    update: (data) => {
+                                        firestoreMockData[`${col}/${doc}`] = data
+                                        return null
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        })
+
         myFunctions = require('../lib/index')
     });
 
     afterEach(async () => {
         test.cleanup()
-        // adminInitStub.restore()
+        adminInitStub.restore()
+        adminfirestoreStub.restore()
+        firestoreMockData = {}
     })
 
     describe('Functions', async () => {
@@ -83,15 +88,21 @@ describe('OFFLINE', () => {
 
             it('On Create', async () => {
                 
-                const householdSnap = test.firestore.makeDocumentSnapshot({[Models.USER]: {123: true}}, `${Models.HOUSEHOLD}/`)
-
-                const house = test.firestore.exampleDocumentSnapshot()
+                const householdSnap = {
+                    data : function() {
+                        return { [Models.USER] : { [testUserDataOne.uid] : true } }
+                    }
+                }
 
                 const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
 
                 await wrappedHouseholdsOnCreate(householdSnap)
 
-                // const beforeSnap = test.firestore.makeDocumentSnapshot({foo: 'bar'}, 'households/123');
+                expect(firestoreMockData['households/undefined'][Models.USER]).to.deep.equal({
+                    [testUserDataOne.uid] : {
+                        role: Roles.ADMIN
+                    }
+                })
             })
         })
     })

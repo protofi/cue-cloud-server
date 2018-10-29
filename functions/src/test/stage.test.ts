@@ -53,10 +53,19 @@ describe('STAGE', () => {
             projectId: stageProjectId,
         }, `./${stageProjectId}.serviceAccountKey.json`)
 
+        try {
+            admin.initializeApp();
+          } catch (e) {}
+
         myFunctions = require('../lib/index');
+        
         fs = firebase.firestore()
-        fs.settings({ timestampsInSnapshots: true })
+        try {
+            adminFs.settings({ timestampsInSnapshots: true })
+        } catch (e) {}
+
         adminFs = admin.firestore();
+        
         db = new Database(fs);
         adminDb = new Database(adminFs);
 

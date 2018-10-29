@@ -16,7 +16,7 @@ describe('OFFLINE', () => {
     var myFunctions;
     
     beforeEach(async () => {
-        
+
         firestoreMockData = {}
         const stageProjectId = "staging-iot-cloud-server"
 

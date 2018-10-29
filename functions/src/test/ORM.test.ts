@@ -14,7 +14,6 @@ import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
-import { N2OneRelation } from './lib/ORM/Relation'
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -42,8 +41,16 @@ describe('STAGE', () => {
             projectId: stageProjectId,
         }, `./${stageProjectId}.serviceAccountKey.json`)
 
+        try {
+            admin.initializeApp();
+        } catch (e) {}
+
         myFunctions = require('../lib/index')
         adminFs = admin.firestore()
+        try {
+            adminFs.settings({ timestampsInSnapshots: true })
+        } catch (e) {}
+
         db = new DataORMImpl(adminFs)
     });
 

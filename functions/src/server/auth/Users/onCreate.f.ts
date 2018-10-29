@@ -11,8 +11,8 @@ exports = module.exports = functions.auth.user().onCreate(async (user: UserRecor
     const db = new DataORMImpl(adminFs)
 
     const data = {
-        id : user.uid,
-        email : user.email
+        id      : user.uid,
+        email   : user.email
     }
 
     return await db.user(user.uid).create(data)
