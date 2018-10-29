@@ -14,6 +14,7 @@ import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
+import { Many2ManyRelation } from './lib/ORM/Relation';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")

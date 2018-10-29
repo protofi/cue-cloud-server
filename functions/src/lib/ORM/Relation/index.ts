@@ -30,8 +30,9 @@ export default class RelationImpl implements Relation{
 export interface N2ManyRelation {
     
     get(): Promise<Array<ModelImpl>>
-    attach(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<RelationImpl>
+    attach(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<N2ManyRelation>
 }
+
 export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
     
     protected properties: Set<ModelImpl>
@@ -42,7 +43,7 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         this.properties = new Set<ModelImpl>()
     }
 
-    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<RelationImpl>
+    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<N2ManyRelation>
     {
         this.properties.add(newPropModel)
         
@@ -63,8 +64,8 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
 
         return models
     }
-
 }
+
 export class Many2ManyRelation extends N2ManyRelation {
     protected name: string
 
@@ -98,7 +99,7 @@ export class Many2ManyRelation extends N2ManyRelation {
         return new ModelImpl(this.name, this.db, pivotId)
     }
 
-    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<RelationImpl>
+    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<Many2ManyRelation>
     {
         await super.attach(newPropModel, transaction)
         
@@ -128,7 +129,7 @@ export class One2ManyRelation extends N2ManyRelation {
         super(owner, propertyModelName, db)
     }
 
-    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<RelationImpl>
+    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<One2ManyRelation>
     {
         await super.attach(newPropModel, transaction)
 
