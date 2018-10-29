@@ -73,7 +73,7 @@ describe('OFFLINE', () => {
         })
 
         myFunctions = require('../lib/index')
-    });
+    })
 
     afterEach(async () => {
         test.cleanup()
@@ -86,7 +86,7 @@ describe('OFFLINE', () => {
         
         describe('Households', async () => {
 
-            it('On Create', async () => {
+            it('On Create. User should get an property of role as admin', async () => {
                 
                 const householdSnap = {
                     data : function() {

@@ -4,8 +4,8 @@ import * as mocha from 'mocha'
 import * as admin from 'firebase-admin'
 import * as functionsTest from 'firebase-functions-test'
 
-const assert = chai.assert;
-const expect = chai.expect;
+const assert = chai.assert
+const expect = chai.expect
 
 describe('OFFLINE', () => {
 
@@ -51,7 +51,7 @@ describe('OFFLINE', () => {
             }
         })
         
-        myFunctions = require('../lib/index');
+        myFunctions = require('../lib/index')
     })
 
     afterEach(async () => {

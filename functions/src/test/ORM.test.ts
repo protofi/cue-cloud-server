@@ -689,12 +689,11 @@ describe('STAGE', () => {
 
                     expect(await pivot1.getId()).to.equal(await pivot2.getId())
 
-                     //clean up
-                     docsToBeDeleted.push((await user.getDocRef()).path)
-                     docsToBeDeleted.push((await house.getDocRef()).path)
- 
-                     docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
+                    //clean up
+                    docsToBeDeleted.push((await user.getDocRef()).path)
+                    docsToBeDeleted.push((await house.getDocRef()).path)
 
+                    docsToBeDeleted.push(`${house.name}_${user.name}/${houseId}_${userId}`)
                 })
             })
         })
