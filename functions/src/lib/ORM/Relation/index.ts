@@ -161,6 +161,11 @@ export class N2OneRelation extends RelationImpl {
         return super.cache()
     }
 
+    // async updateCache(before, after)
+    // {
+    //     this.
+    // }
+
     async set(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
     {   
         //only works for one to many relations

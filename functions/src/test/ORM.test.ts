@@ -509,8 +509,8 @@ describe('STAGE', () => {
                 it('Related models method should return the same relation every time', async () => {
                     const u = db.user() as User
 
-                    const households1 = u.households()
-                    const households2 = u.households()
+                    const households1 = u.household()
+                    const households2 = u.household()
                     
                     expect(households1).to.equals(households2)
                 })
@@ -661,6 +661,7 @@ describe('STAGE', () => {
                     await user.sensors().attach(sensor)
 
                     const pivot: ModelImpl = await user.sensors().pivot(sensorId)
+
                     await pivot.update({
                         settings : true
                     })
