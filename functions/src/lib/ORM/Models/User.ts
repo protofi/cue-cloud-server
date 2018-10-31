@@ -10,20 +10,18 @@ export default class User extends ModelImpl {
 
     household(): N2OneRelation
     {
-        const r: N2OneRelation = this.belongsTo(Models.HOUSEHOLD);
+        const rel: N2OneRelation = this.belongsTo(Models.HOUSEHOLD);
 
-        // this.defineCache(r, [
-        //     'name',
-        //     `${Models.HOUSEHOLD}/{id}/role`
-        // ])
+        rel.defineCache([
+            'name',
+            'pivot.role'
+        ])
 
-        return r
+        return rel
     }
 
     sensors(): Many2ManyRelation
     {
         return this.belongsToMany(Models.SENSOR)
     }
-
-
 }

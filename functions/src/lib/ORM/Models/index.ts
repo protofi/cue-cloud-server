@@ -75,6 +75,7 @@ export default class ModelImpl implements Model {
     {
         const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef(id)
         this.doc = await docRef.get()
+
         return this
     }
 

@@ -55,21 +55,36 @@ describe('OFFLINE', () => {
         // } catch (e) {}
 
         adminInitStub = sinon.stub(admin, 'initializeApp')
+
         adminfirestoreStub = sinon.stub(admin, 'firestore')
         .get(() => {
             return () => {
                 return {
-                    settings: () => {return null},
+                    // FieldValue: () => {
+                    //     return {
+                    //         delete: () => {
+                    //             return 'DELETE'
+                    //         }
+                    //     }
+                    // },
+                    settings: () => { return null },
                     collection: (col) => {
                         return {
                             doc: (doc) => {
                                 return {
+                                    id : 'test-user-1',
                                     set: (data) => {
                                         firestoreMockData[`${col}/${doc}`] = data
                                         return null
                                     },
-                                    get: () => {
-                                        return firestoreMockData[`${col}/${doc}`]
+                                    get: (data) => {
+                                        return {
+                                            get: () => {
+                                                return {
+                                                    id : 'test-household-1'
+                                                }
+                                            }
+                                        }
                                     },
                                     update: (data) => {
                                         firestoreMockData[`${col}/${doc}`] = data
@@ -82,8 +97,6 @@ describe('OFFLINE', () => {
                 }
             }
         })
-
-        adminFs = admin.firestore()
 
         myFunctions = require('../lib/index')
     })
@@ -119,22 +132,29 @@ describe('OFFLINE', () => {
             })
         })
 
-        describe('Cache.', () => {
+        describe.only('Cache.', () => {
 
             it('The name of the user should be cached on the household collection', async () => {
                 
-                const user : User = new User(adminFs)
-                const house : Household = new Household(adminFs)
-
                 const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
 
                 const change = {
+                    before : {
+                        data: () => {
+                            return {
+                                households: {
+                                    id : 'test-household-1'
+                                }
+                            }
+                        },
+                    },
                     after : {
                         data: () => {
                             return {
                                 households: {
-                                    'test-household-1' : true
+                                    id : 'test-household-1',
                                 },
+                                age : 123,
                                 name: 'Bob'
                             }
                         },
@@ -143,22 +163,14 @@ describe('OFFLINE', () => {
                                 return {}
                             }
                         }
-
-                    },
-                    before : {
-                        data: () => {
-                            return {
-                                households: {
-                                    'test-household-1' : true
-                                },
-                                name: 'Bobby'
-                            }
-                        },
                     }
                 }
 
                 await wrappedUsersOnUpdate(change, null)
 
+                expect(firestoreMockData['households/test-household-1']).to.deep.equal({
+                    [`${Models.USER}.test-user-1.name`] : 'Bob'
+                })
             })
 
             // it('Cachable field should be defined on the relation.', async () => {

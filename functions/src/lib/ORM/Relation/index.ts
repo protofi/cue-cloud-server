@@ -1,4 +1,5 @@
 import ModelImpl from "../Models";
+import * as _ from 'lodash';
 
 export interface Relation {
    
@@ -145,9 +146,16 @@ export class One2ManyRelation extends N2ManyRelation {
 
 export class N2OneRelation extends RelationImpl {
     
+    protected cacheConfig: Array<string> = []
+
     constructor(owner: ModelImpl, propertyModelName: string, db: any)
     {
         super(owner, propertyModelName, db)
+    }
+
+    defineCache(cacheConfig: Array<string>): void
+    {
+        this.cacheConfig = cacheConfig;
     }
 
     async get(): Promise<ModelImpl>
@@ -161,10 +169,41 @@ export class N2OneRelation extends RelationImpl {
         return super.cache()
     }
 
-    // async updateCache(before, after)
-    // {
-    //     this.
-    // }
+    async updateCache(change)
+    {
+        const newCacheData = {}
+
+        const beforeData = change.before.data()
+        const afterData = change.after.data()
+
+        const ownerId = await this.owner.getId()
+
+        let changed = false
+
+        this.cacheConfig.forEach((field, index) => {
+            
+            const path = field.replace('pivot', `${this.propertyModelName}.pivot`)
+
+            const cachableFieldBefore = _.get(beforeData, path, null)
+            const cachableFieldAfter  = _.get(afterData, path, null)
+
+            // console.log(cachableFieldAfter, cachableFieldBefore, !(cachableFieldBefore === cachableFieldAfter))
+
+            changed = (!(cachableFieldBefore === cachableFieldAfter) || changed)
+
+            if(!cachableFieldAfter && !cachableFieldBefore) return
+
+            newCacheData[`${this.owner.name}.${ownerId}.${field}`] = cachableFieldAfter
+        })
+
+        if(!changed) return Promise.resolve()
+
+        const property: ModelImpl = await this.get()
+
+        // console.log(newCacheData)
+
+        return property.update(newCacheData)
+    }
 
     async set(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
     {   
