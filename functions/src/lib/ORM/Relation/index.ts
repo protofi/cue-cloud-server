@@ -146,16 +146,16 @@ export class One2ManyRelation extends N2ManyRelation {
 
 export class N2OneRelation extends RelationImpl {
     
-    protected cacheConfig: Array<string> = []
+    protected cacheFields: Array<string> = []
 
     constructor(owner: ModelImpl, propertyModelName: string, db: any)
     {
         super(owner, propertyModelName, db)
     }
 
-    defineCache(cacheConfig: Array<string>): void
+    defineCachableFields(cacheConfig: Array<string>): void
     {
-        this.cacheConfig = cacheConfig;
+        this.cacheFields = cacheConfig;
     }
 
     async get(): Promise<ModelImpl>
@@ -180,18 +180,16 @@ export class N2OneRelation extends RelationImpl {
 
         let changed = false
 
-        this.cacheConfig.forEach((field, index) => {
+        this.cacheFields.forEach((field, index) => {
             
-            const path = field.replace('pivot', `${this.propertyModelName}.pivot`)
+            const fieldPath = field.replace('pivot', `${this.propertyModelName}.pivot`) // prepend relevant model name to pivot field path
 
-            const cachableFieldBefore = _.get(beforeData, path, null)
-            const cachableFieldAfter  = _.get(afterData, path, null)
+            const cachableFieldBefore = _.get(beforeData, fieldPath, null) // retrieve data associated with the cached field before update
+            const cachableFieldAfter  = _.get(afterData, fieldPath, null) // retrieve data associated with the cached field after update
 
-            // console.log(cachableFieldAfter, cachableFieldBefore, !(cachableFieldBefore === cachableFieldAfter))
+            changed = (!(cachableFieldBefore === cachableFieldAfter) || changed) // check to see if changes have been made
 
-            changed = (!(cachableFieldBefore === cachableFieldAfter) || changed)
-
-            if(!cachableFieldAfter && !cachableFieldBefore) return
+            if(!cachableFieldAfter && !cachableFieldBefore) return //if the field havn't been updated return and do not include it in the data to be cached
 
             newCacheData[`${this.owner.name}.${ownerId}.${field}`] = cachableFieldAfter
         })
@@ -199,8 +197,6 @@ export class N2OneRelation extends RelationImpl {
         if(!changed) return Promise.resolve()
 
         const property: ModelImpl = await this.get()
-
-        // console.log(newCacheData)
 
         return property.update(newCacheData)
     }

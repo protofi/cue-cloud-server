@@ -12,7 +12,7 @@ export default class User extends ModelImpl {
     {
         const rel: N2OneRelation = this.belongsTo(Models.HOUSEHOLD);
 
-        rel.defineCache([
+        rel.defineCachableFields([
             'name',
             'pivot.role'
         ])
