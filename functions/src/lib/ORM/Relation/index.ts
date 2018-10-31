@@ -8,11 +8,11 @@ export interface Relation {
 
 export default class RelationImpl implements Relation{
 
-    protected db: any
+    protected db: FirebaseFirestore.Firestore
     protected owner: ModelImpl
     protected propertyModelName: string
 
-    constructor(owner: ModelImpl, propertyModelName: string, db: any)
+    constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
     {
         this.db = db
 
@@ -38,7 +38,7 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
     
     protected properties: Set<ModelImpl>
 
-    constructor(owner: ModelImpl, propertyModelName: string, db: any)
+    constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
     {
         super(owner, propertyModelName, db)
         this.properties = new Set<ModelImpl>()
@@ -60,7 +60,7 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         const properties: Object = await this.owner.getField(this.propertyModelName)
 
         const models = Object.keys(properties).map((propertyId) => {
-            return new ModelImpl(this.propertyModelName, this.db, propertyId)
+            return new ModelImpl(this.propertyModelName, this.db, null, propertyId)
         })
 
         return models
@@ -70,7 +70,7 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
 export class Many2ManyRelation extends N2ManyRelation {
     protected name: string
 
-    constructor(owner: ModelImpl, propertyModelName: string, db: any)
+    constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
     {
         super(owner, propertyModelName, db)
         this.name = [owner.name, propertyModelName].sort().join('_')
@@ -97,7 +97,7 @@ export class Many2ManyRelation extends N2ManyRelation {
     async pivot(id: string): Promise<ModelImpl>
     {
         const pivotId: string = await this.generatePivotId(id)
-        return new ModelImpl(this.name, this.db, pivotId)
+        return new ModelImpl(this.name, this.db, null, pivotId)
     }
 
     async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<Many2ManyRelation>
@@ -106,7 +106,7 @@ export class Many2ManyRelation extends N2ManyRelation {
         
         const id: string = await this.generatePivotId(await newPropModel.getId())
 
-        const pivotModel: ModelImpl = new ModelImpl(this.name, this.db, id)
+        const pivotModel: ModelImpl = new ModelImpl(this.name, this.db, null, id)
 
         const pivotData = {
             [this.owner.name]           : { id : await this.owner.getId()},
@@ -125,7 +125,7 @@ export class Many2ManyRelation extends N2ManyRelation {
 
 export class One2ManyRelation extends N2ManyRelation {
 
-    constructor(owner: ModelImpl, propertyModelName: string, db: any)
+    constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
     {
         super(owner, propertyModelName, db)
     }
@@ -144,11 +144,15 @@ export class One2ManyRelation extends N2ManyRelation {
     }
 }
 
+interface SimpleRelation {
+    id: string
+}
+
 export class N2OneRelation extends RelationImpl {
     
     protected cacheFields: Array<string> = []
 
-    constructor(owner: ModelImpl, propertyModelName: string, db: any)
+    constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
     {
         super(owner, propertyModelName, db)
     }
@@ -160,8 +164,8 @@ export class N2OneRelation extends RelationImpl {
 
     async get(): Promise<ModelImpl>
     {
-        const property: any = await this.owner.getField(this.propertyModelName)
-        return new ModelImpl(this.propertyModelName, this.db, property.id)
+        const property: SimpleRelation = await this.owner.getField(this.propertyModelName) as SimpleRelation
+        return new ModelImpl(this.propertyModelName, this.db, null, property.id)
     }
 
     async cache(): Promise<any>
@@ -184,8 +188,8 @@ export class N2OneRelation extends RelationImpl {
             
             const fieldPath = field.replace('pivot', `${this.propertyModelName}.pivot`) // prepend relevant model name to pivot field path
 
-            const cachableFieldBefore = _.get(beforeData, fieldPath, null) // retrieve data associated with the cached field before update
-            const cachableFieldAfter  = _.get(afterData, fieldPath, null) // retrieve data associated with the cached field after update
+            const cachableFieldBefore = _.get(beforeData, fieldPath) // retrieve data associated with the cached field before update
+            const cachableFieldAfter  = _.get(afterData, fieldPath) // retrieve data associated with the cached field after update
 
             changed = (!(cachableFieldBefore === cachableFieldAfter) || changed) // check to see if changes have been made
 

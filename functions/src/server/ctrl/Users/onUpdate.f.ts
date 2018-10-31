@@ -8,7 +8,7 @@ exports = module.exports = functions.firestore.document('users/{userId}')
     const adminFs = admin.firestore()
     const db = new DataORMImpl(adminFs)
     
-    return db.user(change.after.id)
+    return db.user(null, change.after.id)
                 .household()
                 .updateCache(change)
 })

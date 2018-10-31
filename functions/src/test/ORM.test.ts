@@ -77,6 +77,7 @@ describe('STAGE', () => {
 
             it('Create doc new ref.', async () => {
                 const docRef: FirebaseFirestore.DocumentReference = await db.user().getDocRef()
+                
                 expect(docRef).exist
                 expect(docRef.id).exist
                 expect(docRef.path).exist
@@ -84,7 +85,7 @@ describe('STAGE', () => {
                 expect(docRef.path).to.equals(`${Models.USER}/${docRef.id}`)
             })
 
-            it('Create doc new ref with certain id.', async () => {
+            it('Create doc new ref with certain id', async () => {
                 const id: string = '123';
 
                 const docRef: FirebaseFirestore.DocumentReference = await db.user().getDocRef(id)
@@ -93,6 +94,26 @@ describe('STAGE', () => {
                 expect(docRef.path).exist
 
                 expect(docRef.path).to.equals(`${Models.USER}/${id}`)
+            })
+
+            it('Create model based on doc id', async () => {
+                const id = '1234'
+
+                const user = db.user(null, id)
+
+                const docRef2 = await user.getDocRef()
+           
+                expect(id).to.equal(docRef2.id)
+            })
+
+            it('Create model based on doc snap', async () => {
+                const change = test.firestore.exampleDocumentSnapshotChange()
+           
+                const user = db.user(change.after, null)
+
+                const docRef2 = await user.getDocRef()
+           
+                expect(change.after.ref.id).to.equal(docRef2.id)
             })
 
             it('Get ref returns the same ref after initialization.', async () => {

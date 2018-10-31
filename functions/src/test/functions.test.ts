@@ -132,7 +132,7 @@ describe('OFFLINE', () => {
             })
         })
 
-        describe.only('Cache.', () => {
+        describe('Cache.', () => {
 
             it('The name of the user should be cached on the household collection', async () => {
                 

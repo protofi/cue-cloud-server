@@ -27,17 +27,23 @@ export default class ModelImpl implements Model {
 
     name: string
     private ref: FirebaseFirestore.DocumentReference
-    private doc: FirebaseFirestore.DocumentSnapshot
+    private snap: FirebaseFirestore.DocumentSnapshot
     private db: FirebaseFirestore.Firestore
 
     private relations: Map<string, RelationImpl>
     
-    constructor(name: string, db: FirebaseFirestore.Firestore, id?: string)
+    constructor(name: string, db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
         this.name = name
         this.db = db
         this.relations = new Map()
-        if(id) this.getDocRef(id)
+        
+        if(snap)
+        {
+            this.ref = snap.ref
+            this.snap = snap
+        }
+        else if(id) this.getDocRef(id)
     }
 
     protected getColRef(): FirebaseFirestore.CollectionReference
@@ -74,7 +80,7 @@ export default class ModelImpl implements Model {
     async find(id: string): Promise<ModelImpl>
     {
         const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef(id)
-        this.doc = await docRef.get()
+        this.snap = await docRef.get()
 
         return this
     }
@@ -86,7 +92,7 @@ export default class ModelImpl implements Model {
 
     async getField(key: string): Promise<any>
     {
-        if(this.doc) return this.doc.get(key)
+        if(this.snap) return this.snap.get(key)
 
         const id = await this.getId()
         if(!id) return null
@@ -108,7 +114,7 @@ export default class ModelImpl implements Model {
             await docRef.update(data)
         }
 
-        this.doc = null
+        this.snap = null
         return this
     }
 
@@ -131,7 +137,7 @@ export default class ModelImpl implements Model {
                 })
         }
 
-        this.doc = null
+        this.snap = null
         return this
     }
 
@@ -140,7 +146,7 @@ export default class ModelImpl implements Model {
     {
         const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
         await docRef.delete()
-        this.doc = null
+        this.snap = null
         this.ref = null
     }
 

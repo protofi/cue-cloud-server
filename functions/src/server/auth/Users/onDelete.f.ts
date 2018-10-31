@@ -11,5 +11,5 @@ exports = module.exports = functions.auth.user().onDelete((user: UserRecord) => 
 
     const db = new DataORMImpl(adminFs)
 
-    return db.user(user.uid).delete()
+    return db.user(null, user.uid).delete()
 })

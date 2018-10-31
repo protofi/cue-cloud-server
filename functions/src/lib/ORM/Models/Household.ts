@@ -3,9 +3,9 @@ import { One2ManyRelation } from "./../Relation";
 
 export default class Household extends ModelImpl {
 
-    constructor(db: any, id?: string)
+    constructor(db: any, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
-        super(Models.HOUSEHOLD, db, id)
+        super(Models.HOUSEHOLD, db, snap, id)
     }
 
     users(): One2ManyRelation

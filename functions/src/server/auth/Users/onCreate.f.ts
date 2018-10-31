@@ -15,5 +15,5 @@ exports = module.exports = functions.auth.user().onCreate(async (user: UserRecor
         email   : user.email
     }
 
-    return await db.user(user.uid).create(data)
+    return await db.user(null, user.uid).create(data)
 })

@@ -3,9 +3,9 @@ import { Many2ManyRelation, N2OneRelation } from "./../Relation";
 
 export default class User extends ModelImpl {
 
-    constructor(db: any, id?: string)
+    constructor(db: any, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
-        super(Models.USER, db, id)
+        super(Models.USER, db, snap, id)
     }
 
     household(): N2OneRelation

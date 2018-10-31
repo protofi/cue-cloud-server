@@ -13,7 +13,7 @@ exports = module.exports = functions.firestore.document('households/{householdId
     const householdId = data.id
     const adminId = Object.keys(data[Models.USER])[0] // Get the id of the first user
     
-    await db.user(adminId).update({
+    await db.user(null, adminId).update({
         [Models.HOUSEHOLD] : {
             [householdId] : {
                 role : Roles.ADMIN

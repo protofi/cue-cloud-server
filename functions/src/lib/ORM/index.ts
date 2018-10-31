@@ -5,15 +5,15 @@ import Room from "./Models/Room";
 import User from "./Models/User";
 
 export interface DataORM {
-    user(id?: string): User
+    user(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): User
     household(): Household
     batch(): FirebaseFirestore.WriteBatch
 }
 
 export default class DataORMImpl implements DataORM{
-    private db: any
+    private db: FirebaseFirestore.Firestore
 
-    constructor(db: any)
+    constructor(db: FirebaseFirestore.Firestore)
     {
         this.db = db
     }
@@ -23,14 +23,14 @@ export default class DataORMImpl implements DataORM{
         return this.db.batch()
     }
 
-    user(id?: string): User
+    user(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): User
     {
-        return new User(this.db, id)
+        return new User(this.db, snap, id)
     }
 
     household(id?: string): Household
     {
-        return new Household(this.db, id)
+        return new Household(this.db, null, id)
     }
 
     sensor(): Sensor
