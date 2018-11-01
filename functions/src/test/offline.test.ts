@@ -60,12 +60,12 @@ describe('OFFLINE', () => {
         adminfirestoreStub.restore()
     })
 
-    describe('User', () => {
-        it('Sign in', async () => {
-            // const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord({uid: "1234", name: "Tobias", email: "tobias@mail.com"});
-            // const wrappedUserSignin = test.wrap(myFunctions.userSignin);
+    // describe('User', () => {
+    //     it('Sign in', async () => {
+    //         // const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord({uid: "1234", name: "Tobias", email: "tobias@mail.com"});
+    //         // const wrappedUserSignin = test.wrap(myFunctions.userSignin);
 
-            // wrappedUserSignin(userRecord);
-        })
-    })
+    //         // wrappedUserSignin(userRecord);
+    //     })
+    // })
 })

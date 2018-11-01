@@ -15,6 +15,7 @@ import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
 import { Many2ManyRelation, One2ManyRelation, N2OneRelation } from './lib/ORM/Relation';
+import { Car, Wheel, Person } from './stubs';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -453,49 +454,49 @@ describe('STAGE', () => {
                     expect(sensors1).to.equals(sensors2)
                 })
 
-                it('The cache on an attached model should be updatable trough the relation', async () => {
-
-                    class Car extends ModelImpl {
-
-                        constructor(_db: any)
-                        {
-                            super('Cars', _db)
-                        }
-                    
-                        wheels(): One2ManyRelation
-                        {
-                            return this.hasMany('Wheels')
-                        }
-                    }
-    
-                    class Wheel extends ModelImpl {
-    
-                        constructor(_db: any)
-                        {
-                            super('Wheels', _db)
-                        }
-                    
-                        car(): N2OneRelation
-                        {
-                            return this.belongsTo('Cars')
-                        }
-                    }
-                    
+                it('The pivot should be updatable trough the relation', async () => {
+           
                     const car = new Car(adminFs)
                     const wheel = new Wheel(adminFs)
 
                     await car.wheels().attach(wheel)
 
-                    const carId = await car.getId()
+                    //clean up
+                    docsToBeDeleted.push((await wheel.getDocRef()).path)
+                    docsToBeDeleted.push((await car.getDocRef()).path)
+
                     const wheelId = await wheel.getId()
                     
                     await car.wheels().updatePivot(wheelId, {
                         name : 'Spare'
                     })
 
-                    const doc: FirebaseFirestore.DocumentSnapshot = await adminFs.collection('Wheels').doc(wheelId).get()
+                    const doc: FirebaseFirestore.DocumentSnapshot = await adminFs.collection(wheel.name).doc(wheelId).get()
 
-                    expect(doc.get(`Cars.pivot.name`)).to.be.equal('Spare')
+                    expect(doc.get(`${car.name}.pivot.name`)).to.be.equal('Spare')
+                })
+
+                it('The pivot should be updatable trough the inverse relation', async () => {
+                    
+                    const car = new Car(adminFs)
+                    const wheel = new Wheel(adminFs)
+
+                    await car.wheels().attach(wheel)
+
+                    //clean up
+                    docsToBeDeleted.push((await wheel.getDocRef()).path)
+                    docsToBeDeleted.push((await car.getDocRef()).path)
+
+                    const carId = await car.getId()
+                    const wheelId = await wheel.getId()
+
+                    await wheel.car().updatePivot({
+                        name : 'Spare'
+                    })
+
+                    const doc: FirebaseFirestore.DocumentSnapshot = await adminFs.collection(wheel.name).doc(wheelId).get()
+
+                    expect(doc.get(`${car.name}.pivot.name`)).to.be.equal('Spare')
                 })
 
                 it('Create root documents and relation by attaching two models', async () => {

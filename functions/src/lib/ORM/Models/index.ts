@@ -17,15 +17,11 @@ export interface Model{
     getField(key: string): any
     update(data: object): Promise<ModelImpl>
     delete(): Promise<void>
-
-    belongsToMany(model: String): RelationImpl
-    belongsTo(model: string): N2OneRelation
-    hasMany(model: string): One2ManyRelation
 }
 
 export default class ModelImpl implements Model {
 
-    name: string
+    readonly name: string
     private ref: FirebaseFirestore.DocumentReference
     private snap: FirebaseFirestore.DocumentSnapshot
     private db: FirebaseFirestore.Firestore
@@ -164,7 +160,7 @@ export default class ModelImpl implements Model {
     /**
      * Attach many models to many others
      */
-    belongsToMany(model: string): Many2ManyRelation
+    protected belongsToMany(model: string): Many2ManyRelation
     {
         if(!this.relations.has(model))
         {
@@ -178,7 +174,7 @@ export default class ModelImpl implements Model {
     /**
      * Attach one model to many others
      */
-    hasMany(model: string): One2ManyRelation
+    protected hasMany(model: string): One2ManyRelation
     {
         if(!this.relations.has(model))
         {
@@ -192,7 +188,7 @@ export default class ModelImpl implements Model {
     /**
      * Attach one or more models to one other
      */
-    belongsTo(model: string): N2OneRelation
+    protected belongsTo(model: string): N2OneRelation
     {
         if(!this.relations.has(model))
         {

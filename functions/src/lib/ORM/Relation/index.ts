@@ -225,4 +225,13 @@ export class N2OneRelation extends RelationImpl {
 
         return this.owner
     }
+
+    async updatePivot(data: any)
+    {
+        return this.owner.deepUpdate({
+            [this.propertyModelName] : {
+                pivot : data
+            }
+        })
+    }
 }
