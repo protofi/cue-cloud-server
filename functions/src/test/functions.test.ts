@@ -60,19 +60,11 @@ describe('OFFLINE', () => {
         .get(() => {
             return () => {
                 return {
-                    // FieldValue: () => {
-                    //     return {
-                    //         delete: () => {
-                    //             return 'DELETE'
-                    //         }
-                    //     }
-                    // },
                     settings: () => { return null },
                     collection: (col) => {
                         return {
                             doc: (doc) => {
                                 return {
-                                    id : 'test-user-1',
                                     set: (data) => {
                                         firestoreMockData[`${col}/${doc}`] = data
                                         return null
@@ -81,7 +73,6 @@ describe('OFFLINE', () => {
                                         return {
                                             get: () => {
                                                 return {
-                                                    id : 'test-household-1'
                                                 }
                                             }
                                         }
@@ -112,11 +103,14 @@ describe('OFFLINE', () => {
         
         describe('Households', async () => {
 
-            it('On Create. User should get an property of role as admin', async () => {
+            it('On Create. Pivot between user and household should recieve a role property of admin', async () => {
                 
                 const householdSnap = {
-                    data : function() {
+                    data : () => {
                         return { [Models.USER] : { [testUserDataOne.uid] : true } }
+                    },
+                    get : () => {
+                        return {}
                     }
                 }
 
@@ -124,8 +118,8 @@ describe('OFFLINE', () => {
 
                 await wrappedHouseholdsOnCreate(householdSnap)
 
-                expect(firestoreMockData['households/undefined'][Models.USER]).to.deep.equal({
-                    [testUserDataOne.uid] : {
+                expect(firestoreMockData[`${Models.USER}/undefined`][Models.HOUSEHOLD]).to.deep.equal({
+                    pivot : {
                         role: Roles.ADMIN
                     }
                 })
@@ -138,13 +132,16 @@ describe('OFFLINE', () => {
                 
                 const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
 
+                const householdId = 'household-test-1'
+                const userId = 'user-test-1'
+
                 const change = {
                     before : {
                         data: () => {
                             return {
                                 households: {
-                                    id : 'test-household-1'
-                                }
+                                    id : householdId
+                                },
                             }
                         },
                     },
@@ -152,24 +149,28 @@ describe('OFFLINE', () => {
                         data: () => {
                             return {
                                 households: {
-                                    id : 'test-household-1',
+                                    id : householdId
                                 },
                                 age : 123,
-                                name: 'Bob'
+                                name: 'Bob',
                             }
+                        },
+                        get : () => {
+                            return {}
                         },
                         ref : {
                             update: () => {
                                 return {}
-                            }
+                            },
+                            id : userId
                         }
                     }
                 }
 
                 await wrappedUsersOnUpdate(change, null)
 
-                expect(firestoreMockData['households/test-household-1']).to.deep.equal({
-                    [`${Models.USER}.test-user-1.name`] : 'Bob'
+                expect(firestoreMockData[`${Models.HOUSEHOLD}/undefined`]).to.deep.equal({
+                    [`${Models.USER}.${userId}.name`] : 'Bob'
                 })
             })
 

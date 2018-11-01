@@ -17,14 +17,4 @@ exports = module.exports = functions.firestore.document('households/{householdId
     return household.users().updatePivot(adminId, {
                     role : Roles.ADMIN
                 })
-
-    // return db.user(null, adminId).update({
-    //     [Models.HOUSEHOLD] : {
-    //         [householdId] : {
-    //             pivot : {
-    //                 role : Roles.ADMIN
-    //             }
-    //         }
-    //     }
-    // })
 });

@@ -453,7 +453,7 @@ describe('STAGE', () => {
                     expect(sensors1).to.equals(sensors2)
                 })
 
-                it.only('The cache on an attached model should be updatable trough the relation', async () => {
+                it('The cache on an attached model should be updatable trough the relation', async () => {
 
                     class Car extends ModelImpl {
 
