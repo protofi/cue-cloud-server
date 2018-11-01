@@ -33,6 +33,7 @@ export interface N2ManyRelation {
     
     get(): Promise<Array<ModelImpl>>
     attach(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<N2ManyRelation>
+    updatePivot(propertyId: string, data: object): Promise<ModelImpl>
 }
 
 export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
@@ -101,6 +102,16 @@ export class Many2ManyRelation extends N2ManyRelation {
         return new ModelImpl(this.name, this.db, null, pivotId)
     }
 
+    async updatePivot(propertyId: string, data: object): Promise<ModelImpl>
+    {
+        const pivotId: string = await this.generatePivotId(propertyId)
+
+        return new ModelImpl(this.name, this.db, null, pivotId).update({
+            pivot: data
+        })
+
+    }
+
     async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<Many2ManyRelation>
     {
         await super.attach(newPropModel, transaction)
@@ -144,11 +155,11 @@ export class One2ManyRelation extends N2ManyRelation {
         return this
     }
 
-    async updatePivot(id: string, data: any)
+    async updatePivot(id: string, data: object)
     {
         const model: ModelImpl = new ModelImpl(this.propertyModelName, this.db, null, id)
 
-        return model.deepUpdate({
+        return model.update({
             [this.owner.name] : {
                 pivot : data
             }
@@ -228,7 +239,7 @@ export class N2OneRelation extends RelationImpl {
 
     async updatePivot(data: any)
     {
-        return this.owner.deepUpdate({
+        return this.owner.update({
             [this.propertyModelName] : {
                 pivot : data
             }

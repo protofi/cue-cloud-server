@@ -421,7 +421,7 @@ describe('STAGE', () => {
                     expect(Object.keys(attSensors), 'Foreign key on room').to.include(sensorId)
                 })
 
-                it('Save model to an other reverse I2M BATCH SOULD FAIL', async () => {
+                it('Save model to an other reverse I2M BATCH SHOULD FAIL', async () => {
                     const sensor: Sensor = await db.sensor()
                     const room: Room = db.room()
 
@@ -468,7 +468,12 @@ describe('STAGE', () => {
                     const wheelId = await wheel.getId()
                     
                     await car.wheels().updatePivot(wheelId, {
-                        name : 'Spare'
+                        name : 'Spare',
+                        flat: true
+                    })
+
+                    await car.wheels().updatePivot(wheelId, {
+                        flat : true
                     })
 
                     const doc: FirebaseFirestore.DocumentSnapshot = await adminFs.collection(wheel.name).doc(wheelId).get()
@@ -720,18 +725,21 @@ describe('STAGE', () => {
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
-                it('Attach pivot data to many-to-many relation', async () => {
+                it.only('Attach pivot data to many-to-many relation', async () => {
                     const user = db.user() as User
                     const sensor = db.sensor() as Sensor
+                    const userId = await user.getId()
                     const sensorId = await sensor.getId()
 
                     await user.sensors().attach(sensor)
 
-                    const pivot: ModelImpl = await user.sensors().pivot(sensorId)
-
-                    await pivot.update({
-                        settings : true
+                    const pivot = await user.sensors().updatePivot(sensorId, {
+                        settings: true
                     })
+
+                    const pivotData = await adminFs.collection(`${Models.SENSOR}_${Models.USER}`).doc(`${sensorId}_${userId}`).get()
+
+                    expect(pivotData.get('pivot.settings')).to.be.true
 
                     //clean up
                     docsToBeDeleted.push((await user.getDocRef()).path)

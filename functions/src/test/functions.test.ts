@@ -3,12 +3,9 @@ import * as sinon from 'sinon'
 import * as mocha from 'mocha'
 import * as admin from 'firebase-admin'
 import * as functionsTest from 'firebase-functions-test'
-import ModelImpl, { Models } from './lib/ORM/Models'
+import { Models } from './lib/ORM/Models'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
 import { Roles } from './lib/const';
-import { Many2ManyRelation } from './lib/ORM/Relation';
-import User from './lib/ORM/Models/User';
-import Household from './lib/ORM/Models/Household';
 
 const assert = chai.assert;
 const expect = chai.expect;
