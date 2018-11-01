@@ -1,4 +1,5 @@
 import ModelImpl from "../Models";
+import * as functions from 'firebase-functions'
 import * as _ from 'lodash';
 
 export interface Relation {
@@ -142,6 +143,17 @@ export class One2ManyRelation extends N2ManyRelation {
 
         return this
     }
+
+    async updatePivot(id: string, data: any)
+    {
+        const model: ModelImpl = new ModelImpl(this.propertyModelName, this.db, null, id)
+
+        return model.deepUpdate({
+            [this.owner.name] : {
+                pivot : data
+            }
+        })
+    }
 }
 
 interface SimpleRelation {
@@ -173,7 +185,7 @@ export class N2OneRelation extends RelationImpl {
         return super.cache()
     }
 
-    async updateCache(change)
+    async updateCache(change: functions.Change<FirebaseFirestore.DocumentSnapshot>)
     {
         const newCacheData = {}
 

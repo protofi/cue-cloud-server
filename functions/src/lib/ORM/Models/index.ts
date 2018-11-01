@@ -141,6 +141,17 @@ export default class ModelImpl implements Model {
         return this
     }
 
+    /**
+     * Allows for updating single properties of nested maps without overriding other properties of the map on the same level
+     * 
+     * @param data Data to be updated
+     * @param transaction transaction or batch allowing transactions and batched writes
+     */
+    async deepUpdate(data: object, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
+    {
+        await this.updateOrCreate(data, transaction)
+        return this
+    }
 
     async delete(): Promise<void>
     {

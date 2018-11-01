@@ -14,7 +14,7 @@ import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
-import { Many2ManyRelation } from './lib/ORM/Relation';
+import { Many2ManyRelation, One2ManyRelation, N2OneRelation } from './lib/ORM/Relation';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -451,6 +451,51 @@ describe('STAGE', () => {
                     const sensors2 = room.sensors()
                     
                     expect(sensors1).to.equals(sensors2)
+                })
+
+                it.only('The cache on an attached model should be updatable trough the relation', async () => {
+
+                    class Car extends ModelImpl {
+
+                        constructor(_db: any)
+                        {
+                            super('Cars', _db)
+                        }
+                    
+                        wheels(): One2ManyRelation
+                        {
+                            return this.hasMany('Wheels')
+                        }
+                    }
+    
+                    class Wheel extends ModelImpl {
+    
+                        constructor(_db: any)
+                        {
+                            super('Wheels', _db)
+                        }
+                    
+                        car(): N2OneRelation
+                        {
+                            return this.belongsTo('Cars')
+                        }
+                    }
+                    
+                    const car = new Car(adminFs)
+                    const wheel = new Wheel(adminFs)
+
+                    await car.wheels().attach(wheel)
+
+                    const carId = await car.getId()
+                    const wheelId = await wheel.getId()
+                    
+                    await car.wheels().updatePivot(wheelId, {
+                        name : 'Spare'
+                    })
+
+                    const doc: FirebaseFirestore.DocumentSnapshot = await adminFs.collection('Wheels').doc(wheelId).get()
+
+                    expect(doc.get(`Cars.pivot.name`)).to.be.equal('Spare')
                 })
 
                 it('Create root documents and relation by attaching two models', async () => {

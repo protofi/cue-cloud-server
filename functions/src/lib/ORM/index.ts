@@ -6,7 +6,7 @@ import User from "./Models/User";
 
 export interface DataORM {
     user(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): User
-    household(): Household
+    household(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Household
     batch(): FirebaseFirestore.WriteBatch
 }
 
@@ -28,9 +28,9 @@ export default class DataORMImpl implements DataORM{
         return new User(this.db, snap, id)
     }
 
-    household(id?: string): Household
+    household(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Household
     {
-        return new Household(this.db, null, id)
+        return new Household(this.db, snap, id)
     }
 
     sensor(): Sensor

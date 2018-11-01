@@ -1,5 +1,4 @@
 import * as functions from 'firebase-functions'
-import { Models } from '../../lib/ORM/Models';
 import * as admin from 'firebase-admin'
 import DataORMImpl from './../../lib/ORM/';
 import { Roles } from '../../lib/const';
@@ -9,23 +8,23 @@ exports = module.exports = functions.firestore.document('households/{householdId
     const adminFs = admin.firestore()
     const db = new DataORMImpl(adminFs)
 
-    const data = snap.data()
-    const householdId = data.id
-    const adminId = Object.keys(data[Models.USER])[0] // Get the id of the first user
-    
-    await db.user(null, adminId).update({
-        [Models.HOUSEHOLD] : {
-            [householdId] : {
-                role : Roles.ADMIN
-            }
-        }
-    })
+    const household = db.household(snap)
 
-    return db.household(snap.id).update({
-        [Models.USER] : {
-            [adminId] : {
-                role : Roles.ADMIN
-            }
-        }
-    })
+    const householdUsers = await household.users().cache()
+
+    const adminId = Object.keys(householdUsers)[0] // Get the id of the first user which will be declared the admin of the
+    
+    return household.users().updatePivot(adminId, {
+                    role : Roles.ADMIN
+                })
+
+    // return db.user(null, adminId).update({
+    //     [Models.HOUSEHOLD] : {
+    //         [householdId] : {
+    //             pivot : {
+    //                 role : Roles.ADMIN
+    //             }
+    //         }
+    //     }
+    // })
 });
