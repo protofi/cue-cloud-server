@@ -174,6 +174,54 @@ describe('OFFLINE', () => {
                 })
             })
 
+            it('The role of the pivot between a user and a household should be cached on the household collection', async () => {
+                
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+
+                const householdId = 'household-test-1'
+                const userId = 'user-test-1'
+
+                const change = {
+                    before : {
+                        data: () => {
+                            return {
+                                households: {
+                                    id : householdId
+                                },
+                            }
+                        },
+                    },
+                    after : {
+                        data: () => {
+                            return {
+                                households: {
+                                    id : householdId,
+                                    pivot : {
+                                        role: Roles.ADMIN
+                                    }
+                                }
+                            }
+                        },
+                        get : () => {
+                            return {}
+                        },
+                        ref : {
+                            update: () => {
+                                return {}
+                            },
+                            id : userId
+                        }
+                    }
+                }
+
+                await wrappedUsersOnUpdate(change, null)
+
+                expect(firestoreMockData[`${Models.HOUSEHOLD}/undefined`]).to.deep.equal({
+                    [`${Models.USER}.${userId}.pivot.role`] : Roles.ADMIN
+                })
+            })
+
+
             // it('Cachable field should be defined on the relation.', async () => {
 
             //     class Model1 extends ModelImpl {
