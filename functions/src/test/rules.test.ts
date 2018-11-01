@@ -98,15 +98,15 @@ describe('STAGE', () => {
 
         describe('Households', () => {
 
-            it('Users can create households', async () => {
+            it.only('Users can create households', async () => {
                 await firebase.auth().signInWithCustomToken(testUserDataOne.token)
 
-                const docRef: firebase.firestore.DocumentReference = await fs.collection(Models.HOUSEHOLD).add({ [Models.USER] : true})
+                const docRef: firebase.firestore.DocumentReference = await fs.collection(Models.HOUSEHOLD).add({ [Models.USER] : { [testUserDataOne.uid]: true }})
 
                 expect(docRef).to.exist
 
                 //clean up
-                docsToBeDeleted.push(docRef.path)
+                // docsToBeDeleted.push(docRef.path)
             })
 
             it('Users can add themselves to a newly created household as admin', async () => {

@@ -1,24 +1,46 @@
-interface relation {
+interface I2MRelation {
+    id: string // id of the related collection
+    pivot?: Map<string, any> // data associated with the specific relation
+
+    /**
+     * Data cached from the related collection
+     */
+}
+
+interface Relation {
+    id: string // id of the related collection
+    
+    /**
+     * Data cached from the related collection
+     */
+}
+
+interface Users {
     id: string
-    /*...*/
+    name: string
+    email: string
+    
+    households: I2MRelation
+    sensors: Map<string, boolean | Relation>
 }
 
-interface users {
-    households: Map</*id*/string, boolean | object>
-    sensors: Map</*id*/string, boolean | object>
+interface Households {
+    users: Map<string, boolean | Relation>
+    sensors: Map<string, boolean | Relation>
 }
 
-interface households {
-    users: Map</*id*/string, boolean | object>
-    sensors: relation
+interface Sensors {
+    users: Map<string, boolean | Relation>
+    households: I2MRelation
+    events: Map<string, boolean | Relation>
 }
 
-interface sensors {
-    users: Map</*id*/string, boolean | object>
-    households: Map</*id*/string, boolean | object>
-    events: Map</*id*/string, boolean | object>    
+interface Events {
+    sensors: I2MRelation
 }
 
-interface events {
-    sensors: relation
+interface PivotCollection {
+    __rel_col1_name__ : Relation
+    __rel_col2_name__ : Relation
+    pivot?: Map<string, any>
 }
