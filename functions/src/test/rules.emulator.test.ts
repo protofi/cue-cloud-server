@@ -2,7 +2,7 @@ import * as chai from 'chai'
 import * as sinon from 'sinon'
 import * as mocha from 'mocha'
 import * as functionsTest from 'firebase-functions-test'
-import firebase from '@firebase/testing'
+import firebase, { assertFails, assertSucceeds } from '@firebase/testing'
 import * as fs from 'fs'
 
 import { FeaturesList } from 'firebase-functions-test/lib/features'
