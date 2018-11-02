@@ -1,5 +1,5 @@
 import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from "../Relation";
-import * as flattern from 'flat'
+import { flattern } from 'flat'
 
 export enum Models {
     HOUSEHOLD = 'households',

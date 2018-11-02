@@ -1,6 +1,6 @@
 import ModelImpl from "../Models";
-import * as functions from 'firebase-functions'
-import * as _ from 'lodash';
+import { Change } from 'firebase-functions'
+import { get } from 'lodash';
 
 export interface Relation {
    
@@ -196,7 +196,7 @@ export class N2OneRelation extends RelationImpl {
         return super.cache()
     }
 
-    async updateCache(change: functions.Change<FirebaseFirestore.DocumentSnapshot>)
+    async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>)
     {
         const newCacheData = {}
 
@@ -211,8 +211,8 @@ export class N2OneRelation extends RelationImpl {
             
             const fieldPath = field.replace('pivot', `${this.propertyModelName}.pivot`) // prepend relevant model name to pivot field path
 
-            const cachableFieldBefore = _.get(beforeData, fieldPath) // retrieve data associated with the cached field before update
-            const cachableFieldAfter  = _.get(afterData, fieldPath) // retrieve data associated with the cached field after update
+            const cachableFieldBefore = get(beforeData, fieldPath) // retrieve data associated with the cached field before update
+            const cachableFieldAfter  = get(afterData, fieldPath) // retrieve data associated with the cached field after update
 
             changed = (!(cachableFieldBefore === cachableFieldAfter) || changed) // check to see if changes have been made
 

@@ -1,7 +1,6 @@
 import * as chai from 'chai'
 import * as sinon from 'sinon'
 import * as mocha from 'mocha'
-import * as firebase from 'firebase'
 import * as admin from 'firebase-admin'
 import * as functionsTest from 'firebase-functions-test'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
@@ -9,13 +8,11 @@ import { FeaturesList } from 'firebase-functions-test/lib/features'
 import DataORMImpl from "./lib/ORM"
 import { asyncForEach } from './lib/util'
 import User from './lib/ORM/Models/User'
-import Household from './lib/ORM/Models/Household'
 import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
-import { Many2ManyRelation, One2ManyRelation, N2OneRelation } from './lib/ORM/Relation';
-import { Car, Wheel, Person } from './stubs';
+import { Car, Wheel } from './stubs';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -86,7 +83,7 @@ describe('STAGE', () => {
                 expect(docRef.path).to.equals(`${Models.USER}/${docRef.id}`)
             })
 
-            it('Create doc new ref with certain id', async () => {
+            it('Create doc new ref with certain id.', async () => {
                 const id: string = '123';
 
                 const docRef: FirebaseFirestore.DocumentReference = await db.user().getDocRef(id)
@@ -97,49 +94,48 @@ describe('STAGE', () => {
                 expect(docRef.path).to.equals(`${Models.USER}/${id}`)
             })
 
-            it('Create model based on doc id', async () => {
+            it('Create model based on doc id.', async () => {
                 const id = '1234'
 
-                const user = db.user(null, id)
+                const car = new Car(adminFs, null, id)
 
-                const docRef2 = await user.getDocRef()
+                const docRef = await car.getDocRef()
            
-                expect(id).to.equal(docRef2.id)
+                expect(id).to.equal(docRef.id)
             })
 
-            it('Create model based on doc snap', async () => {
-                const change = test.firestore.exampleDocumentSnapshotChange()
+            it('Create model based on doc snap.', async () => {
+                const snap = test.firestore.exampleDocumentSnapshot()
            
-                const user = db.user(change.after, null)
-
-                const docRef2 = await user.getDocRef()
+                const car = new Car(adminFs, snap)
+                const docRef = await car.getDocRef()
            
-                expect(change.after.ref.id).to.equal(docRef2.id)
+                expect(snap.ref.id).to.equal(docRef.id)
             })
 
             it('Get ref returns the same ref after initialization.', async () => {
-                const user1: ModelImpl = db.user()
-                const docRef1: FirebaseFirestore.DocumentReference = await user1.getDocRef()
-                const docRef2: FirebaseFirestore.DocumentReference = await user1.getDocRef()
+                const car: ModelImpl = new Car(adminFs)
+                const docRef1: FirebaseFirestore.DocumentReference = await car.getDocRef()
+                const docRef2: FirebaseFirestore.DocumentReference = await car.getDocRef()
 
                 expect(docRef1.id).to.equals(docRef2.id)
             })
 
             it('Get ID of new Model.', async () => {
-                const user: ModelImpl = db.user()
-                const id: string = await user.getId()
+                const car: ModelImpl = new Car(adminFs)
+                const id: string = await car.getId()
 
                 expect(id).exist
             })
 
-            it('Get ID of created docRef.', async () => {
-                const user: ModelImpl = await db.user().create({
+            it.only('Get ID of created docRef.', async () => {
+                const car: ModelImpl = await new Car(adminFs).create({
                     name : 'Tob'
                 })
 
-                const id: string = await user.getId()
+                const id: string = await car.getId()
                 
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((await car.getDocRef()).path)
                 
                 expect(id).exist
             })
@@ -637,7 +633,7 @@ describe('STAGE', () => {
                     expect(Object.keys(sensor2Users), 'Foreign key on sensor2').to.include(userId)
                 })
 
-                it('Retrieve attached blank model of many-to-many relation', async () => {
+                it('Retrieve attached blank model of relation', async () => {
 
                     const user = db.user() as User
                     const sensor = db.sensor() as Sensor
@@ -660,7 +656,7 @@ describe('STAGE', () => {
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
-                it('Retrieve attached model with data of many-to-many relation', async () => {
+                it('Retrieve attached model with data of relation', async () => {
                     const user = db.user() as User
                     const sensor = db.sensor() as Sensor
 
@@ -725,7 +721,7 @@ describe('STAGE', () => {
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
-                it.only('Attach pivot data to many-to-many relation', async () => {
+                it('Attach pivot data to many-to-many relation', async () => {
                     const user = db.user() as User
                     const sensor = db.sensor() as Sensor
                     const userId = await user.getId()

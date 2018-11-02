@@ -6,7 +6,7 @@ exports = module.exports = functions.firestore.document('households/{householdId
 
     return new Promise(function(resolve, reject) {
         setTimeout(function() {
-          resolve('foo');
-        }, 300);
-      });
-});
+          resolve('foo')
+        }, 300)
+      })
+})

@@ -2,9 +2,9 @@ import ModelImpl from "../lib/ORM/Models";
 import { Many2ManyRelation, N2OneRelation, One2ManyRelation } from "../lib/ORM/Relation";
 
 export class Person extends ModelImpl {
-    constructor(_db: any)
+    constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
-        super('persons', _db)
+        super('persons', db, snap, id)
     }
 
     cars(): Many2ManyRelation
@@ -14,9 +14,9 @@ export class Person extends ModelImpl {
 }
 export class Car extends ModelImpl {
 
-    constructor(_db: any)
+    constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
-        super('cars', _db)
+        super('cars', db, snap, id)
     }
 
     persons(): Many2ManyRelation
@@ -37,9 +37,9 @@ export class Car extends ModelImpl {
 
 export class Wheel extends ModelImpl {
 
-    constructor(_db: any)
+    constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
-        super('wheels', _db)
+        super('wheels', db, snap, id)
     }
 
     car(): N2OneRelation
@@ -50,9 +50,9 @@ export class Wheel extends ModelImpl {
 
 export class WindSheild extends ModelImpl {
 
-    constructor(_db: any)
+    constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
-        super('wind_sheild', _db)
+        super('wind_sheild', db, snap, id)
     }
 
     car(): N2OneRelation
