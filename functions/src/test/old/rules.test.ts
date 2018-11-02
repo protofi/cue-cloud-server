@@ -6,10 +6,10 @@ import * as admin from 'firebase-admin'
 import * as functionsTest from 'firebase-functions-test'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
 
-import DataORMImpl from "./lib/ORM"
-import { asyncForEach } from './lib/util'
-import { Models } from './lib/ORM/Models'
-import { Roles } from './lib/const'
+import DataORMImpl from "../lib/ORM"
+import { asyncForEach } from '../lib/util'
+import { Models } from '../lib/ORM/Models'
+import { Roles } from '../lib/const'
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")

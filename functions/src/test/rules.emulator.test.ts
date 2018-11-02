@@ -1,11 +1,8 @@
 import * as chai from 'chai'
 import * as sinon from 'sinon'
 import * as mocha from 'mocha'
-import * as functionsTest from 'firebase-functions-test'
-import firebase, { assertFails, assertSucceeds } from '@firebase/testing'
+import * as firestore from '@firebase/testing'
 import * as fs from 'fs'
-
-import { FeaturesList } from 'firebase-functions-test/lib/features'
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -19,37 +16,40 @@ const expect = chai.expect
 
 describe.only('OFFLINE', () => {
 
-    var test: FeaturesList
-    var myFunctions
-
-    const testUserDataOne = {
-        uid: "test-user-1",
-        name: "Andy",
-        email: "andy@mail.com",
-    }
-
-    const testUserDataTwo = {
-        uid: "test-user-2",
-        name: "Benny",
-        email: "Benny@mail.com",
-    }
-
-    const testUserDataThree = {
-        uid: "test-user-3",
-        name: "Charlie",
-        email: "Charlie@mail.com",
-    }
+    let db: firebase.firestore.Firestore
 
     before(async () => {
-        return
-       
+        const projectId = `test-app-${Date.now()}`
+
+        const app = firestore.initializeTestApp({
+            projectId : projectId     
+        })
+        
+        db = app.firestore()
+
+        const data = {}
+
+        for(const key in data)
+        {
+            const ref = db.doc(key)
+            await ref.set(data[key])
+        }
+
+        await firestore.loadFirestoreRules({
+            projectId: projectId,
+            rules: fs.readFileSync('./../firestore.rules', 'utf8')
+        })
     })
 
     after(async () => {
-        return
+        Promise.all(firestore.apps().map(app => app.delete()))
     })
 
     describe('Emulated Rules', () => {
-        return
+        it('Writes to a random collection should fail', async () => {
+
+            const ref = db.collection('random-collection')
+            expect(await firestore.assertFails(ref.doc().set({})))
+        })
     })
 })

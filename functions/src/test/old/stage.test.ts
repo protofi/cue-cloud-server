@@ -5,11 +5,11 @@ import * as firebase from 'firebase'
 import * as admin from 'firebase-admin'
 import * as functionsTest from 'firebase-functions-test'
 import { UserRecord, user } from 'firebase-functions/lib/providers/auth'
-import Database, { Datastore } from './lib/database'
+import Database, { Datastore } from './../lib/database'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
-import { Collection } from './lib/database/Collections'
+import { Collection } from './../lib/database/Collections'
 import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore'
-import { asyncForEach } from './lib/util'
+import { asyncForEach } from './../lib/util'
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")

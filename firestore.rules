@@ -3,6 +3,11 @@ service cloud.firestore {
     function isAuth() {
     		return (request.auth.uid != null)
     }
+
+    match /{documents=**} {
+    		allow read: if false
+    		allow write: if false
+    }
     
     match /households/{householdId} {
       allow read: if isAuth();
