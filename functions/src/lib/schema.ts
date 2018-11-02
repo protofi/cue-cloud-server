@@ -16,12 +16,13 @@ interface Relation {
 }
 
 interface Users {
-    id: string
+    id?: string
     name: string
     email: string
     
     households: I2MRelation
     sensors: Map<string, boolean | Relation>
+    events: Map<string, boolean | Relation>
 }
 
 interface Households {
@@ -30,6 +31,11 @@ interface Households {
 }
 
 interface Sensors {
+    location: string
+    name: string
+    deactivated: boolean
+    batteryLevel: number
+
     users: Map<string, boolean | Relation>
     households: I2MRelation
     events: Map<string, boolean | Relation>
@@ -37,6 +43,7 @@ interface Sensors {
 
 interface Events {
     sensors: I2MRelation
+    users: Map<string, boolean | Relation>
 }
 
 interface PivotCollection {
