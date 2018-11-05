@@ -20,7 +20,7 @@ export async function setup(auth?: any, data?: any): Promise<firebase.firestore.
 
     await firestore.loadFirestoreRules({
         projectId: projectId,
-        rules: fs.readFileSync('./../firestore.rules', 'utf8')
+        rules: fs.readFileSync('./../firestore.rules', 'UTF8')
     })
 
     return db
