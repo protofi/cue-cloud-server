@@ -3,17 +3,18 @@ service cloud.firestore {
     function isAuth() {
     		return (request.auth.uid != null)
     }
-
+    
     match /{documents=**} {
     		allow read: if false
     		allow write: if false
     }
     
     match /households/{householdId} {
-      allow read: if isAuth();
+      allow read: if isAuth()
 
 			allow create: if isAuth()
       							&& request.resource.data.keys().hasAll(["users"])
+                    && request.resource.data.users[request.auth.uid] == true 
                 
 			allow update: if isAuth()
           					&& (
