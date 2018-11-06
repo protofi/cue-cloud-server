@@ -4,25 +4,53 @@ service cloud.firestore {
     		return (request.auth.uid != null)
     }
     
+    match /{documents=**} {
+    		allow read: if false
+    		allow write: if false
+    }
+    
     match /households/{householdId} {
-      allow read: if isAuth();
+    	
+      function isHouseholdAdmin()
+      {
+      		return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.households.pivot.role == "admin"
+      }
+      
+      function isResident()
+      {
+          return resource.data.users.keys().hasAll([request.auth.uid])
+      }
 
-			allow create: if isAuth()
-      							&& request.resource.data.keys().hasAll(["users"])
+			allow create: if isAuth()	&&
+                    (  request.resource.data.keys().hasAll(["users"])
+                    && request.resource.data.users.keys().hasOnly([request.auth.uid])
+                    && request.resource.data.users[request.auth.uid] == true )
                 
+      allow read: if isAuth() && isResident()
+
 			allow update: if isAuth()
           					&& (
-                    	(request.resource.data.keys().hasAll(["users"])
-                		|| resource.data.users[request.auth.uid].role == "admin"))
+                    	!request.resource.data.keys().hasAll(["users"])
+                		|| isHouseholdAdmin())
+
+      allow delete: if false
     }
     
     match /users/{userId} {
-      allow write: if isAuth()
+      allow create: if false
+
       allow read: if isAuth()
 
-			allow create: if isAuth() && (
-      					!request.resource.data.keys().hasAll(["households"])
-                || request.resource.data.households.id is string)
+      allow update: if isAuth() &&
+                    ( !request.resource.data.households.pivot.keys().hasAny(["role"])
+                    && 
+                      ( !request.resource.data.households.pivot.keys().hasAny(["accepted"])
+                      ||
+                        ( request.resource.data.households.pivot.keys().hasAny(["accepted"])
+                          && request.resource.data.households.pivot.accepted == true
+                        )
+                      )
+                    )
 	  }
   }
 }

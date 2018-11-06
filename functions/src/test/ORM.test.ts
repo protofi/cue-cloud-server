@@ -128,7 +128,7 @@ describe('STAGE', () => {
                 expect(id).exist
             })
 
-            it.only('Get ID of created docRef.', async () => {
+            it('Get ID of created docRef.', async () => {
                 const car: ModelImpl = await new Car(adminFs).create({
                     name : 'Tob'
                 })
