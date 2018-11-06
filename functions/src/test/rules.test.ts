@@ -192,14 +192,50 @@ describe('OFFLINE', () => {
                 })))
             })
 
-            it('Users should not be able to change their role in relation to a household', async () => {
+            it.only('Users should not be able to change their role in relation to a household', async () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.USER}/${testUserDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : {
                             pivot : {
-                                role : Roles.ADMIN
+                                role : 'res'
                             }
                         }
+                    }
+                })
+
+                const ref = db.collection(Models.USER)
+
+                expect(await firestore.assertFails(ref.doc(testUserDataOne.uid).update({
+                    [Models.HOUSEHOLD]: {
+                        pivot : {
+                            role : Roles.ADMIN
+                        }
+                    }
+                })))
+            })
+
+            it.only('Users should not be able to change the accecpted property in relation to a household to false', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.USER}/${testUserDataOne.uid}`] : {
+                        [Models.HOUSEHOLD] : true
+                    }
+                })
+
+                const ref = db.collection(Models.USER)
+
+                expect(await firestore.assertFails(ref.doc(testUserDataOne.uid).update({
+                    [Models.HOUSEHOLD]: {
+                        pivot : {
+                            accepted: false
+                        }
+                    }
+                })))
+            })
+
+            it.only('Users should be able to change the accecpted property in relation to a household to true', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.USER}/${testUserDataOne.uid}`] : {
+                        [Models.HOUSEHOLD] : true
                     }
                 })
 
@@ -208,7 +244,7 @@ describe('OFFLINE', () => {
                 expect(await firestore.assertSucceeds(ref.doc(testUserDataOne.uid).update({
                     [Models.HOUSEHOLD]: {
                         pivot : {
-                            role : Roles.ADMIN
+                            accepted: true
                         }
                     }
                 })))
