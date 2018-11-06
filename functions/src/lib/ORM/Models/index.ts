@@ -1,5 +1,5 @@
 import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from "../Relation";
-import * as flattern from 'flat'
+import * as flatten from 'flat'
 
 export enum Models {
     HOUSEHOLD = 'households',
@@ -104,11 +104,11 @@ export default class ModelImpl implements Model {
         
         if(transaction)
         {
-            transaction.update(docRef, flattern(data))
+            transaction.update(docRef, flatten(data))
         }
         else 
         {
-            await docRef.update(flattern(data))
+            await docRef.update(flatten(data))
         }
 
         this.snap = null

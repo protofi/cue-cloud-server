@@ -3,9 +3,9 @@ import * as sinon from 'sinon'
 import * as mocha from 'mocha'
 import * as admin from 'firebase-admin'
 import * as functionsTest from 'firebase-functions-test'
-import { Models } from './lib/ORM/Models'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
-import { Roles } from './lib/const';
+import ModelImpl, { Models } from './lib/ORM/Models';
+import { Many2ManyRelation } from './lib/ORM/Relation';
 
 const assert = chai.assert;
 const expect = chai.expect;
@@ -123,53 +123,53 @@ describe('OFFLINE', () => {
         //     })
         // })
 
-        // describe('Cache.', () => {
+        describe('Cache', () => {
 
-        //     it('The name of the user should be cached on the household collection', async () => {
+            it('The name of the user should be cached on the household collection', async () => {
                 
-        //         const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
 
-        //         const householdId = 'household-test-1'
-        //         const userId = 'user-test-1'
+                const householdId = 'household-test-1'
+                const userId = 'user-test-1'
 
-        //         const change = {
-        //             before : {
-        //                 data: () => {
-        //                     return {
-        //                         households: {
-        //                             id : householdId
-        //                         },
-        //                     }
-        //                 },
-        //             },
-        //             after : {
-        //                 data: () => {
-        //                     return {
-        //                         households: {
-        //                             id : householdId
-        //                         },
-        //                         age : 123,
-        //                         name: 'Bob',
-        //                     }
-        //                 },
-        //                 get : () => {
-        //                     return {}
-        //                 },
-        //                 ref : {
-        //                     update: () => {
-        //                         return {}
-        //                     },
-        //                     id : userId
-        //                 }
-        //             }
-        //         }
+                const change = {
+                    before : {
+                        data: () => {
+                            return {
+                                households: {
+                                    id : householdId
+                                },
+                            }
+                        },
+                    },
+                    after : {
+                        data: () => {
+                            return {
+                                households: {
+                                    id : householdId
+                                },
+                                age : 123,
+                                name: 'Bob',
+                            }
+                        },
+                        get : () => {
+                            return {}
+                        },
+                        ref : {
+                            update: () => {
+                                return {}
+                            },
+                            id : userId
+                        }
+                    }
+                }
 
-        //         await wrappedUsersOnUpdate(change, null)
+                await wrappedUsersOnUpdate(change, null)
 
-        //         expect(firestoreMockData[`${Models.HOUSEHOLD}/undefined`]).to.deep.equal({
-        //             [`${Models.USER}.${userId}.name`] : 'Bob'
-        //         })
-        //     })
+                expect(firestoreMockData[`${Models.HOUSEHOLD}/undefined`]).to.deep.equal({
+                    [`${Models.USER}.${userId}.name`] : 'Bob'
+                })
+            })
 
         //     it('The role of the pivot between a user and a household should be cached on the household collection', async () => {
                 
@@ -266,6 +266,6 @@ describe('OFFLINE', () => {
             //     //     active: true
             //     // })
             // })
-        // })
+        })
     })
 })

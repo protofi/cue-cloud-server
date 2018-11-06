@@ -2,20 +2,12 @@ import * as express from 'express'
 import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
 import firebase from '@firebase/app';
-import '@firebase/firestore'
 
 import * as glob from 'glob'
 import * as camelCase from 'camelcase'
 
 const app = express()
 app.set('view engine', 'pug')
-
-// const serviceAccount = require(`./../${process.env.GCLOUD_PROJECT}.serviceAccountKey.json`)
-
-// admin.initializeApp({
-//     credential: admin.credential.cert(serviceAccount),
-//     databaseURL: `https://${process.env.GCLOUD_PROJECT}.firebaseio.com`
-// })
 
 try {
     admin.initializeApp();
@@ -34,9 +26,6 @@ const settings = { timestampsInSnapshots: true }
 
 const adminFs = admin.firestore()
 adminFs.settings(settings)
-
-const fs = firebase.firestore()
-fs.settings(settings)
 
 //functions autoloader
 const files = glob.sync('./**/*.f.js', { cwd: __dirname, ignore: './node_modules/**'});
