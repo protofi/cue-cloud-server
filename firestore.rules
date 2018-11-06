@@ -3,7 +3,7 @@ service cloud.firestore {
     function isAuth() {
     		return (request.auth.uid != null)
     }
-    
+
     match /{documents=**} {
     		allow read: if false
     		allow write: if false
@@ -21,17 +21,20 @@ service cloud.firestore {
           return resource.data.users.keys().hasAll([request.auth.uid])
       }
 
-			allow create: if isAuth()	&&
-                    (  request.resource.data.keys().hasAll(["users"])
-                    && request.resource.data.users.keys().hasOnly([request.auth.uid])
-                    && request.resource.data.users[request.auth.uid] == true )
+			allow create: if isAuth()
+                    && (
+                      request.resource.data.keys().hasAll(["users"])
+                      && request.resource.data.users.keys().hasOnly([request.auth.uid])
+                      && request.resource.data.users[request.auth.uid] == true
+                    )
                 
       allow read: if isAuth() && isResident()
 
 			allow update: if isAuth()
           					&& (
                     	!request.resource.data.keys().hasAll(["users"])
-                		|| isHouseholdAdmin())
+                		  || isHouseholdAdmin()
+                    )
 
       allow delete: if false
     }
@@ -41,13 +44,16 @@ service cloud.firestore {
 
       allow read: if isAuth()
 
-      allow update: if isAuth() &&
-                    ( !request.resource.data.households.pivot.keys().hasAny(["role"])
-                    && 
-                      ( !request.resource.data.households.pivot.keys().hasAny(["accepted"])
-                      ||
-                        ( request.resource.data.households.pivot.keys().hasAny(["accepted"])
-                          && request.resource.data.households.pivot.accepted == true
+      allow update: if isAuth()
+                    && (
+                      !request.resource.data.keys().hasAll(["households"])
+                      || (
+                        !request.resource.data.households.keys().hasAll(["pivot"])
+                        || (
+                          !request.resource.data.households.pivot.keys().hasAll(["role"]) // cannot exist on update
+                          && (
+                            !request.resource.data.households.pivot.keys().hasAll(["accepted"]) // if exists; must be true
+                            || request.resource.data.households.pivot.accepted == true)
                         )
                       )
                     )

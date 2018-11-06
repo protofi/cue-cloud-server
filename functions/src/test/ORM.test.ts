@@ -27,7 +27,6 @@ const expect = chai.expect
 describe('STAGE', () => {
 
     var test: FeaturesList
-    var myFunctions
     var adminFs: FirebaseFirestore.Firestore
     var db: DataORMImpl
 
@@ -43,10 +42,9 @@ describe('STAGE', () => {
         try {
             admin.initializeApp();
         } catch (e) {}
-
-        myFunctions = require('../lib/index')
-        adminFs = admin.firestore()
+        
         try {
+            adminFs = admin.firestore()
             adminFs.settings({ timestampsInSnapshots: true })
         } catch (e) {}
 

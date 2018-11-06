@@ -10,6 +10,9 @@ export default class Household extends ModelImpl {
 
     users(): One2ManyRelation
     {
-        return this.hasMany(Models.USER)
+        const rel = this.hasMany(Models.USER)
+        
+        
+        return rel
     }
 }

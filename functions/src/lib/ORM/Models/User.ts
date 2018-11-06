@@ -21,6 +21,10 @@ export default class User extends ModelImpl {
 
     sensors(): Many2ManyRelation
     {
-        return this.belongsToMany(Models.SENSOR)
+        const rel = this.belongsToMany(Models.SENSOR)
+
+        
+
+        return rel
     }
 }

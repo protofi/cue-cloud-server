@@ -20,6 +20,12 @@ export default class Sensor extends ModelImpl {
 
     users(): Many2ManyRelation
     {
-        return this.belongsToMany(Models.USER)
+        const rel = this.belongsToMany(Models.USER)
+
+        // rel.defineCachableFields([
+        //     'pivot.muted'
+        // ])
+
+        return rel
     }
 }

@@ -134,7 +134,8 @@ describe('OFFLINE', () => {
 
                 const ref = db.collection(Models.HOUSEHOLD)
 
-                expect(await firestore.assertFails(ref.doc().get()))
+                expect(await firestore.assertFails(ref.doc().get()
+                ))
             })
 
             it('Autherized users not included in a household should not be able to retrieve data about it', async () => {
@@ -178,10 +179,24 @@ describe('OFFLINE', () => {
                 expect(await firestore.assertFails(ref.add({})))
             })
 
-            it('Users should be able the to update their name', async () => {
+            it('Users should be able to update data about themselves', async () => {
+                const db = await setup(testHouseDataOne, {
+                    [`${Models.USER}/${testHouseDataOne.uid}`] : {
+                        id : testHouseDataOne.uid
+                    }
+                })
+
+                const ref = db.collection(Models.USER)
+
+                expect(await firestore.assertSucceeds(ref.doc(testHouseDataOne.uid).update({
+                    randomData : true
+                })))
+            })
+
+            it('Users should be able to update their name', async () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.USER}/${testUserDataOne.uid}`] : {
-                        id : testHouseDataOne.uid
+                        id : testUserDataOne.uid,
                     }
                 })
 
@@ -192,7 +207,27 @@ describe('OFFLINE', () => {
                 })))
             })
 
-            it.only('Users should not be able to change their role in relation to a household', async () => {
+            it('Users should be able to update data on the relation to a household', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.USER}/${testUserDataOne.uid}`] : {
+                        [Models.HOUSEHOLD] : {
+                            
+                        }
+                    }
+                })
+
+                const ref = db.collection(Models.USER)
+
+                expect(await firestore.assertSucceeds(ref.doc(testUserDataOne.uid).update({
+                    [Models.HOUSEHOLD]: {
+                        pivot : {
+                            randomData : true
+                        }
+                    }
+                })))
+            })
+
+            it('Users should not be able to change their role in relation to a household', async () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.USER}/${testUserDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : {
@@ -214,7 +249,7 @@ describe('OFFLINE', () => {
                 })))
             })
 
-            it.only('Users should not be able to change the accecpted property in relation to a household to false', async () => {
+            it('Users should not be able to change the accecpted property in relation to a household to false', async () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.USER}/${testUserDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : true
@@ -232,7 +267,7 @@ describe('OFFLINE', () => {
                 })))
             })
 
-            it.only('Users should be able to change the accecpted property in relation to a household to true', async () => {
+            it('Users should be able to change the accecpted property in relation to a household to true', async () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.USER}/${testUserDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : true

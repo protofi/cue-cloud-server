@@ -98,125 +98,125 @@ describe('OFFLINE', () => {
 
     describe('Functions', async () => {
         
-        describe('Households', async () => {
+        // describe('Households', async () => {
 
-            it('On Create. Pivot between user and household should recieve a role property of admin', async () => {
+        //     it('On Create. Pivot between user and household should recieve a role property of admin', async () => {
                 
-                const householdSnap = {
-                    data : () => {
-                        return { [Models.USER] : { [testUserDataOne.uid] : true } }
-                    },
-                    get : () => {
-                        return {}
-                    }
-                }
+        //         const householdSnap = {
+        //             data : () => {
+        //                 return { [Models.USER] : { [testUserDataOne.uid] : true } }
+        //             },
+        //             get : () => {
+        //                 return {}
+        //             }
+        //         }
 
-                const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
+        //         const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
 
-                await wrappedHouseholdsOnCreate(householdSnap)
+        //         await wrappedHouseholdsOnCreate(householdSnap)
 
-                expect(firestoreMockData[`${Models.USER}/undefined`][Models.HOUSEHOLD]).to.deep.equal({
-                    pivot : {
-                        role: Roles.ADMIN
-                    }
-                })
-            })
-        })
+        //         expect(firestoreMockData[`${Models.USER}/undefined`][Models.HOUSEHOLD]).to.deep.equal({
+        //             pivot : {
+        //                 role: Roles.ADMIN
+        //             }
+        //         })
+        //     })
+        // })
 
-        describe('Cache.', () => {
+        // describe('Cache.', () => {
 
-            it('The name of the user should be cached on the household collection', async () => {
+        //     it('The name of the user should be cached on the household collection', async () => {
                 
-                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+        //         const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
 
-                const householdId = 'household-test-1'
-                const userId = 'user-test-1'
+        //         const householdId = 'household-test-1'
+        //         const userId = 'user-test-1'
 
-                const change = {
-                    before : {
-                        data: () => {
-                            return {
-                                households: {
-                                    id : householdId
-                                },
-                            }
-                        },
-                    },
-                    after : {
-                        data: () => {
-                            return {
-                                households: {
-                                    id : householdId
-                                },
-                                age : 123,
-                                name: 'Bob',
-                            }
-                        },
-                        get : () => {
-                            return {}
-                        },
-                        ref : {
-                            update: () => {
-                                return {}
-                            },
-                            id : userId
-                        }
-                    }
-                }
+        //         const change = {
+        //             before : {
+        //                 data: () => {
+        //                     return {
+        //                         households: {
+        //                             id : householdId
+        //                         },
+        //                     }
+        //                 },
+        //             },
+        //             after : {
+        //                 data: () => {
+        //                     return {
+        //                         households: {
+        //                             id : householdId
+        //                         },
+        //                         age : 123,
+        //                         name: 'Bob',
+        //                     }
+        //                 },
+        //                 get : () => {
+        //                     return {}
+        //                 },
+        //                 ref : {
+        //                     update: () => {
+        //                         return {}
+        //                     },
+        //                     id : userId
+        //                 }
+        //             }
+        //         }
 
-                await wrappedUsersOnUpdate(change, null)
+        //         await wrappedUsersOnUpdate(change, null)
 
-                expect(firestoreMockData[`${Models.HOUSEHOLD}/undefined`]).to.deep.equal({
-                    [`${Models.USER}.${userId}.name`] : 'Bob'
-                })
-            })
+        //         expect(firestoreMockData[`${Models.HOUSEHOLD}/undefined`]).to.deep.equal({
+        //             [`${Models.USER}.${userId}.name`] : 'Bob'
+        //         })
+        //     })
 
-            it('The role of the pivot between a user and a household should be cached on the household collection', async () => {
+        //     it('The role of the pivot between a user and a household should be cached on the household collection', async () => {
                 
-                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+        //         const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
 
-                const householdId = 'household-test-1'
-                const userId = 'user-test-1'
+        //         const householdId = 'household-test-1'
+        //         const userId = 'user-test-1'
 
-                const change = {
-                    before : {
-                        data: () => {
-                            return {
-                                households: {
-                                    id : householdId
-                                },
-                            }
-                        },
-                    },
-                    after : {
-                        data: () => {
-                            return {
-                                households: {
-                                    id : householdId,
-                                    pivot : {
-                                        role: Roles.ADMIN
-                                    }
-                                }
-                            }
-                        },
-                        get : () => {
-                            return {}
-                        },
-                        ref : {
-                            update: () => {
-                                return {}
-                            },
-                            id : userId
-                        }
-                    }
-                }
+        //         const change = {
+        //             before : {
+        //                 data: () => {
+        //                     return {
+        //                         households: {
+        //                             id : householdId
+        //                         },
+        //                     }
+        //                 },
+        //             },
+        //             after : {
+        //                 data: () => {
+        //                     return {
+        //                         households: {
+        //                             id : householdId,
+        //                             pivot : {
+        //                                 role: Roles.ADMIN
+        //                             }
+        //                         }
+        //                     }
+        //                 },
+        //                 get : () => {
+        //                     return {}
+        //                 },
+        //                 ref : {
+        //                     update: () => {
+        //                         return {}
+        //                     },
+        //                     id : userId
+        //                 }
+        //             }
+        //         }
 
-                await wrappedUsersOnUpdate(change, null)
+        //         await wrappedUsersOnUpdate(change, null)
 
-                expect(firestoreMockData[`${Models.HOUSEHOLD}/undefined`]).to.deep.equal({
-                    [`${Models.USER}.${userId}.pivot.role`] : Roles.ADMIN
-                })
-            })
+        //         expect(firestoreMockData[`${Models.HOUSEHOLD}/undefined`]).to.deep.equal({
+        //             [`${Models.USER}.${userId}.pivot.role`] : Roles.ADMIN
+        //         })
+        //     })
 
 
             // it('Cachable field should be defined on the relation.', async () => {
@@ -266,6 +266,6 @@ describe('OFFLINE', () => {
             //     //     active: true
             //     // })
             // })
-        })
+        // })
     })
 })
