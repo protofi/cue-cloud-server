@@ -11,7 +11,7 @@ export default class User extends ModelImpl {
     household(): N2OneRelation
     {
         const rel: N2OneRelation = this.belongsTo(Models.HOUSEHOLD);
-
+        
         rel.defineCachableFields([
             'name'
         ])

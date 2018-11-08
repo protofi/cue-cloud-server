@@ -6,7 +6,7 @@ html
 
         script(src="/__/firebase/5.5.1/firebase.js")
         script(src="/__/firebase/init.js")
-          
+
     body
         h1 Index
 
@@ -22,5 +22,10 @@ html
         form(id="init-household-form")
             input(name="name" type="text" class="household-name")
             button(type="submit") Create Household
+
+        
+        form(id="change-name-form")
+            input(name="name" type="text" id="change-name-input")
+            button(type="submit") Change name
 
     script(type="text/javascript" src="./js/script.js")

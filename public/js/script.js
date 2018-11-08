@@ -20,6 +20,20 @@ document.getElementById('signup-form').addEventListener('submit', (event) => {
     })
 })
 
+document.getElementById('change-name-form').addEventListener('submit', (event) => {
+    event.preventDefault()
+
+    let name = document.getElementById('change-name-input').value
+
+    let user = firebase.auth().currentUser;
+
+    user.updateProfile({
+        displayName: name
+    }).then(function() {
+    }).catch(function(error) {
+    })
+})
+
 document.getElementById('signin-form').addEventListener('submit', (event) => {
     event.preventDefault();
     console.log('signin')
@@ -90,21 +104,43 @@ form.addEventListener('submit', (event) => {
     })
 })
 
-const uid = 'test-user-1'
+// const uid = 'test-user-1'
 
-db.collection("sensors").where(`users.${uid}.id`, "==", uid)
-    .onSnapshot(function(querySnapshot) {
+// db.collection("sensors").where(`users.${uid}.id`, "==", uid)
+//     .onSnapshot(function(querySnapshot) {
 
-        querySnapshot.docChanges().forEach((change) => {
-            if (change.type === "added") {
-                console.log("New city: ", change.doc.data());
-            }
-            if (change.type === "modified") {
-                console.log("Modified city: ", change.doc.data());
-            }
-            if (change.type === "removed") {
-                console.log("Removed city: ", change.doc.data());
-            }
-        });
+//         querySnapshot.docChanges().forEach((change) => {
+//             if (change.type === "added") {
+//                 console.log("New city: ", change.doc.data());
+//             }
+//             if (change.type === "modified") {
+//                 console.log("Modified city: ", change.doc.data());
+//             }
+//             if (change.type === "removed") {
+//                 console.log("Removed city: ", change.doc.data());
+//             }
+//         });
    
-    });
+//     });
+
+
+// let householdDoc = db.collection("households").doc();
+// let householdId = householdDoc.getId();
+
+// db.collection('users')
+//     .doc(uid).set(
+//     {
+//         'households': {
+//             'id' : householdId
+//         }
+//     }
+// )
+
+// db.collection("households")
+//     .doc(householdId).set(
+//         {
+//             'users' : {
+//                 uid : true
+//             }
+//         }
+//     )

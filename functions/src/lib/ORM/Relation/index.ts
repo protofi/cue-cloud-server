@@ -1,6 +1,8 @@
 import ModelImpl from "../Models";
 import { Change } from 'firebase-functions'
 import { get } from 'lodash';
+import { singular } from 'pluralize'
+import { Pivot } from "./Pivot";
 
 export interface Relation {
    
@@ -17,7 +19,7 @@ export default class RelationImpl implements Relation{
     {
         this.db = db
 
-        this.owner = owner
+        this.owner = owner 
         this.propertyModelName = propertyModelName
     }
 
@@ -70,7 +72,7 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
 }
 
 export class Many2ManyRelation extends N2ManyRelation {
-    
+
     protected name: string
     protected cacheFields : Array<string>
 
@@ -97,13 +99,14 @@ export class Many2ManyRelation extends N2ManyRelation {
                 }).join('_')
     }
 
-    async pivot(id: string): Promise<void>
+    async pivot(propertyId: string): Promise<Pivot>
     {
-        // const model = await import(`./../Models/${singular(this.propertyModelName)}`)
-        // const property = new model.default(this.propertyModelName, this.db, null, id)
+        const model = await import(`./../Models/${singular(this.propertyModelName)}`)
+        const property = new model.default(this.propertyModelName, this.db, null, propertyId)
 
-        // new Pivot(this.db, this.owner, this.owner)
-        return
+        const pivotId: string = await this.generatePivotId(propertyId)
+
+        return new Pivot(this.db, pivotId, this.owner, property)
     }
 
     async updatePivot(propertyId: string, data: object): Promise<ModelImpl>
@@ -220,7 +223,7 @@ export class N2OneRelation extends RelationImpl {
 
         let changed = false
 
-        this.cacheFields.forEach((field, index) => {
+        this.cacheFields.forEach((field) => {
             
             const fieldPath = field.replace('pivot', `${this.propertyModelName}.pivot`) // prepend relevant model name to pivot field path
 

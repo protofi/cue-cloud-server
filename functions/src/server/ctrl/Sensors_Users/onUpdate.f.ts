@@ -2,7 +2,6 @@ import * as functions from 'firebase-functions'
 import { firestore } from 'firebase-admin'
 import DataORMImpl from './../../lib/ORM/';
 import { Models } from '../../lib/ORM/Models';
-import Pivot from '../../lib/ORM/Models/Pivot';
 
 exports = module.exports = functions.firestore
 .document(`${Models.SENSOR}_${Models.USER}/{pivotId}`)

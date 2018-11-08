@@ -15,6 +15,7 @@ import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
 import { Car, Wheel, Driver } from './stubs';
 import { Many2ManyRelation } from './lib/ORM/Relation';
+import { Pivot } from './lib/ORM/Relation/Pivot';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -790,10 +791,10 @@ describe('STAGE', () => {
                     await user.sensors().pivot(sensorId)
                     await sensor.users().pivot(userId)
 
-                    // const pivot1: ModelImpl = await user.sensors().pivot(sensorId)
-                    // const pivot2: ModelImpl = await sensor.users().pivot(userId)
+                    const pivot1: Pivot = await user.sensors().pivot(sensorId)
+                    const pivot2: Pivot = await sensor.users().pivot(userId)
 
-                    // expect(await pivot1.getId()).to.equal(await pivot2.getId())
+                    expect(await pivot1.getId()).to.equal(await pivot2.getId())
 
                     //clean up
                     docsToBeDeleted.push((await user.getDocRef()).path)
