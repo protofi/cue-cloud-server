@@ -3,7 +3,7 @@ import { Many2ManyRelation, N2OneRelation } from "./../Relation";
 
 export default class User extends ModelImpl {
 
-    constructor(db: any, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
+    constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
         super(Models.USER, db, snap, id)
     }
@@ -22,9 +22,6 @@ export default class User extends ModelImpl {
     sensors(): Many2ManyRelation
     {
         const rel = this.belongsToMany(Models.SENSOR)
-
-        
-
         return rel
     }
 }

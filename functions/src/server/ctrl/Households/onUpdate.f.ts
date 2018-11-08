@@ -1,12 +1,9 @@
 import * as functions from 'firebase-functions'
+import { Models } from '../../lib/ORM/Models';
 
-exports = module.exports = functions.firestore.document('households/{householdId}').onUpdate((change, context) => {
+exports = module.exports = functions.firestore.document(`${Models.HOUSEHOLD}/{householdId}`).onUpdate((change, context) => {
 
     console.log('OYI')
-
-    return new Promise(function(resolve, reject) {
-        setTimeout(function() {
-          resolve('foo')
-        }, 300)
-      })
+  
+    return Promise.resolve()
 })

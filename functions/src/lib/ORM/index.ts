@@ -3,6 +3,8 @@ import Sensor from "./Models/Sensor";
 import Event from "./Models/Event";
 import Room from "./Models/Room";
 import User from "./Models/User";
+import Pivot from "./Models/Pivot";
+import ModelImpl from "./Models";
 
 export interface DataORM {
     user(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): User
@@ -25,6 +27,7 @@ export default class DataORMImpl implements DataORM{
 
     user(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): User
     {
+        new Pivot(this.db, new ModelImpl('', this.db), new ModelImpl('', this.db))
         return new User(this.db, snap, id)
     }
 

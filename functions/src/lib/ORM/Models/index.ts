@@ -149,42 +149,42 @@ export default class ModelImpl implements Model {
     /**
      * Attach many models to many others
      */
-    protected belongsToMany(model: string): Many2ManyRelation
+    protected belongsToMany(property: string): Many2ManyRelation
     {
-        if(!this.relations.has(model))
+        if(!this.relations.has(property))
         {
-            const relation: Many2ManyRelation = new Many2ManyRelation(this, model, this.db)
-            this.relations.set(model, relation)
+            const relation: Many2ManyRelation = new Many2ManyRelation(this, property, this.db)
+            this.relations.set(property, relation)
         }
 
-        return this.relations.get(model) as Many2ManyRelation
+        return this.relations.get(property) as Many2ManyRelation
     }
 
     /**
      * Attach one model to many others
      */
-    protected hasMany(model: string): One2ManyRelation
+    protected hasMany(property: string): One2ManyRelation
     {
-        if(!this.relations.has(model))
+        if(!this.relations.has(property))
         {
-            const relation: One2ManyRelation = new One2ManyRelation(this, model, this.db)
-            this.relations.set(model, relation)
+            const relation: One2ManyRelation = new One2ManyRelation(this, property, this.db)
+            this.relations.set(property, relation)
         }
 
-        return this.relations.get(model) as One2ManyRelation
+        return this.relations.get(property) as One2ManyRelation
     }
 
     /**
      * Attach one or more models to one other
      */
-    protected belongsTo(model: string): N2OneRelation
+    protected belongsTo(property: string): N2OneRelation
     {
-        if(!this.relations.has(model))
+        if(!this.relations.has(property))
         {
-            const relation: N2OneRelation = new N2OneRelation(this, model, this.db)
-            this.relations.set(model, relation)
+            const relation: N2OneRelation = new N2OneRelation(this, property, this.db)
+            this.relations.set(property, relation)
         }
 
-        return this.relations.get(model) as N2OneRelation
+        return this.relations.get(property) as N2OneRelation
     }
 }

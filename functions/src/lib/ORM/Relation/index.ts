@@ -30,7 +30,7 @@ export default class RelationImpl implements Relation{
 }
 
 export interface N2ManyRelation {
-    
+
     get(): Promise<Array<ModelImpl>>
     attach(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<N2ManyRelation>
     updatePivot(propertyId: string, data: object): Promise<ModelImpl>
@@ -70,7 +70,9 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
 }
 
 export class Many2ManyRelation extends N2ManyRelation {
+    
     protected name: string
+    protected cacheFields : Array<string>
 
     constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
     {
@@ -80,26 +82,28 @@ export class Many2ManyRelation extends N2ManyRelation {
 
     private async generatePivotId(id: string): Promise<string>
     {
-        return [{
+        return  [{
                     name: this.propertyModelName,
                     id: id
                 },{
                     name: this.owner.name,
                     id: await this.owner.getId()
-                }
-            ].sort((A, B) => {
-                if (A.name < B.name) return -1
-                if (A.name > B.name) return 1
-                return 0 
-            }).map((part) => {
-                return part.id
-            }).join('_')
+                }].sort((A, B) => {
+                    if (A.name < B.name) return -1
+                    if (A.name > B.name) return 1
+                    return 0 
+                }).map((part) => {
+                    return part.id
+                }).join('_')
     }
 
-    async pivot(id: string): Promise<ModelImpl>
+    async pivot(id: string): Promise<void>
     {
-        const pivotId: string = await this.generatePivotId(id)
-        return new ModelImpl(this.name, this.db, null, pivotId)
+        // const model = await import(`./../Models/${singular(this.propertyModelName)}`)
+        // const property = new model.default(this.propertyModelName, this.db, null, id)
+
+        // new Pivot(this.db, this.owner, this.owner)
+        return
     }
 
     async updatePivot(propertyId: string, data: object): Promise<ModelImpl>
@@ -109,7 +113,11 @@ export class Many2ManyRelation extends N2ManyRelation {
         return new ModelImpl(this.name, this.db, null, pivotId).update({
             pivot: data
         })
+    }
 
+    async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>)
+    {
+        return
     }
 
     async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<Many2ManyRelation>
@@ -132,6 +140,11 @@ export class Many2ManyRelation extends N2ManyRelation {
         }, transaction)
 
         return this
+    }
+
+    defineCachableFields(cacheFields: Array<string>): void
+    {
+        this.cacheFields = cacheFields;
     }
 }
 
@@ -180,9 +193,9 @@ export class N2OneRelation extends RelationImpl {
         super(owner, propertyModelName, db)
     }
 
-    defineCachableFields(cacheConfig: Array<string>): void
+    defineCachableFields(cacheFields: Array<string>): void
     {
-        this.cacheFields = cacheConfig;
+        this.cacheFields = cacheFields;
     }
 
     async get(): Promise<ModelImpl>

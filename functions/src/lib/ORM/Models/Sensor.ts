@@ -3,7 +3,7 @@ import { N2OneRelation, One2ManyRelation, Many2ManyRelation } from "../Relation"
 
 export default class Sensor extends ModelImpl {
 
-    constructor(db: any)
+    constructor(db: FirebaseFirestore.Firestore)
     {
         super(Models.SENSOR, db)
     }

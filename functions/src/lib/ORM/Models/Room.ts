@@ -3,7 +3,7 @@ import { One2ManyRelation } from "../Relation";
 
 export default class Room extends ModelImpl {
 
-    constructor(db: any)
+    constructor(db: FirebaseFirestore.Firestore)
     {
         super(Models.ROOM, db)
     }

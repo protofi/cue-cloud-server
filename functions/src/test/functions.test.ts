@@ -1,24 +1,28 @@
 import * as chai from 'chai'
 import * as sinon from 'sinon'
 import * as mocha from 'mocha'
+import { singular } from 'pluralize'
 import * as admin from 'firebase-admin'
+import * as uniqid from 'uniqid'
 import * as functionsTest from 'firebase-functions-test'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
 import ModelImpl, { Models } from './lib/ORM/Models';
 import { Many2ManyRelation } from './lib/ORM/Relation';
+import { Driver, Car } from './stubs';
+import { InstanceLoader } from './lib/util';
 
 const assert = chai.assert;
 const expect = chai.expect;
 
 describe('OFFLINE', () => {
 
-    var test: FeaturesList;
-    var adminInitStub: sinon.SinonStub;
-    var adminfirestoreStub: sinon.SinonStub;
-    var adminFs: FirebaseFirestore.Firestore
-    var myFunctions;
+    let test: FeaturesList
+    let adminInitStub: sinon.SinonStub
+    let adminfirestoreStub: sinon.SinonStub
+    let myFunctions
+    let firestoreStub
 
-    var firestoreMockData: any = {}
+    let firestoreMockData: any = {}
 
     const testUserDataOne = {
         uid: "test-user-1",
@@ -43,46 +47,41 @@ describe('OFFLINE', () => {
             projectId: stageProjectId,
         }, `./${stageProjectId}.serviceAccountKey.json`)
 
-        // try {
-        //     admin.initializeApp();
-        // } catch (e) {}
-
-        // try {
-        //     adminFs.settings({ timestampsInSnapshots: true })
-        // } catch (e) {}
-
         adminInitStub = sinon.stub(admin, 'initializeApp')
 
-        adminfirestoreStub = sinon.stub(admin, 'firestore')
-        .get(() => {
-            return () => {
+        firestoreStub = {
+            settings: () => { return null },
+            collection: (col) => {
                 return {
-                    settings: () => { return null },
-                    collection: (col) => {
+                    doc: (doc) => {
                         return {
-                            doc: (doc) => {
+                            id: uniqid(),
+                            set: (data) => {
+                                firestoreMockData[`${col}/${doc}`] = data
+                                return null
+                            },
+                            get: (data) => {
                                 return {
-                                    set: (data) => {
-                                        firestoreMockData[`${col}/${doc}`] = data
-                                        return null
-                                    },
-                                    get: (data) => {
+                                    get: () => {
                                         return {
-                                            get: () => {
-                                                return {
-                                                }
-                                            }
                                         }
-                                    },
-                                    update: (data) => {
-                                        firestoreMockData[`${col}/${doc}`] = data
-                                        return null
                                     }
                                 }
+                            },
+                            update: (data) => {
+                                firestoreMockData[`${col}/${doc}`] = data
+                                return null
                             }
                         }
                     }
                 }
+            }
+        }
+
+        adminfirestoreStub = sinon.stub(admin, 'firestore')
+        .get(() => {
+            return () => {
+                return firestoreStub
             }
         })
 
@@ -130,7 +129,6 @@ describe('OFFLINE', () => {
                 const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
 
                 const householdId = 'household-test-1'
-                const userId = 'user-test-1'
 
                 const change = {
                     before : {
@@ -148,8 +146,7 @@ describe('OFFLINE', () => {
                                 households: {
                                     id : householdId
                                 },
-                                age : 123,
-                                name: 'Bob',
+                                name: testUserDataOne.name
                             }
                         },
                         get : () => {
@@ -159,7 +156,7 @@ describe('OFFLINE', () => {
                             update: () => {
                                 return {}
                             },
-                            id : userId
+                            id : testUserDataOne.uid
                         }
                     }
                 }
@@ -167,7 +164,7 @@ describe('OFFLINE', () => {
                 await wrappedUsersOnUpdate(change, null)
 
                 expect(firestoreMockData[`${Models.HOUSEHOLD}/undefined`]).to.deep.equal({
-                    [`${Models.USER}.${userId}.name`] : 'Bob'
+                    [`${Models.USER}.${testUserDataOne.uid}.name`] : testUserDataOne.name
                 })
             })
 
@@ -219,45 +216,12 @@ describe('OFFLINE', () => {
         //     })
 
 
-            // it('Cachable field should be defined on the relation.', async () => {
+            // it('Cachable fields should be defined on the relation.', async () => {
 
-            //     class Model1 extends ModelImpl {
+            //     const driver = new Driver(firestoreStub)
+            //     const car = new Car(firestoreStub)
 
-            //         constructor(_db: any)
-            //         {
-            //             super('Model1', _db)
-            //         }
-                
-            //         modal2(): Many2ManyRelation
-            //         {
-            //             const r = this.belongsToMany('Model2')
-                        
-            //             // r.setCache([
-            //             //     'active'
-            //             // ])
-
-            //             return r
-            //         }
-            //     }
-
-            //     class Model2 extends ModelImpl {
-
-            //         constructor(_db: any)
-            //         {
-            //             super('Model2', _db)
-            //         }
-                
-            //         modal1(): Many2ManyRelation
-            //         {
-            //             const r = this.belongsToMany('Model1')
-            //             return r
-            //         }
-            //     }
-
-            //     const m1 = new Model1(adminFs)
-            //     const m2 = new Model2(adminFs)
-
-            //     const rel = await m1.modal2().attach(m2)
+            //     const rel = await car.drivers().attach(driver)
 
             //     console.log(firestoreMockData)
 
@@ -265,6 +229,36 @@ describe('OFFLINE', () => {
             //     // pivot.update({
             //     //     active: true
             //     // })
+            // })
+
+            // it('Properties of Owner model should be cachable on Property model', async () => {
+
+            //     const driver = new Driver(firestoreStub)
+            //     const car = new Car(firestoreStub)
+
+            //     car.create({
+            //         brand: 'Ford',
+            //         year: 1984
+            //     })
+
+            //     const rel = new Many2ManyRelation(car, driver.name, firestoreStub)
+
+            //     const cache1 = [
+            //         'brand',
+            //         'year'
+            //     ]
+
+            //     rel.defineCachableFields(cache1)
+
+            //     console.log(firestoreMockData)
+            // })
+
+            // it('instance', async () => {
+                
+            //     const model = await import(`./lib/ORM/Models/${singular(Models.USER)}`)
+                
+            //     console.log(new model.default())
+
             // })
         })
     })

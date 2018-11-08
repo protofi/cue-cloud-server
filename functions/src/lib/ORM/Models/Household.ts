@@ -12,7 +12,6 @@ export default class Household extends ModelImpl {
     {
         const rel = this.hasMany(Models.USER)
         
-        
         return rel
     }
 }
