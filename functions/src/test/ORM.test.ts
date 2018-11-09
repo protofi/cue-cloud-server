@@ -61,12 +61,11 @@ describe('STAGE', () => {
             settings: () => { return null },
             collection: (col) => {
                 return {
-                    doc: (doc) => {
+                    doc: (id) => {
                         return {
-                            id: uniqid(),
+                            id: (id) ? id : uniqid(),
                             set: (data) => {
-                                firestoreMockData[`${col}/${doc}`] = data
-                                console.log(firestoreMockData)
+                                firestoreMockData[`${col}/${id}`] = data
                                 return null
                             },
                             get: (data) => {
@@ -78,7 +77,7 @@ describe('STAGE', () => {
                                 }
                             },
                             update: (data) => {
-                                firestoreMockData[`${col}/${doc}`] = data
+                                firestoreMockData[`${col}/${id}`] = data
                                 return null
                             }
                         }
@@ -778,6 +777,46 @@ describe('STAGE', () => {
                     docsToBeDeleted.push((await pivot.getDocRef()).path)
                 })
 
+                it('Returned Pivot of a relation should have a correct name of the to owner models', async () => {
+                    const user = db.user() as User
+                    const sensor = db.sensor() as Sensor
+                    const sensorId = await sensor.getId()
+                    const userId = await user.getId()
+                    
+                    await user.sensors().attach(sensor)
+                    await sensor.users().attach(user)
+
+                    const pivot: Pivot = await user.sensors().pivot(sensorId)
+
+                    expect(await pivot.getName()).to.equal(`${sensor.name}_${user.name}`)
+
+                    //clean up
+                    docsToBeDeleted.push((await user.getDocRef()).path)
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+
+                    docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
+                })
+
+                it('Returned Pivot of a relation should have a correct name of the to owner models', async () => {
+                    const user = db.user() as User
+                    const sensor = db.sensor() as Sensor
+                    const sensorId = await sensor.getId()
+                    const userId = await user.getId()
+                    
+                    await user.sensors().attach(sensor)
+                    await sensor.users().attach(user)
+
+                    const pivot: Pivot = await user.sensors().pivot(sensorId)
+
+                    expect(await pivot.getId()).to.equal(`${sensorId}_${userId}`)
+
+                    //clean up
+                    docsToBeDeleted.push((await user.getDocRef()).path)
+                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+
+                    docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
+                })
+
                 it('Make sure models can be attached in "inverse"', async () => {
 
                     const user = db.user() as User
@@ -787,9 +826,6 @@ describe('STAGE', () => {
 
                     await user.sensors().attach(sensor)
                     await sensor.users().attach(user)
-
-                    await user.sensors().pivot(sensorId)
-                    await sensor.users().pivot(userId)
 
                     const pivot1: Pivot = await user.sensors().pivot(sensorId)
                     const pivot2: Pivot = await sensor.users().pivot(userId)
@@ -803,7 +839,7 @@ describe('STAGE', () => {
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
-                it('Cachable field should be defined as an array on the relation', async () => {
+                it('Fields to be cached from the owner on the pivot should be definable on the relation between the owner and the property', async () => {
 
                     const driver = new Driver(firestoreStub)
                     const car = new Car(adminFs)
@@ -817,22 +853,86 @@ describe('STAGE', () => {
 
                         getCachableFields()
                         {
-                            return this.cacheFields
+                            return this.cachedOnToPivot
                         }
                     }
 
                     const rel = new Many2ManyRelationStub(car, driver.name, firestoreStub)
 
-                    const cache1 = [
+                    const cachedOnPivot = [
                         'brand',
                         'year'
                     ]
 
-                    rel.defineCachableFields(cache1)
+                    rel.defineCachableFields(cachedOnPivot)
 
-                    const cache2 = rel.getCachableFields()
+                    const cachableFields = rel.getCachableFields()
 
-                    expect(cache1).to.be.equal(cache2)
+                    expect(cachedOnPivot).to.be.equal(cachableFields)
+                })
+
+                it('Fields to be cached from the pivot to the owner should be definable on the relation between the owner and the property', async () => {
+
+                    const driver = new Driver(firestoreStub)
+                    const car = new Car(adminFs)
+                    
+                    class Many2ManyRelationStub extends Many2ManyRelation
+                    {
+                        constructor(owner: ModelImpl, propertyModelName: string, _db)
+                        {
+                            super(owner, propertyModelName, _db)
+                        }
+
+                        getCachableFields()
+                        {
+                            return this.cachedFromPivot
+                        }
+                    }
+
+                    const rel = new Many2ManyRelationStub(car, driver.name, firestoreStub)
+
+                    const cachedFromPivot = [
+                        'brand',
+                        'year'
+                    ]
+
+                    rel.defineCachableFields(null, cachedFromPivot)
+
+                    const cache = rel.getCachableFields()
+
+                    expect(cachedFromPivot).to.be.equal(cache)
+                })
+
+                it('Fields to be cached from the owner to the property should be definable on the relation between the owner and the property', async () => {
+
+                    const driver = new Driver(firestoreStub)
+                    const car = new Car(adminFs)
+                    
+                    class Many2ManyRelationStub extends Many2ManyRelation
+                    {
+                        constructor(owner: ModelImpl, propertyModelName: string, _db)
+                        {
+                            super(owner, propertyModelName, _db)
+                        }
+
+                        getCachableFields()
+                        {
+                            return this.cachedOnToProperty
+                        }
+                    }
+
+                    const rel = new Many2ManyRelationStub(car, driver.name, firestoreStub)
+
+                    const cachedToProperty = [
+                        'brand',
+                        'year'
+                    ]
+
+                    rel.defineCachableFields(null, null, cachedToProperty)
+
+                    const cache = rel.getCachableFields()
+
+                    expect(cachedToProperty).to.be.equal(cache)
                 })
 
                 // it('Properties of Owner model should be cachable on Property model', async () => {
@@ -857,28 +957,57 @@ describe('STAGE', () => {
                 //     console.log(firestoreMockData)
                 // })
 
-                // it('The name property on Pivot model should return a correct formatted name', async () => {
+                it('GetName of Pivot model should return a correct formatted name', async () => {
          
-                //     const driver = new Driver(firestoreStub)
-                //     const car = new Car(firestoreStub)
+                    const driver = new Driver(firestoreStub)
+                    const car = new Car(firestoreStub)
+                    
+                    const pivotId = `${await car.getId()}_${await driver.getId()}`
+
+                    const pivot = new Pivot(firestoreStub, pivotId, car, driver)
     
-                //     const pivot = new Pivot(firestoreStub, car, driver)
+                    expect(pivot.getName()).to.be.equal(`${car.name}_${driver.name}`)
+                })
     
-                //     expect(pivot.name).to.be.equal(`${car.name}_${driver.name}`)
-                // })
+                it('GetId of pivot model should return a correct formatted id', async () => {
     
-                // it('GetId on pivot model should return a correct formatted id', async () => {
+                    const driver = new Driver(firestoreStub)
+                    const car = new Car(firestoreStub)
     
-                //     const driver = new Driver(firestoreStub)
-                //     const car = new Car(firestoreStub)
+                    const pivotId = `${await car.getId()}_${await driver.getId()}`
+
+                    const pivot = new Pivot(firestoreStub, pivotId, car, driver)
     
-                //     const pivot = new Pivot(firestoreStub, car, driver)
+                    expect(await pivot.getId()).to.equal(pivotId)
+                })
+
+                it.only('Pivot initialized from a resource name should have the right id', async () => {
+                    
+                    const driver = new Driver(firestoreStub)
+                    const car = new Car(firestoreStub)
     
-                //     const id = await pivot.getId()
-               
-                //     expect(id).to.be.equal(`${await car.getId()}_${await driver.getId()}`)
-                // })
+                    const resourceName = `${car.name}_${driver.name}/${await car.getId()}_${await driver.getId()}`
+
+                    const pivotId = `${await car.getId()}_${await driver.getId()}`
+
+                    const pivot = new Pivot(firestoreStub, null, null, null, resourceName)
     
+                    expect(await pivot.getId()).to.equal(pivotId)
+                })
+
+                it.only('Pivot initialized from a resource name should have the right name', async () => {
+         
+                    const driver = new Driver(firestoreStub)
+                    const car = new Car(firestoreStub)
+                    
+                    const resourceName = `${car.name}_${driver.name}/${await car.getId()}_${await driver.getId()}`
+
+                    const pivot = new Pivot(firestoreStub, null, null, null, resourceName)
+    
+                    expect(pivot.getName()).to.be.equal(`${car.name}_${driver.name}`)
+                })
+                
+
                 // it('Create a pivot model on the basis of a change snapshot', async () => {
     
                 //     const driver = new Driver(firestoreStub)

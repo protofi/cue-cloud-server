@@ -74,7 +74,10 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
 export class Many2ManyRelation extends N2ManyRelation {
 
     protected name: string
-    protected cacheFields : Array<string>
+
+    protected cachedOnToPivot : Array<string>
+    protected cachedFromPivot : Array<string>
+    protected cachedOnToProperty : Array<string>
 
     constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
     {
@@ -145,9 +148,11 @@ export class Many2ManyRelation extends N2ManyRelation {
         return this
     }
 
-    defineCachableFields(cacheFields: Array<string>): void
+    defineCachableFields(cachedToPivot: Array<string>, cachedFromPivot?: Array<string>, cachedToProperty?: Array<string>): void
     {
-        this.cacheFields = cacheFields;
+        this.cachedOnToPivot = cachedToPivot
+        this.cachedFromPivot = cachedFromPivot
+        this.cachedOnToProperty = cachedToProperty
     }
 }
 
