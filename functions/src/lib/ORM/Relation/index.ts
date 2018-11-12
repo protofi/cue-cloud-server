@@ -217,7 +217,7 @@ export class N2OneRelation extends RelationImpl {
         return super.cache()
     }
 
-    async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>)
+    async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<ModelImpl>
     {
         const newCacheData = {}
 
@@ -242,9 +242,9 @@ export class N2OneRelation extends RelationImpl {
             newCacheData[`${this.owner.name}.${ownerId}.${field}`] = cachableFieldAfter
         })
 
-        if(!changed) return Promise.resolve()
-
         const property: ModelImpl = await this.get()
+
+        if(!changed) return property
 
         return property.update(newCacheData)
     }

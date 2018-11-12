@@ -1,4 +1,5 @@
 import { pluralize } from 'pluralize'
+import { Change } from 'firebase-functions'
 import ModelImpl from "../Models";
 import { Many2ManyRelation } from '.';
 
@@ -49,9 +50,9 @@ export class Pivot {
         return this.model.name
     }
 
-    async updateCache(): Promise<void>
+    async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<ModelImpl>
     {
         // const r = this.owner[pluralize(this.property.name)]() as Many2ManyRelation
-        return
+        return new ModelImpl('make', this.db)
     }
 }

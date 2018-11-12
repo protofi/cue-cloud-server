@@ -16,6 +16,9 @@ import Event from './lib/ORM/Models/Event'
 import { Car, Wheel, Driver } from './stubs';
 import { Many2ManyRelation } from './lib/ORM/Relation';
 import { Pivot } from './lib/ORM/Relation/Pivot';
+import { Change } from 'firebase-functions';
+import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore';
+import { DocumentSnapshot } from '@google-cloud/firestore';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -981,7 +984,7 @@ describe('STAGE', () => {
                     expect(await pivot.getId()).to.equal(pivotId)
                 })
 
-                it.only('Pivot initialized from a resource name should have the right id', async () => {
+                it('Pivot initialized from a resource name should have the right id', async () => {
                     
                     const driver = new Driver(firestoreStub)
                     const car = new Car(firestoreStub)
@@ -995,7 +998,7 @@ describe('STAGE', () => {
                     expect(await pivot.getId()).to.equal(pivotId)
                 })
 
-                it.only('Pivot initialized from a resource name should have the right name', async () => {
+                it('Pivot initialized from a resource name should have the right name', async () => {
          
                     const driver = new Driver(firestoreStub)
                     const car = new Car(firestoreStub)
@@ -1006,6 +1009,70 @@ describe('STAGE', () => {
     
                     expect(pivot.getName()).to.be.equal(`${car.name}_${driver.name}`)
                 })
+
+                it.only('---', async () => {
+         
+                    const driver = new Driver(firestoreStub)
+                    const car = new Car(firestoreStub)
+                    
+                    await car.create({
+                        name: 'Fiesta'
+                    })
+
+                    const pivotId = `${await car.getId()}_${await driver.getId()}`
+
+                    const pivot = new Pivot(firestoreStub, pivotId, car, driver)
+
+
+                    // const change = test.firestore.exampleDocumentSnapshotChange()
+
+                    // const change = {
+                    //         before : {
+                    //             data: () => {
+                    //                 return {
+                    //                     [driver.name]: {
+                    //                         name : driver.name
+                    //                     },
+                    //                     [car.name]: {
+                    //                         name : car.name
+                    //                     },
+                    //                     pivot: {
+                    //                         crashes : 2
+                    //                     },
+                    //                 }
+                    //             },
+                    //         },
+                    //         after : {
+                    //             data: () => {
+                    //                 return {
+                    //                     [driver.name]: {
+                    //                         name : driver.name
+                    //                     },
+                    //                     [car.name]: {
+                    //                         name : car.name
+                    //                     },
+                    //                     pivot: {
+                    //                         crashes : 3
+                    //                     },
+                    //                 }
+                    //             },
+                    //             get : () => {
+                    //                 return {}
+                    //             },
+                    //             ref : {
+                    //                 update: () => {
+                    //                     return {}
+                    //                 },
+                    //                 id : pivotId
+                    //             }
+                    //         }
+                    //     } as Change<DocumentSnapshot>
+
+      
+                    // pivot.updateCache(change)
+
+                })
+                
                 
 
                 // it('Create a pivot model on the basis of a change snapshot', async () => {
