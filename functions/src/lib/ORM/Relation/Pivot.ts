@@ -1,4 +1,4 @@
-import { pluralize } from 'pluralize'
+import { plural } from 'pluralize'
 import { Change } from 'firebase-functions'
 import ModelImpl from "../Models";
 import { Many2ManyRelation } from '.';
@@ -6,35 +6,36 @@ import { Many2ManyRelation } from '.';
 export class Pivot {
 
     private db: FirebaseFirestore.Firestore
-    private owner: ModelImpl
-    private property: ModelImpl
+    private ownerA: ModelImpl
+    private ownerB: ModelImpl
 
     private model: ModelImpl
 
-    constructor(db: FirebaseFirestore.Firestore, id: string, owner: ModelImpl, property: ModelImpl, resourceName?: string)
+    constructor(db: FirebaseFirestore.Firestore, id: string, ownerA: ModelImpl, ownerB: ModelImpl, resourceName?: string)
     {
         this.db = db
         
         if(resourceName)
         {
             const srcParts = resourceName.split('/')
-            const pivotName = srcParts[0]
-            const pivotId = srcParts[1]
+            const identifier = srcParts.slice(srcParts.length-2, srcParts.length)
+            const pivotName = identifier[0]
+            const pivotId = identifier[1]
 
             const modelNames = pivotName.split('_')
             const modelIds = pivotId.split('_')
         
-            this.owner = new ModelImpl(modelNames[0], db, null, modelIds[0])
-            this.property = new ModelImpl(modelNames[1], db, null, modelIds[1])
+            this.ownerA = new ModelImpl(modelNames[0], db, null, modelIds[0])
+            this.ownerB = new ModelImpl(modelNames[1], db, null, modelIds[1])
 
             this.model = new ModelImpl(pivotName, db, null, pivotId)
         }
         else
         {
-            this.owner = owner
-            this.property = property
+            this.ownerA = ownerA
+            this.ownerB = ownerB
 
-            const pivotName = [owner.name, property.name].sort().join('_')
+            const pivotName = [ownerA.name, ownerB.name].sort().join('_')
 
             this.model = new ModelImpl(pivotName, db, null, id)
         }
@@ -52,7 +53,11 @@ export class Pivot {
 
     async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<ModelImpl>
     {
-        // const r = this.owner[pluralize(this.property.name)]() as Many2ManyRelation
+        const relationA = this.ownerA[plural(this.ownerB.name)]() as Many2ManyRelation
+        // const relationB = this.ownerA[pluralize(this.ownerB.name)]() as Many2ManyRelation
+
+        // relationA.updateCache()
+
         return new ModelImpl('make', this.db)
     }
 }

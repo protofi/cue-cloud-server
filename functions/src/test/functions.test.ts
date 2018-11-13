@@ -4,19 +4,19 @@ import * as mocha from 'mocha'
 import { singular } from 'pluralize'
 import * as admin from 'firebase-admin'
 import * as uniqid from 'uniqid'
-import * as functionsTest from 'firebase-functions-test'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
 import ModelImpl, { Models } from './lib/ORM/Models';
 import { Many2ManyRelation } from './lib/ORM/Relation';
 import { Driver, Car } from './stubs';
 import { InstanceLoader } from './lib/util';
 
+const test: FeaturesList = require('firebase-functions-test')()
+
 const assert = chai.assert;
 const expect = chai.expect;
 
 describe('OFFLINE', () => {
 
-    let test: FeaturesList
     let adminInitStub: sinon.SinonStub
     let adminfirestoreStub: sinon.SinonStub
     let myFunctions
@@ -39,13 +39,6 @@ describe('OFFLINE', () => {
     }
     
     beforeEach(async () => {
-
-        const stageProjectId = "staging-iot-cloud-server"
-
-        test = functionsTest({
-            databaseURL: `https://${stageProjectId}.firebaseio.com`,
-            projectId: stageProjectId,
-        }, `./${stageProjectId}.serviceAccountKey.json`)
 
         adminInitStub = sinon.stub(admin, 'initializeApp')
 
@@ -167,6 +160,53 @@ describe('OFFLINE', () => {
                     [`${Models.USER}.${testUserDataOne.uid}.name`] : testUserDataOne.name
                 })
             })
+
+            // it('---', async () => {
+            //     const wrappedSensorsUsersOnUpdate = test.wrap(myFunctions.ctrlSensorsUsersOnUpdate)
+
+            //     const change = test.makeChange({
+            //         data: () => {
+            //             return {
+            //                 [Models.SENSOR]: {
+            //                     id : 'Sensor1'
+            //                 },
+            //                 [Models.USER]: {
+            //                     id : 'User2'
+            //                 },
+            //                 pivot: {
+            //                     muted : false
+            //                 },
+            //             }
+            //         }
+            //     }, {
+            //         data: () => {
+            //             return {
+            //                 [Models.SENSOR]: {
+            //                     id : 'Sensor1'
+            //                 },
+            //                 [Models.USER]: {
+            //                     id : 'User2'
+            //                 },
+            //                 pivot: {
+            //                     muted : true
+            //                 },
+            //             }
+            //         },
+            //         get : () => {
+            //             return {}
+            //         },
+            //         ref : {
+            //             update: () => {
+            //                 return {}
+            //             },
+            //             id : 'Sensor1_User2'
+            //         }
+            //     })
+
+            //     await wrappedSensorsUsersOnUpdate(change, {
+            //         eventId : 'Sensor1_User2'
+            //     })
+            // })
 
         //     it('The role of the pivot between a user and a household should be cached on the household collection', async () => {
                 

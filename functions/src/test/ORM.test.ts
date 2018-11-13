@@ -18,7 +18,6 @@ import { Many2ManyRelation } from './lib/ORM/Relation';
 import { Pivot } from './lib/ORM/Relation/Pivot';
 import { Change } from 'firebase-functions';
 import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore';
-import { DocumentSnapshot } from '@google-cloud/firestore';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -29,6 +28,13 @@ chai.use(chaiAsPromised)
 
 const assert = chai.assert
 const expect = chai.expect
+
+// const stageProjectId = "staging-iot-cloud-server"
+
+// const test: FeaturesList = require('firebase-functions-test')({
+//     databaseURL: `https://${stageProjectId}.firebaseio.com`,
+//     projectId: stageProjectId,
+// }, `./${stageProjectId}.serviceAccountKey.json`)
 
 describe('STAGE', () => {
 
@@ -971,7 +977,7 @@ describe('STAGE', () => {
     
                     expect(pivot.getName()).to.be.equal(`${car.name}_${driver.name}`)
                 })
-    
+               
                 it('GetId of pivot model should return a correct formatted id', async () => {
     
                     const driver = new Driver(firestoreStub)
@@ -989,7 +995,7 @@ describe('STAGE', () => {
                     const driver = new Driver(firestoreStub)
                     const car = new Car(firestoreStub)
     
-                    const resourceName = `${car.name}_${driver.name}/${await car.getId()}_${await driver.getId()}`
+                    const resourceName = `projects/not-a-project/databases/(default)/documents/${car.name}_${driver.name}/${await car.getId()}_${await driver.getId()}`
 
                     const pivotId = `${await car.getId()}_${await driver.getId()}`
 
@@ -1014,67 +1020,43 @@ describe('STAGE', () => {
          
                     const driver = new Driver(firestoreStub)
                     const car = new Car(firestoreStub)
-                    
-                    await car.create({
-                        name: 'Fiesta'
-                    })
 
                     const pivotId = `${await car.getId()}_${await driver.getId()}`
 
                     const pivot = new Pivot(firestoreStub, pivotId, car, driver)
 
+                    const pivotData = {
+                                [car.name]: {
+                                    id : await car.getId()
+                                },
+                                [driver.name]: {
+                                    id : await driver.getId()
+                                },
+                                pivot: {
+                                    crashes : 2
+                                }
+                            }
 
-                    // const change = test.firestore.exampleDocumentSnapshotChange()
+                    const before = test.firestore.makeDocumentSnapshot({
+                        data : pivotData
+                    }, '')
 
-                    // const change = {
-                    //         before : {
-                    //             data: () => {
-                    //                 return {
-                    //                     [driver.name]: {
-                    //                         name : driver.name
-                    //                     },
-                    //                     [car.name]: {
-                    //                         name : car.name
-                    //                     },
-                    //                     pivot: {
-                    //                         crashes : 2
-                    //                     },
-                    //                 }
-                    //             },
-                    //         },
-                    //         after : {
-                    //             data: () => {
-                    //                 return {
-                    //                     [driver.name]: {
-                    //                         name : driver.name
-                    //                     },
-                    //                     [car.name]: {
-                    //                         name : car.name
-                    //                     },
-                    //                     pivot: {
-                    //                         crashes : 3
-                    //                     },
-                    //                 }
-                    //             },
-                    //             get : () => {
-                    //                 return {}
-                    //             },
-                    //             ref : {
-                    //                 update: () => {
-                    //                     return {}
-                    //                 },
-                    //                 id : pivotId
-                    //             }
-                    //         }
-                    //     } as Change<DocumentSnapshot>
+                    pivotData.pivot.crashes = 3
 
-      
-                    // pivot.updateCache(change)
+                    const after = test.firestore.makeDocumentSnapshot({
+                        data : pivotData,
+                        ref : {
+                            id : pivotId
+                        }
+                    }, '')
 
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await pivot.updateCache(change)
+
+                    console.log(firestoreMockData)
                 })
                 
-                
-
                 // it('Create a pivot model on the basis of a change snapshot', async () => {
     
                 //     const driver = new Driver(firestoreStub)

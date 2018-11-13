@@ -9,6 +9,7 @@
     "serve": "npm run build && firebase serve --only functions,hosting",
     "serve:prod": "firebase use production && npm run build && firebase serve",
     "serve:stage": "firebase use staging && npm run build && firebase serve",
+    "serve:test": "firebase serve --only firestore",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy:prod": "firebase use production && firebase deploy",
