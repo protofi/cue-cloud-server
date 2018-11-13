@@ -1016,7 +1016,7 @@ describe('STAGE', () => {
                     expect(pivot.getName()).to.be.equal(`${car.name}_${driver.name}`)
                 })
 
-                it('---', async () => {
+                it('Cached data from ivot should be updated on owner model', async () => {
          
                     const driver = new Driver(firestoreStub)
                     const car = new Car(firestoreStub)
