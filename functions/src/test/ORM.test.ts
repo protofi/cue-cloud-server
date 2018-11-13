@@ -1016,7 +1016,7 @@ describe('STAGE', () => {
                     expect(pivot.getName()).to.be.equal(`${car.name}_${driver.name}`)
                 })
 
-                it.only('---', async () => {
+                it('---', async () => {
          
                     const driver = new Driver(firestoreStub)
                     const car = new Car(firestoreStub)
