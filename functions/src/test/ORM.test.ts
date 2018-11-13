@@ -873,7 +873,7 @@ describe('STAGE', () => {
                         'year'
                     ]
 
-                    rel.defineCachableFields(cachedOnPivot)
+                    rel.defineCachableFields(null, null, cachedOnPivot)
 
                     const cachableFields = rel.getCachableFields()
 
@@ -937,34 +937,141 @@ describe('STAGE', () => {
                         'year'
                     ]
 
-                    rel.defineCachableFields(null, null, cachedToProperty)
+                    rel.defineCachableFields(cachedToProperty)
 
                     const cache = rel.getCachableFields()
 
                     expect(cachedToProperty).to.be.equal(cache)
                 })
 
-                // it('Properties of Owner model should be cachable on Property model', async () => {
+                it.only('Properties defined as cachable on the an owner A to owner B should be cached when new property is added', async () => {
 
-                //     const driver = new Driver(firestoreStub)
-                //     const car = new Car(firestoreStub)
+                    const driver = new Driver(firestoreStub)
 
-                //     car.create({
-                //         brand: 'Ford',
-                //         year: 1984
-                //     })
+                    class CarM extends Car {
+                        drivers(): Many2ManyRelation
+                        {
+                            return this.belongsToMany(driver.name)
+                                    .defineCachableFields([
+                                        'name'
+                                    ])
+                        }
+                    }
 
-                //     const rel = new Many2ManyRelation(car, driver.name, firestoreStub)
+                    const car = await new CarM(firestoreStub)
+                    const carId = await car.getId()
 
-                //     const cache1 = [
-                //         'brand',
-                //         'year'
-                //     ]
+                    const before = test.firestore.makeDocumentSnapshot({}, '')
 
-                //     rel.defineCachableFields(cache1)
+                    const data = {
+                        name : 'Fiesta'
+                    }
 
-                //     console.log(firestoreMockData)
-                // })
+                    const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await car.drivers().updateCache(change)
+
+                    console.log(firestoreMockData)
+                    // expect(firestoreMockData[`cars/undefined`]).to.deep.equal({
+                    //     [`cars.${carId}.pivot.crashes`] : 3
+                    // })
+                })
+
+                it('Properties defined as cachable on the an owner from the pivot should be cached when new property is added', async () => {
+
+                    const driver = new Driver(firestoreStub)
+
+                    class CarM extends Car {
+                        drivers(): Many2ManyRelation
+                        {
+                            return this.belongsToMany(driver.name)
+                                    .defineCachableFields(null, [
+                                        'crashes'
+                                    ])
+                        }
+                    }
+
+                    const car = await new CarM(firestoreStub)
+                    const carId = await car.getId()
+
+                    const pivotData1 = {
+                        [car.name]: {
+                            id : carId
+                        },
+                        [driver.name]: {
+                            id : await driver.getId()
+                        }
+                    }
+
+                    const before = test.firestore.makeDocumentSnapshot(pivotData1, '')
+
+                    const pivotData2 = {
+                        [car.name]: {
+                            id : carId
+                        },
+                        [driver.name]: {
+                            id : await driver.getId()
+                        },
+                        pivot : {
+                            crashes : 3
+                        }
+                    }
+
+                    const after = test.firestore.makeDocumentSnapshot(pivotData2, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await car.drivers().updateCache(change)
+
+                    expect(firestoreMockData[`cars/undefined`]).to.deep.equal({
+                        [`cars.${carId}.pivot.crashes`] : 3
+                    })
+                })
+
+                it('Properties defined as cachable on the an owner from the pivot should be cached on property update', async () => {
+
+                    const driver = new Driver(firestoreStub)
+
+                    class CarM extends Car {
+                        drivers(): Many2ManyRelation
+                        {
+                            return this.belongsToMany(driver.name)
+                                    .defineCachableFields(null, [
+                                        'crashes'
+                                    ])
+                        }
+                    }
+
+                    const car = await new CarM(firestoreStub)
+
+                    const pivotData = {
+                        [car.name]: {
+                            id : await car.getId()
+                        },
+                        [driver.name]: {
+                            id : await driver.getId()
+                        },
+                        pivot: {
+                            'crashes' : 2
+                        }
+                    }
+
+                    const before = test.firestore.makeDocumentSnapshot(pivotData, '')
+
+                    pivotData.pivot.crashes = 3
+
+                    const after = test.firestore.makeDocumentSnapshot(pivotData, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await car.drivers().updateCache(change)
+
+                    expect(firestoreMockData[`cars/undefined`]).to.deep.equal({
+                        [`cars.${await car.getId()}.pivot.crashes`] : 3
+                    })
+                })
 
                 it('GetName of Pivot model should return a correct formatted name', async () => {
          
