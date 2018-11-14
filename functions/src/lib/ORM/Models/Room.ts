@@ -3,9 +3,9 @@ import { One2ManyRelation } from "../Relation";
 
 export default class Room extends ModelImpl {
 
-    constructor(db: FirebaseFirestore.Firestore)
+    constructor(db: any, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
-        super(Models.ROOM, db)
+        super(Models.ROOM, db, snap, id)
     }
 
     sensors(): One2ManyRelation

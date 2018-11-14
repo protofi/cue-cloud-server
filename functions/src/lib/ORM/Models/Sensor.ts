@@ -3,9 +3,9 @@ import { N2OneRelation, One2ManyRelation, Many2ManyRelation } from "../Relation"
 
 export default class Sensor extends ModelImpl {
 
-    constructor(db: FirebaseFirestore.Firestore)
+    constructor(db: any, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
-        super(Models.SENSOR, db)
+        super(Models.SENSOR, db, snap, id)
     }
 
     room(): N2OneRelation

@@ -3,9 +3,9 @@ import { N2OneRelation } from "../Relation";
 
 export default class Event extends ModelImpl {
 
-    constructor(db: any)
+    constructor(db: any, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
-        super(Models.EVENT, db)
+        super(Models.EVENT, db, snap, id)
     }
 
     sensor(): N2OneRelation

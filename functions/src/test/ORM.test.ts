@@ -35,7 +35,7 @@ describe('STAGE', () => {
     let adminFs: FirebaseFirestore.Firestore
     let db: DataORMImpl
     let firestoreStub
-    var firestoreMockData
+    let firestoreMockData
 
     before(async () => {
 
@@ -1135,6 +1135,108 @@ describe('STAGE', () => {
                     const pivot = new Pivot(firestoreStub, null, null, null, resourceName)
     
                     expect(pivot.getName()).to.be.equal(`${car.name}_${driver.name}`)
+                })
+
+                it('Pivot should be initialiazable though ORM by a path', async () => {
+
+                    const userId = uniqid()
+                    const sensorId = uniqid()
+                    
+                    const pivotName = `${Models.SENSOR}_${Models.USER}`
+                    const pivotId = `${sensorId}_${userId}`
+                   
+                    const path = `${pivotName}/${pivotId}`
+                    const pivot: Pivot = db.pivot(path)
+
+                    expect(pivot.getName()).to.be.equals(pivotName)
+                    expect(await pivot.getId()).to.be.equals(pivotId)
+                })
+                
+                it('Pivot should be initialiazable though ORM by a path should fail if path contains name of pivot collection', async () => {
+
+                    const pivotName = `${Models.SENSOR}_${Models.USER}`
+                    
+                    let error
+
+                    try
+                    {
+                        const pivot: Pivot = db.pivot(pivotName)
+                    }
+                    catch(e)
+                    {
+                        error = e.message
+                    }
+
+                    expect(error).to.be.equals('Path must contain both name and id of pivot collection seperated with a slash')
+                })
+
+                it('Pivot should be initialiazable though ORM by a path should fail if path contains id of pivot collection', async () => {
+
+                    const userId = uniqid()
+                    const sensorId = uniqid()
+                    
+                    const pivotId = `${sensorId}_${userId}`
+                    
+                    let error
+
+                    try
+                    {
+                        const pivot: Pivot = db.pivot(pivotId)
+                    }
+                    catch(e)
+                    {
+                        error = e.message
+                    }
+
+                    expect(error).to.be.equals('Path must contain both name and id of pivot collection seperated with a slash')
+                })
+
+                it('Pivot should be initialiazable though ORM by a path should fail if name of path of pivot collection does not contain underscore seperator', async () => {
+
+                    const userId = uniqid()
+                    const sensorId = uniqid()
+                    
+                    const pivotName = `${Models.SENSOR}${Models.USER}`
+                    const pivotId = `${sensorId}_${userId}`
+                   
+                    const path = `${pivotName}/${pivotId}`
+
+                    let error
+
+                    try
+                    {
+                        const pivot: Pivot = db.pivot(path)
+                    }
+                    catch(e)
+                    {
+                        error = e.message
+                    }
+
+                    expect(error).to.be.equals('Name and id of path must contain parts from two collection seperated with an underscore')
+                })
+
+                it('Pivot should be initialiazable though ORM by a path should fail if id of path of pivot collection does not contain underscore seperator', async () => {
+
+                    const userId = uniqid()
+                    const sensorId = uniqid()
+                    
+                    const pivotName = `${Models.SENSOR}_${Models.USER}`
+                    const pivotId = `${sensorId}${userId}`
+                   
+                    const path = `${pivotName}/${pivotId}`
+
+                    let error
+
+                    try
+                    {
+                        const pivot: Pivot = db.pivot(path)
+                    }
+                    catch(e)
+                    {
+                        error = e.message
+                    }
+
+                    expect(error).to.be.equals('Name and id of path must contain parts from two collection seperated with an underscore')
                 })
 
                 it('Cached data from pivot should be updated on owner model', async () => {

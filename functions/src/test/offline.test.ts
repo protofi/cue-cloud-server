@@ -9,11 +9,11 @@ const expect = chai.expect
 
 describe('OFFLINE', () => {
 
-    var test
-    var adminInitStub
-    var firestoreMockData
-    var adminfirestoreStub
-    var myFunctions;
+    let test
+    let adminInitStub
+    let firestoreMockData
+    let adminfirestoreStub
+    let myFunctions;
     
     beforeEach(async () => {
 
