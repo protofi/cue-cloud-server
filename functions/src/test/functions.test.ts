@@ -8,7 +8,6 @@ import { FeaturesList } from 'firebase-functions-test/lib/features'
 import ModelImpl, { Models } from './lib/ORM/Models';
 import { Many2ManyRelation } from './lib/ORM/Relation';
 import { Driver, Car } from './stubs';
-import { InstanceLoader } from './lib/util';
 
 const test: FeaturesList = require('firebase-functions-test')()
 

@@ -10,18 +10,19 @@ export default class User extends ModelImpl {
 
     household(): N2OneRelation
     {
-        const rel: N2OneRelation = this.belongsTo(Models.HOUSEHOLD);
-        
-        rel.defineCachableFields([
-            'name'
-        ])
-
-        return rel
+        return this
+            .belongsTo(Models.HOUSEHOLD)
+            .defineCachableFields([
+                'name'
+            ])
     }
 
     sensors(): Many2ManyRelation
     {
-        const rel = this.belongsToMany(Models.SENSOR)
-        return rel
+        return this
+            .belongsToMany(Models.SENSOR)
+            .defineCachableFields(null, [
+                'muted'
+            ])
     }
 }

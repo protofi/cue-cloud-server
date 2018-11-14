@@ -19,7 +19,9 @@ exports = module.exports = functions.firestore
     console.log(change.after.ref.parent)
     console.log(change.after.ref.path)
 
-    const pivot = new Pivot(adminFs, null, null, null, context.resource.name)
+    // const pivot = new Pivot(adminFs, null, null, null, context.resource.name)
+
+    const pivot = new Pivot(adminFs, change.after.ref.id, db.user(null, 'test-user-1'), await db.sensor().find('test-sensor-1'))
 
     return pivot.updateCache(change)
 

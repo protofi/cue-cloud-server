@@ -1137,43 +1137,57 @@ describe('STAGE', () => {
                     expect(pivot.getName()).to.be.equal(`${car.name}_${driver.name}`)
                 })
 
-                it('Cached data from ivot should be updated on owner model', async () => {
+                it('Cached data from pivot should be updated on owner model', async () => {
          
-                    const driver = new Driver(firestoreStub)
-                    const car = new Car(firestoreStub)
+                    const cachedField = 'crashes'
 
-                    const pivotId = `${await car.getId()}_${await driver.getId()}`
+                    const driverId = uniqid()
+                    const driver = await new Driver(firestoreStub, null, driverId)
+                    
+                    class CarM extends Car {
+                        drivers(): Many2ManyRelation
+                        {
+                            return this.belongsToMany(driver.name)
+                                    .defineCachableFields(null, [
+                                        cachedField
+                                    ])
+                        }
+                    }
+
+                    const carId = uniqid()
+                    const car = await new CarM(firestoreStub, null, carId)
+
+                    await car.drivers().attach(driver)
+
+                    const pivotId = `${carId}_${driverId}`
 
                     const pivot = new Pivot(firestoreStub, pivotId, car, driver)
 
                     const pivotData = {
                                 [car.name]: {
-                                    id : await car.getId()
+                                    id : carId
                                 },
                                 [driver.name]: {
-                                    id : await driver.getId()
+                                    id : driverId
                                 },
                                 pivot: {
                                     crashes : 2
                                 }
                             }
 
-                    const before = test.firestore.makeDocumentSnapshot({
-                        data : pivotData
-                    }, '')
+                    const before = test.firestore.makeDocumentSnapshot(pivotData, '')
 
                     pivotData.pivot.crashes = 3
 
-                    const after = test.firestore.makeDocumentSnapshot({
-                        data : pivotData,
-                        ref : {
-                            id : pivotId
-                        }
-                    }, '')
+                    const after = test.firestore.makeDocumentSnapshot(pivotData, '')
 
                     const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
 
                     await pivot.updateCache(change)
+
+                    expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
+                        [`${driver.name}.${driverId}.pivot.${cachedField}`] : 3
+                    })
                 })
                 
                 // it('Create a pivot model on the basis of a change snapshot', async () => {

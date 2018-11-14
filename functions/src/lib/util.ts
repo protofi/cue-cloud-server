@@ -1,6 +1,6 @@
 import { transform, isEqual, isObject } from 'lodash';
 
-export async function asyncForEach(array, callback: (item: any, index: number, array: Array<any>) => void)
+export async function asyncForEach(array, callback: (item: any, index: number, array: Array<any>) => Promise<void>)
 {
     for (let index = 0; index < array.length; index++)
     {
@@ -20,12 +20,4 @@ export function difference(object, base) {
 			result[key] = isObject(value) && isObject(base[key]) ? difference(value, base[key]) : value;
 		}
 	});
-}
-
-export class InstanceLoader {
-    static getInstance<T>(context: Object, name: string, ...args: any[]) : T {
-        var instance = Object.create(context[name].prototype);
-        instance.constructor.apply(instance, args);
-        return <T> instance;
-    }
 }

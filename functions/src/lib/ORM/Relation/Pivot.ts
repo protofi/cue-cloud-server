@@ -54,9 +54,10 @@ export class Pivot {
     async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<ModelImpl>
     {
         const relationA = this.ownerA[plural(this.ownerB.name)]() as Many2ManyRelation
-        // const relationB = this.ownerA[pluralize(this.ownerB.name)]() as Many2ManyRelation
+        const relationB = this.ownerA[plural(this.ownerB.name)]() as Many2ManyRelation
 
-        // relationA.updateCache()
+        await relationA.updateCache(change)
+        await relationB.updateCache(change)
 
         return new ModelImpl('make', this.db)
     }

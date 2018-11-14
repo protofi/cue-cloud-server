@@ -77,7 +77,8 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
     async getIds(): Promise<Array<string>>
     {
         const properties: Object = await this.owner.getField(this.propertyModelName)
-
+        
+        if(!properties) return new Array()
         return Object.keys(properties)
     }
 }
@@ -163,7 +164,7 @@ export class Many2ManyRelation extends N2ManyRelation {
 
             if(!changed) return
 
-            asyncForEach(properties,
+            await asyncForEach(properties,
                 async (property: ModelImpl) => {
                     await property.update(newCacheData)
                 }
@@ -189,7 +190,7 @@ export class Many2ManyRelation extends N2ManyRelation {
                 })
             })
 
-            if(!changed) return
+            if(!changed || Object.keys(newCacheData).length < 1) return
 
             await this.owner.update(newCacheData)
         }  
@@ -272,9 +273,10 @@ export class N2OneRelation extends RelationImpl {
         super(owner, propertyModelName, db)
     }
 
-    defineCachableFields(cacheFields: Array<string>): void
+    defineCachableFields(cacheFields: Array<string>): N2OneRelation
     {
-        this.cacheFields = cacheFields;
+        this.cacheFields = cacheFields
+        return this
     }
 
      /**
