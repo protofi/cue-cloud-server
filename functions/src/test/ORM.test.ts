@@ -29,13 +29,6 @@ chai.use(chaiAsPromised)
 const assert = chai.assert
 const expect = chai.expect
 
-// const stageProjectId = "staging-iot-cloud-server"
-
-// const test: FeaturesList = require('firebase-functions-test')({
-//     databaseURL: `https://${stageProjectId}.firebaseio.com`,
-//     projectId: stageProjectId,
-// }, `./${stageProjectId}.serviceAccountKey.json`)
-
 describe('STAGE', () => {
 
     let test: FeaturesList
@@ -80,6 +73,11 @@ describe('STAGE', () => {
                             get: () => {
                                 return {
                                     get: (data) => {
+
+                                        // console.log('DATA', data)
+                                        // console.log('firestoreMockData', firestoreMockData)
+                                        // console.log('firestoreMockData REF', `${col}/${id}`)
+                                        // console.log('firestoreMockData DATA', firestoreMockData[`${col}/${id}`][data])
 
                                         if(data)
                                             return firestoreMockData[`${col}/${id}`][data]
@@ -897,7 +895,7 @@ describe('STAGE', () => {
 
                         getCachableFields()
                         {
-                            return this.cachedFromPivot
+                            return this.cacheFromPivot
                         }
                     }
 
@@ -929,7 +927,7 @@ describe('STAGE', () => {
 
                         getCachableFields()
                         {
-                            return this.cachedOnToProperty
+                            return this.cacheOnToProperty
                         }
                     }
 
@@ -984,29 +982,34 @@ describe('STAGE', () => {
                     })
                 })
 
-                it('Properties defined as cachable on the an owner from the pivot should be cached when new property is added', async () => {
+                it.only('Properties defined as cachable on the an owner from the pivot should be cached when new property is added', async () => {
 
-                    const driver = new Driver(firestoreStub)
+                    const cachedField = 'crashes'
+
+                    const driverId = uniqid()
+                    const driver = new Driver(firestoreStub, null, driverId)
 
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
                         {
                             return this.belongsToMany(driver.name)
                                     .defineCachableFields(null, [
-                                        'crashes'
+                                        cachedField
                                     ])
                         }
                     }
 
-                    const car = await new CarM(firestoreStub)
-                    const carId = await car.getId()
+                    const carId = uniqid()
+                    const car = await new CarM(firestoreStub, null, carId)
+
+                    await car.drivers().attach(driver)
 
                     const pivotData1 = {
                         [car.name]: {
                             id : carId
                         },
                         [driver.name]: {
-                            id : await driver.getId()
+                            id : driverId
                         }
                     }
 
@@ -1017,10 +1020,10 @@ describe('STAGE', () => {
                             id : carId
                         },
                         [driver.name]: {
-                            id : await driver.getId()
+                            id : driverId
                         },
                         pivot : {
-                            crashes : 3
+                            [cachedField] : 3
                         }
                     }
 
@@ -1030,26 +1033,32 @@ describe('STAGE', () => {
 
                     await car.drivers().updateCache(change)
 
-                    expect(firestoreMockData[`cars/undefined`]).to.deep.equal({
-                        [`cars.${carId}.pivot.crashes`] : 3
+                    expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
+                        [`${driver.name}.${driverId}.pivot.${cachedField}`] : 3
                     })
                 })
 
-                it('Properties defined as cachable on the an owner from the pivot should be cached on property update', async () => {
+                it.only('Properties defined as cachable on the an owner from the pivot should be cached on property update', async () => {
 
-                    const driver = new Driver(firestoreStub)
+                    const cachedField = 'crashes'
+
+                    const driverId = uniqid()
+                    const driver = new Driver(firestoreStub, null, driverId)
 
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
                         {
                             return this.belongsToMany(driver.name)
                                     .defineCachableFields(null, [
-                                        'crashes'
+                                        cachedField
                                     ])
                         }
                     }
 
-                    const car = await new CarM(firestoreStub)
+                    const carId = uniqid()
+                    const car = await new CarM(firestoreStub, null, carId)
+
+                    await car.drivers().attach(driver)
 
                     const pivotData = {
                         [car.name]: {
@@ -1059,7 +1068,7 @@ describe('STAGE', () => {
                             id : await driver.getId()
                         },
                         pivot: {
-                            'crashes' : 2
+                            [cachedField] : 2
                         }
                     }
 
@@ -1073,8 +1082,8 @@ describe('STAGE', () => {
 
                     await car.drivers().updateCache(change)
 
-                    expect(firestoreMockData[`cars/undefined`]).to.deep.equal({
-                        [`cars.${await car.getId()}.pivot.crashes`] : 3
+                    expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
+                        [`${driver.name}.${driverId}.pivot.${cachedField}`] : 3
                     })
                 })
 

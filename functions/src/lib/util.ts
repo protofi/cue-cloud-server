@@ -1,6 +1,6 @@
 import { transform, isEqual, isObject } from 'lodash';
 
-export async function asyncForEach(array, callback)
+export async function asyncForEach(array, callback: (item: any, index: number, array: Array<any>) => void)
 {
     for (let index = 0; index < array.length; index++)
     {

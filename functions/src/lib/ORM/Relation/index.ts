@@ -60,15 +60,25 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         return this
     }
 
+     /**
+     * Returns the attached property Models
+     */
     async get(): Promise<Array<ModelImpl>>
     {
-        const properties: Object = await this.owner.getField(this.propertyModelName)
+        const propertyIds: Array<string> = await this.getIds()
 
-        const models = Object.keys(properties).map((propertyId) => {
+        const models = propertyIds.map((propertyId) => {
             return new ModelImpl(this.propertyModelName, this.db, null, propertyId)
         })
 
         return models
+    }
+
+    async getIds(): Promise<Array<string>>
+    {
+        const properties: Object = await this.owner.getField(this.propertyModelName)
+
+        return Object.keys(properties)
     }
 }
 
@@ -77,8 +87,8 @@ export class Many2ManyRelation extends N2ManyRelation {
     protected name: string
 
     protected cachedOnToPivot : Array<string>
-    protected cachedFromPivot : Array<string>
-    protected cachedOnToProperty : Array<string>
+    protected cacheFromPivot : Array<string>
+    protected cacheOnToProperty : Array<string>
 
     constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
     {
@@ -133,9 +143,9 @@ export class Many2ManyRelation extends N2ManyRelation {
 
         let changed = false
 
-        if(this.cachedOnToProperty)
+        if(this.cacheOnToProperty)
         {
-            this.cachedOnToProperty.forEach((field) => {
+            this.cacheOnToProperty.forEach((field) => {
                 
                 const fieldPath = field.replace('pivot', `${this.propertyModelName}.pivot`) // prepend relevant model name to pivot field path
 
@@ -149,19 +159,21 @@ export class Many2ManyRelation extends N2ManyRelation {
                 newCacheData[`${this.owner.name}.${ownerId}.${field}`] = cachableFieldAfter
             })
 
-            const properties: ModelImpl[] = await this.get()
+            const properties: Array<ModelImpl> = await this.get()
 
             if(!changed) return
 
             asyncForEach(properties,
-                async (property: ModelImpl, index: number) => {
+                async (property: ModelImpl) => {
                     await property.update(newCacheData)
                 }
             )
         }
-        else if(this.cachedFromPivot)
+        else if(this.cacheFromPivot)
         {
-            this.cachedFromPivot.forEach((field) => {
+            const propertyIds: Array<string> = await this.getIds()
+
+            this.cacheFromPivot.forEach((field) => {
 
                 const fieldPath = `pivot.${field}`
 
@@ -169,10 +181,12 @@ export class Many2ManyRelation extends N2ManyRelation {
                 const cachableFieldAfter  = get(afterData, fieldPath) // retrieve data associated with the cached field after update
 
                 changed = (!(cachableFieldBefore === cachableFieldAfter) || changed) // check to see if changes have been made
-
+                
                 if(!cachableFieldAfter && !cachableFieldBefore) return //if the field havn't been updated return and do not include it in the data to be cached
-
-                newCacheData[`${this.owner.name}.${ownerId}.pivot.${field}`] = cachableFieldAfter
+                
+                propertyIds.forEach((id) => {
+                    newCacheData[`${this.propertyModelName}.${id}.pivot.${field}`] = cachableFieldAfter
+                })
             })
 
             if(!changed) return
@@ -205,8 +219,8 @@ export class Many2ManyRelation extends N2ManyRelation {
 
     defineCachableFields(cachedToProperty: Array<string>, cachedFromPivot?: Array<string>, cachedToPivot?: Array<string>): Many2ManyRelation
     {
-        this.cachedOnToProperty = cachedToProperty
-        this.cachedFromPivot    = cachedFromPivot
+        this.cacheOnToProperty = cachedToProperty
+        this.cacheFromPivot    = cachedFromPivot
         this.cachedOnToPivot    = cachedToPivot
 
         return this
@@ -263,6 +277,9 @@ export class N2OneRelation extends RelationImpl {
         this.cacheFields = cacheFields;
     }
 
+     /**
+     * Returns the attached property Model
+     */
     async get(): Promise<ModelImpl>
     {
         const property: SimpleRelation = await this.owner.getField(this.propertyModelName) as SimpleRelation
