@@ -150,12 +150,11 @@ export class Many2ManyRelation extends N2ManyRelation {
 
             const property: ModelImpl[] = await this.get()
 
-            if(!changed) return property
+            if(!changed) return property[0]
 
-            return property.update(newCacheData)
+            return property[0].update(newCacheData)
         }
-
-        if(this.cachedFromPivot)
+        else if(this.cachedFromPivot)
         {
             this.cachedFromPivot.forEach((field) => {
 
@@ -170,11 +169,13 @@ export class Many2ManyRelation extends N2ManyRelation {
 
                 newCacheData[`${this.owner.name}.${ownerId}.pivot.${field}`] = cachableFieldAfter
             })
-        }
 
-        if(!changed) return this.owner
+            if(!changed) return this.owner
 
-        return this.owner.update(newCacheData)
+            return this.owner.update(newCacheData)
+        }  
+
+        return this.owner
     }
 
     async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<Many2ManyRelation>

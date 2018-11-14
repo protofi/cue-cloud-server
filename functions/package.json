@@ -17,7 +17,7 @@
     "deploy": "firebase deploy --only functions,hosting",
     "deploy:stage:rules": "firebase use staging && firebase deploy --only firestore:rules",
     "logs": "firebase functions:log",
-    "test": "tsc -p test --outDir ./test && mocha --exit --timeout 5000",
+    "test": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 || true",
     "test:stage": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep STAGE || true",
     "test:offline": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep OFFLINE || true"
   },

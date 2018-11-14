@@ -9,8 +9,7 @@ export class Driver extends ModelImpl {
 
     cars(): Many2ManyRelation
     {
-        const r = this.belongsToMany('cars')
-        return r
+        return this.belongsToMany('cars')
     }
 }
 export class Car extends ModelImpl {
@@ -22,8 +21,7 @@ export class Car extends ModelImpl {
 
     drivers(): Many2ManyRelation
     {
-        const r = this.belongsToMany('drivers')
-        return r
+        return this.belongsToMany('drivers')
     }
 
     windShield(): N2OneRelation

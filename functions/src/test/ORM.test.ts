@@ -77,11 +77,14 @@ describe('STAGE', () => {
                                 firestoreMockData[`${col}/${id}`] = data
                                 return null
                             },
-                            get: (data) => {
+                            get: () => {
                                 return {
-                                    get: () => {
-                                        return {
-                                        }
+                                    get: (data) => {
+
+                                        if(data)
+                                            return firestoreMockData[`${col}/${id}`][data]
+                                        else
+                                            return firestoreMockData[`${col}/${id}`]
                                     }
                                 }
                             },
@@ -944,22 +947,25 @@ describe('STAGE', () => {
                     expect(cachedToProperty).to.be.equal(cache)
                 })
 
-                it.only('Properties defined as cachable on the an owner A to owner B should be cached when new property is added', async () => {
-
-                    const driver = new Driver(firestoreStub)
+                it('Properties defined as cachable on the an owner A to owner B should be cached when new property is added', async () => {
 
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
                         {
-                            return this.belongsToMany(driver.name)
+                            return this.belongsToMany('drivers')
                                     .defineCachableFields([
                                         'name'
                                     ])
                         }
                     }
 
-                    const car = await new CarM(firestoreStub)
-                    const carId = await car.getId()
+                    const carId = uniqid()
+                    const driverId = uniqid()
+
+                    const car = await new CarM(firestoreStub, null, carId)
+                    const driver = await new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attach(driver)
 
                     const before = test.firestore.makeDocumentSnapshot({}, '')
 
@@ -973,10 +979,9 @@ describe('STAGE', () => {
 
                     await car.drivers().updateCache(change)
 
-                    console.log(firestoreMockData)
-                    // expect(firestoreMockData[`cars/undefined`]).to.deep.equal({
-                    //     [`cars.${carId}.pivot.crashes`] : 3
-                    // })
+                    expect(firestoreMockData[`${driver.name}/${driverId}`]).to.deep.equal({
+                        [`${car.name}.${carId}.name`] : 'Fiesta'
+                    })
                 })
 
                 it('Properties defined as cachable on the an owner from the pivot should be cached when new property is added', async () => {
@@ -1160,8 +1165,6 @@ describe('STAGE', () => {
                     const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
 
                     await pivot.updateCache(change)
-
-                    console.log(firestoreMockData)
                 })
                 
                 // it('Create a pivot model on the basis of a change snapshot', async () => {
