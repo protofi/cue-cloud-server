@@ -982,7 +982,7 @@ describe('STAGE', () => {
                     })
                 })
 
-                it.only('Properties defined as cachable on the an owner from the pivot should be cached when new property is added', async () => {
+                it('Properties defined as cachable on the an owner from the pivot should be cached when new property is added', async () => {
 
                     const cachedField = 'crashes'
 
@@ -1038,7 +1038,7 @@ describe('STAGE', () => {
                     })
                 })
 
-                it.only('Properties defined as cachable on the an owner from the pivot should be cached on property update', async () => {
+                it('Properties defined as cachable on the an owner from the pivot should be cached on property update', async () => {
 
                     const cachedField = 'crashes'
 

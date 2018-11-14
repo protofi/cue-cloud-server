@@ -44,7 +44,7 @@ describe('OFFLINE', () => {
         Promise.all(firestore.apps().map(app => app.delete()))
     })
 
-    describe('Emulated Rules', () => {
+    describe('Emulated_Rules', () => {
 
         it('Writes to a random collection should fail', async () => {
             const db = await setup()

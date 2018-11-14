@@ -19,7 +19,8 @@
     "logs": "firebase functions:log",
     "test": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 || true",
     "test:stage": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep STAGE || true",
-    "test:offline": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep OFFLINE || true"
+    "test:offline": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep OFFLINE || true",
+    "test:report:rules" : "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep Emulated_Rules 2>&1 | tee ./../rules.description.txt"
   },
   "main": "lib/index.js",
   "dependencies": {

@@ -1,0 +1,32 @@
+
+
+(node:9312) DeprecationWarning: grpc.load: Use the @grpc/proto-loader module with grpc.loadPackageDefinition instead
+  OFFLINE
+    Emulated_Rules
+      √ Writes to a random collection should fail (2183ms)
+      Households
+        √ Unautherized users should not be able to create households (2078ms)
+        √ Autherized users should not be able to create households without a users property (2077ms)
+        √ Autherized users should be able to create households with a users property including ID ref to themselves (2082ms)
+        √ Autherized users should not be able to create households without a users property including ID ref to themselves (2089ms)
+        √ Autherized users should not be able to create households with a users property including ID refs to other users (2101ms)
+        √ User possessing the role of ADMIN should be able to add other users to a household (2160ms)
+        √ Unautherized users should not be able to retrieve data from households (2079ms)
+        √ Autherized users not included in a household should not be able to retrieve data about it (2069ms)
+        √ Unautherized users should not be able the delete households (2109ms)
+        √ Autherized users should not be able the delete households (2088ms)
+      Users
+        √ Unautherized users should not be able to create users (2087ms)
+        √ Autherized users should not be able to create users (2077ms)
+        √ Users should be able to update data about themselves (2096ms)
+        √ Users should be able to update their name (2097ms)
+        √ Users should be able to update data on the relation to a household (2106ms)
+        √ Users should not be able to change their role in relation to a household (2153ms)
+        √ Users should not be able to change the accecpted property in relation to a household to false (2097ms)
+        √ Users should be able to change the accecpted property in relation to a household to true (2125ms)
+        √ Unautherized users should not be able the delete users (2080ms)
+        √ Autherized users should not be able the delete users (2088ms)
+
+
+  21 passing (44s)
+
