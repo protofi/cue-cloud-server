@@ -3,6 +3,7 @@ import { Change } from 'firebase-functions'
 import { get } from 'lodash';
 import { singular } from 'pluralize'
 import { Pivot } from "./Pivot";
+import { asyncForEach } from "../../util";
 
 export interface Relation {
    
@@ -121,7 +122,7 @@ export class Many2ManyRelation extends N2ManyRelation {
         })
     }
 
-    async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<ModelImpl>
+    async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
     {
         const newCacheData = {}
 
@@ -148,11 +149,15 @@ export class Many2ManyRelation extends N2ManyRelation {
                 newCacheData[`${this.owner.name}.${ownerId}.${field}`] = cachableFieldAfter
             })
 
-            const property: ModelImpl[] = await this.get()
+            const properties: ModelImpl[] = await this.get()
 
-            if(!changed) return property[0]
+            if(!changed) return
 
-            return property[0].update(newCacheData)
+            asyncForEach(properties,
+                async (property: ModelImpl, index: number) => {
+                    await property.update(newCacheData)
+                }
+            )
         }
         else if(this.cachedFromPivot)
         {
@@ -170,12 +175,10 @@ export class Many2ManyRelation extends N2ManyRelation {
                 newCacheData[`${this.owner.name}.${ownerId}.pivot.${field}`] = cachableFieldAfter
             })
 
-            if(!changed) return this.owner
+            if(!changed) return
 
-            return this.owner.update(newCacheData)
+            await this.owner.update(newCacheData)
         }  
-
-        return this.owner
     }
 
     async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<Many2ManyRelation>
