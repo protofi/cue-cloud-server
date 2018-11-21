@@ -76,8 +76,12 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
     {
         this.properties.add(newPropModel)
         
+        const propertyId: string = await newPropModel.getId()
+
         await this.owner.updateOrCreate({
-            [this.propertyModelName] : {[await newPropModel.getId()] : true}
+            [this.propertyModelName] : {
+                [propertyId] : true
+            }
         }, transaction)
 
         return this
@@ -164,17 +168,19 @@ export class Many2ManyRelation extends N2ManyRelation {
         {
             const newCacheData = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
             
-            if(!(Object.keys(newCacheData).length > 0)) return
+            if(Object.keys(newCacheData).length > 0)
+            {
+                const properties: Array<ModelImpl> = await this.get()
 
-            const properties: Array<ModelImpl> = await this.get()
-
-            await asyncForEach(properties,
-                async (property: ModelImpl) => {
-                    await property.update(newCacheData)
-                }
-            )
+                await asyncForEach(properties,
+                    async (property: ModelImpl) => {
+                        await property.update(newCacheData)
+                    }
+                )
+            }
         }
-        else if(this.cacheFromPivot)
+        
+        if(this.cacheFromPivot)
         {
             const newCacheData = {}
 
@@ -194,10 +200,11 @@ export class Many2ManyRelation extends N2ManyRelation {
                 })
             })
 
-            if(!(Object.keys(newCacheData).length > 0)) return
-
-            await this.owner.update(newCacheData)
-        }  
+            if(Object.keys(newCacheData).length > 0)
+            {
+                await this.owner.update(newCacheData)
+            }
+        }
     }
 
     async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<Many2ManyRelation>
@@ -222,11 +229,10 @@ export class Many2ManyRelation extends N2ManyRelation {
         return this
     }
 
-    defineCachableFields(cachedOnToProperty: Array<string>, cachedFromPivot?: Array<string>, cachedOnToPivot?: Array<string>): Many2ManyRelation
+    defineCachableFields(cachedOnToProperty: Array<string>, cachedFromPivot?: Array<string>): Many2ManyRelation
     {
         this.cacheOnToProperty = cachedOnToProperty
         this.cacheFromPivot    = cachedFromPivot
-        this.cachedOnToPivot    = cachedOnToPivot
 
         return this
     }

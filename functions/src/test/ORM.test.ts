@@ -57,8 +57,6 @@ describe('STAGE', () => {
 
         db = new DataORMImpl(adminFs)
 
-        firestoreMockData = {}
-
         firestoreStub = {
             settings: () => { return null },
             collection: (col) => {
@@ -102,6 +100,7 @@ describe('STAGE', () => {
 
         beforeEach(() => {
             docsToBeDeleted = []
+            firestoreMockData = {}
         })
 
         afterEach(async () => {
@@ -845,37 +844,37 @@ describe('STAGE', () => {
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
-                it('Fields to be cached from the owner on the pivot should be definable on the relation between the owner and the property', async () => {
+                // it('Fields to be cached from the owner on the pivot should be definable on the relation between the owner and the property', async () => {
 
-                    const driver = new Driver(firestoreStub)
-                    const car = new Car(adminFs)
+                //     const driver = new Driver(firestoreStub)
+                //     const car = new Car(adminFs)
                     
-                    class Many2ManyRelationStub extends Many2ManyRelation
-                    {
-                        constructor(owner: ModelImpl, propertyModelName: string, _db)
-                        {
-                            super(owner, propertyModelName, _db)
-                        }
+                //     class Many2ManyRelationStub extends Many2ManyRelation
+                //     {
+                //         constructor(owner: ModelImpl, propertyModelName: string, _db)
+                //         {
+                //             super(owner, propertyModelName, _db)
+                //         }
 
-                        getCachableFields()
-                        {
-                            return this.cachedOnToPivot
-                        }
-                    }
+                //         getCachableFields()
+                //         {
+                //             return this.cachedOnToPivot
+                //         }
+                //     }
 
-                    const rel = new Many2ManyRelationStub(car, driver.name, firestoreStub)
+                //     const rel = new Many2ManyRelationStub(car, driver.name, firestoreStub)
 
-                    const cachedOnPivot = [
-                        'brand',
-                        'year'
-                    ]
+                //     const cachedOnPivot = [
+                //         'brand',
+                //         'year'
+                //     ]
 
-                    rel.defineCachableFields(null, null, cachedOnPivot)
+                //     rel.defineCachableFields(null, null, cachedOnPivot)
 
-                    const cachableFields = rel.getCachableFields()
+                //     const cachableFields = rel.getCachableFields()
 
-                    expect(cachedOnPivot).to.be.equal(cachableFields)
-                })
+                //     expect(cachedOnPivot).to.be.equal(cachableFields)
+                // })
 
                 it('Fields to be cached from the pivot to the owner should be definable on the relation between the owner and the property', async () => {
 
@@ -974,7 +973,7 @@ describe('STAGE', () => {
                     expect(cachedToProperty).to.be.equal(cache)
                 })
 
-                it('Fields defined as cachable on the owner to property should be cached when new field is added', async () => {
+                it('Fields defined as cachable from the owner to property should be cached when new field is added', async () => {
 
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
@@ -997,7 +996,7 @@ describe('STAGE', () => {
                     const before = test.firestore.makeDocumentSnapshot({}, '')
 
                     const data = {
-                        name : 'Fiesta'
+                        name : 'Mustang'
                     }
 
                     const after = test.firestore.makeDocumentSnapshot(data, '')
@@ -1007,11 +1006,11 @@ describe('STAGE', () => {
                     await car.drivers().updateCache(change)
 
                     expect(firestoreMockData[`${driver.name}/${driverId}`]).to.deep.equal({
-                        [`${car.name}.${carId}.name`] : 'Fiesta'
+                        [`${car.name}.${carId}.name`] : 'Mustang'
                     })
                 })
 
-                it('Fields defined as cachable on the an owner from the pivot should be cached when new field is added', async () => {
+                it('Fields defined as cachable on to the owner from the pivot should be cached when new field is added', async () => {
 
                     const cachedField = 'crashes'
 
@@ -1033,30 +1032,15 @@ describe('STAGE', () => {
 
                     await car.drivers().attach(driver)
 
-                    const pivotData1 = {
-                        [car.name]: {
-                            id : carId
-                        },
-                        [driver.name]: {
-                            id : driverId
-                        }
-                    }
+                    const before = test.firestore.makeDocumentSnapshot({}, '')
 
-                    const before = test.firestore.makeDocumentSnapshot(pivotData1, '')
-
-                    const pivotData2 = {
-                        [car.name]: {
-                            id : carId
-                        },
-                        [driver.name]: {
-                            id : driverId
-                        },
+                    const pivotData = {
                         pivot : {
                             [cachedField] : 3
                         }
                     }
 
-                    const after = test.firestore.makeDocumentSnapshot(pivotData2, '')
+                    const after = test.firestore.makeDocumentSnapshot(pivotData, '')
 
                     const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
 
@@ -1091,12 +1075,6 @@ describe('STAGE', () => {
                     await car.drivers().attach(driver)
 
                     const pivotData = {
-                        [car.name]: {
-                            id : await car.getId()
-                        },
-                        [driver.name]: {
-                            id : await driver.getId()
-                        },
                         pivot: {
                             [cachedField] : 2
                         }
@@ -1104,7 +1082,7 @@ describe('STAGE', () => {
 
                     const before = test.firestore.makeDocumentSnapshot(pivotData, '')
 
-                    pivotData.pivot.crashes = 3
+                    pivotData.pivot.crashes = 3 // change
 
                     const after = test.firestore.makeDocumentSnapshot(pivotData, '')
 
@@ -1247,7 +1225,9 @@ describe('STAGE', () => {
          
                     const cachedField = 'crashes'
 
+                    const carId = uniqid()
                     const driverId = uniqid()
+
                     const driver = await new Driver(firestoreStub, null, driverId)
                     
                     class CarM extends Car {
@@ -1260,7 +1240,6 @@ describe('STAGE', () => {
                         }
                     }
 
-                    const carId = uniqid()
                     const car = await new CarM(firestoreStub, null, carId)
 
                     await car.drivers().attach(driver)
@@ -1270,12 +1249,6 @@ describe('STAGE', () => {
                     const pivot = new Pivot(firestoreStub, pivotId, car, driver)
 
                     const pivotData = {
-                                [car.name]: {
-                                    id : carId
-                                },
-                                [driver.name]: {
-                                    id : driverId
-                                },
                                 pivot: {
                                     crashes : 2
                                 }
@@ -1283,7 +1256,7 @@ describe('STAGE', () => {
 
                     const before = test.firestore.makeDocumentSnapshot(pivotData, '')
 
-                    pivotData.pivot.crashes = 3
+                    pivotData.pivot.crashes = 3 // change
 
                     const after = test.firestore.makeDocumentSnapshot(pivotData, '')
 
@@ -1334,12 +1307,6 @@ describe('STAGE', () => {
                     const pivot = new Pivot(firestoreStub, pivotId, car, driver)
 
                     const pivotData = {
-                                [car.name]: {
-                                    id : carId
-                                },
-                                [driver.name]: {
-                                    id : driverId
-                                },
                                 pivot: {
                                     crashes : 2
                                 }
@@ -1347,7 +1314,7 @@ describe('STAGE', () => {
 
                     const before = test.firestore.makeDocumentSnapshot(pivotData, '')
 
-                    pivotData.pivot.crashes = 3
+                    pivotData.pivot.crashes = 3 // change
 
                     const after = test.firestore.makeDocumentSnapshot(pivotData, '')
 
@@ -1364,85 +1331,96 @@ describe('STAGE', () => {
                     })
                 })
 
-                // it('Cached data from one owner model should be updated on pivot', async () => {
+                it('Fields defined as cachable from pivot should be updated on owner model also when cache from owner to property is defined', async () => {
          
-                //     const cachedField = 'crashes'
+                    const cachedField = 'crashes'
 
-                //     const driverId = uniqid()
-                //     const driver = await new Driver(firestoreStub, null, driverId)
+                    const carId = uniqid()
+                    const driverId = uniqid()
+
+                    const driver = await new Driver(firestoreStub, null, driverId)
                     
-                //     class CarM extends Car {
-                //         drivers(): Many2ManyRelation
-                //         {
-                //             return this.belongsToMany(driver.name)
-                //                     .defineCachableFields(null, null, [
-                //                         'name'
-                //                     ])
-                //         }
-                //     }
+                    class CarM extends Car {
+                        drivers(): Many2ManyRelation
+                        {
+                            return this.belongsToMany(driver.name)
+                                    .defineCachableFields([
+                                        'model'
+                                    ], [
+                                        cachedField
+                                    ])
+                        }
+                    }
 
-                //     const carId = uniqid()
-                //     const car = await new CarM(firestoreStub, null, carId)
+                    const car = await new CarM(firestoreStub, null, carId)
 
-                //     await car.drivers().attach(driver)
+                    await car.drivers().attach(driver)
 
-                //     const pivotId = `${carId}_${driverId}`
+                    const pivotId = `${carId}_${driverId}`
 
-                //     const pivot = new Pivot(firestoreStub, pivotId, car, driver)
+                    const pivot = new Pivot(firestoreStub, pivotId, car, driver)
 
-                //     const pivotData = {
-                //                 [car.name]: {
-                //                     id : carId
-                //                 },
-                //                 [driver.name]: {
-                //                     id : driverId
-                //                 },
-                //                 pivot: {
-                //                     crashes : 2
-                //                 }
-                //             }
+                    const pivotData = {
+                                pivot: {
+                                    [cachedField] : 2
+                                }
+                            }
 
-                //     const before = test.firestore.makeDocumentSnapshot(pivotData, '')
+                    const before = test.firestore.makeDocumentSnapshot(pivotData, '')
 
-                //     pivotData.pivot.crashes = 3
+                    pivotData.pivot.crashes = 3 // change
 
-                //     const after = test.firestore.makeDocumentSnapshot(pivotData, '')
+                    const after = test.firestore.makeDocumentSnapshot(pivotData, '')
 
-                //     const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
 
-                //     await pivot.updateCache(change)
+                    await pivot.updateCache(change)
 
-                //     expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
-                //         [`${driver.name}.${driverId}.pivot.${cachedField}`] : 3
-                //     })
-                // })
-                
-                // it('Create a pivot model on the basis of a change snapshot', async () => {
-    
-                //     const driver = new Driver(firestoreStub)
-                //     const car = new Car(firestoreStub)
-                    
-                //     const change = {
-                //         before : {
-                //             data: () => {
-                //                 return {}
-                //             }
-                //         },
-                //         after : {
-                //             data: () => {
-                //                 return {}
-                //             },
-                //             ref : {
-                //                 update: () => {
-                //                     return {}
-                //                 },
-                //                 id: uniqid()
-                //             }
-                //         }
-                //     }
-    
-                //     const pivot = new Pivot(firestoreStub, car, driver)
-                // })
+                    expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
+                        [`${driver.name}.${driverId}.pivot.${cachedField}`] : 3
+                    })
+                })
+
+                it('Fields defined as cachable from the owner to property should be updated on property also when cache from pivot to owner is defined', async () => {
+
+                    const cacheField = 'model'
+
+                    class CarM extends Car {
+                        drivers(): Many2ManyRelation
+                        {
+                            return this.belongsToMany('drivers')
+                                    .defineCachableFields([
+                                        cacheField
+                                    ], [
+                                        'crashes'
+                                    ])
+                        }
+                    }
+
+                    const carId = uniqid()
+                    const driverId = uniqid()
+
+                    const car = await new CarM(firestoreStub, null, carId)
+                    const driver = await new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attach(driver)
+
+                    const before = test.firestore.makeDocumentSnapshot({}, '')
+
+                    const data = {
+                        [cacheField] : 'Mustang'
+                    }
+
+                    const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await car.drivers().updateCache(change)
+
+                    expect(firestoreMockData[`${driver.name}/${driverId}`]).to.deep.equal({
+                        [`${car.name}.${carId}.${cacheField}`] : 'Mustang'
+                    })
+                })
             })
         })
     })
