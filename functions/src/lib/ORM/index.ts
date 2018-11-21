@@ -5,7 +5,6 @@ import Room from "./Models/Room";
 import User from "./Models/User";
 import { Pivot } from "./Relation/Pivot";
 import { singular } from 'pluralize'
-import ModelImpl from "./Models";
 
 export interface DataORM {
     user(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): User
@@ -55,20 +54,20 @@ export default class DataORMImpl implements DataORM{
 
         try
         {
-            const modelAId = modelNames[0]
-            const modelBId = modelNames[1]
-
-            if(!modelAId) throw(new Error())
-            if(!modelBId) throw(new Error())
-
-            const modelAName = modelIds[0]
-            const modelBName = modelIds[1]
+            const modelAName = modelNames[0]
+            const modelBName = modelNames[1]
 
             if(!modelAName) throw(new Error())
             if(!modelBName) throw(new Error())
 
-            modelA        = (this[singular(modelAId)])(null, modelAName)
-            modelB        = (this[singular(modelBId)])(null, modelBName)
+            const modelAId = modelIds[0]
+            const modelBId = modelIds[1]
+
+            if(!modelAId) throw(new Error())
+            if(!modelBId) throw(new Error())
+
+            modelA        = (this[singular(modelAName)])(null, modelAId)
+            modelB        = (this[singular(modelBName)])(null, modelBId)
         }
         catch(e)
         {

@@ -11,34 +11,16 @@ export class Pivot {
 
     private model: ModelImpl
 
-    constructor(db: FirebaseFirestore.Firestore, id: string, ownerA: ModelImpl, ownerB: ModelImpl, resourceName?: string)
+    constructor(db: FirebaseFirestore.Firestore, id: string, ownerA: ModelImpl, ownerB: ModelImpl)
     {
         this.db = db
         
-        if(resourceName)
-        {
-            const srcParts = resourceName.split('/')
-            const identifier = srcParts.slice(srcParts.length-2, srcParts.length)
-            const pivotName = identifier[0]
-            const pivotId = identifier[1]
+        this.ownerA = ownerA
+        this.ownerB = ownerB
 
-            const modelNames = pivotName.split('_')
-            const modelIds = pivotId.split('_')
-        
-            this.ownerA = new ModelImpl(modelNames[0], db, null, modelIds[0])
-            this.ownerB = new ModelImpl(modelNames[1], db, null, modelIds[1])
+        const pivotName = [ownerA.name, ownerB.name].sort().join('_')
 
-            this.model = new ModelImpl(pivotName, db, null, pivotId)
-        }
-        else
-        {
-            this.ownerA = ownerA
-            this.ownerB = ownerB
-
-            const pivotName = [ownerA.name, ownerB.name].sort().join('_')
-
-            this.model = new ModelImpl(pivotName, db, null, id)
-        }
+        this.model = new ModelImpl(pivotName, db, null, id)
     }
 
     async getId(): Promise<string>
@@ -51,14 +33,14 @@ export class Pivot {
         return this.model.name
     }
 
-    async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<ModelImpl>
+    async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
     {
         const relationA = this.ownerA[plural(this.ownerB.name)]() as Many2ManyRelation
-        const relationB = this.ownerA[plural(this.ownerB.name)]() as Many2ManyRelation
+        const relationB = this.ownerB[plural(this.ownerA.name)]() as Many2ManyRelation
 
         await relationA.updateCache(change)
         await relationB.updateCache(change)
 
-        return new ModelImpl('make', this.db)
+        return
     }
 }

@@ -2,28 +2,16 @@ import * as functions from 'firebase-functions'
 import { firestore } from 'firebase-admin'
 import DataORMImpl from './../../lib/ORM/';
 import { Models } from '../../lib/ORM/Models';
-import { Pivot } from '../../lib/ORM/Relation/Pivot';
 
 exports = module.exports = functions.firestore
-.document(`${Models.SENSOR}_${Models.USER}/{pivotId}`)
-.onUpdate(async (change: functions.Change<FirebaseFirestore.DocumentSnapshot>, context: functions.EventContext) => {
+    .document(`${Models.SENSOR}_${Models.USER}/{pivotId}`)
+    .onUpdate(async (change: functions.Change<FirebaseFirestore.DocumentSnapshot>) => {
 
-    const adminFs = firestore()
-    const db = new DataORMImpl(adminFs)
+        const adminFs = firestore()
+        const db = new DataORMImpl(adminFs)
 
-    console.log('OI BOI')
-    console.log(context.eventId)
-    // console.log(context.resource.name)
-    // console.log(change.after.data())
-    console.log(change.after.ref.id)
-    console.log(change.after.ref.parent)
-    console.log(change.after.ref.path)
+        const path = change.after.ref.path
+        const pivot = db.pivot(path)
 
-    // const pivot = new Pivot(adminFs, null, null, null, context.resource.name)
-
-    const pivot = new Pivot(adminFs, change.after.ref.id, db.user(null, 'test-user-1'), await db.sensor().find('test-sensor-1'))
-
-    return pivot.updateCache(change)
-
-    // return Promise.resolve()
+        return pivot.updateCache(change)
 })

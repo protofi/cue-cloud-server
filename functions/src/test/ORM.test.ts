@@ -74,11 +74,6 @@ describe('STAGE', () => {
                                 return {
                                     get: (data) => {
 
-                                        // console.log('DATA', data)
-                                        // console.log('firestoreMockData', firestoreMockData)
-                                        // console.log('firestoreMockData REF', `${col}/${id}`)
-                                        // console.log('firestoreMockData DATA', firestoreMockData[`${col}/${id}`][data])
-
                                         if(data)
                                             return firestoreMockData[`${col}/${id}`][data]
                                         else
@@ -179,6 +174,7 @@ describe('STAGE', () => {
 
                 const id: string = await car.getId()
                 
+                // Clean up
                 docsToBeDeleted.push((await car.getDocRef()).path)
                 
                 expect(id).exist
@@ -1111,32 +1107,6 @@ describe('STAGE', () => {
                     expect(await pivot.getId()).to.equal(pivotId)
                 })
 
-                it('Pivot initialized from a resource name should have the right id', async () => {
-                    
-                    const driver = new Driver(firestoreStub)
-                    const car = new Car(firestoreStub)
-    
-                    const resourceName = `projects/not-a-project/databases/(default)/documents/${car.name}_${driver.name}/${await car.getId()}_${await driver.getId()}`
-
-                    const pivotId = `${await car.getId()}_${await driver.getId()}`
-
-                    const pivot = new Pivot(firestoreStub, null, null, null, resourceName)
-    
-                    expect(await pivot.getId()).to.equal(pivotId)
-                })
-
-                it('Pivot initialized from a resource name should have the right name', async () => {
-         
-                    const driver = new Driver(firestoreStub)
-                    const car = new Car(firestoreStub)
-                    
-                    const resourceName = `${car.name}_${driver.name}/${await car.getId()}_${await driver.getId()}`
-
-                    const pivot = new Pivot(firestoreStub, null, null, null, resourceName)
-    
-                    expect(pivot.getName()).to.be.equal(`${car.name}_${driver.name}`)
-                })
-
                 it('Pivot should be initialiazable though ORM by a path', async () => {
 
                     const userId = uniqid()
@@ -1289,6 +1259,74 @@ describe('STAGE', () => {
 
                     expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
                         [`${driver.name}.${driverId}.pivot.${cachedField}`] : 3
+                    })
+                })
+
+                it('Cached data from pivot should be updated on both owner models', async () => {
+         
+                    const cachedField = 'crashes'
+
+                    class DriverM extends Driver {
+                        cars(): Many2ManyRelation
+                        {
+                            return this.belongsToMany(car.name)
+                                    .defineCachableFields(null, [
+                                        cachedField
+                                    ])
+                        }
+                    }
+
+                    const driverId = uniqid()
+                    const driver = await new DriverM(firestoreStub, null, driverId)
+                    
+                    class CarM extends Car {
+                        drivers(): Many2ManyRelation
+                        {
+                            return this.belongsToMany(driver.name)
+                                    .defineCachableFields(null, [
+                                        cachedField
+                                    ])
+                        }
+                    }
+
+                    const carId = uniqid()
+                    const car = await new CarM(firestoreStub, null, carId)
+
+                    await car.drivers().attach(driver)
+                    await driver.cars().attach(car)
+
+                    const pivotId = `${carId}_${driverId}`
+
+                    const pivot = new Pivot(firestoreStub, pivotId, car, driver)
+
+                    const pivotData = {
+                                [car.name]: {
+                                    id : carId
+                                },
+                                [driver.name]: {
+                                    id : driverId
+                                },
+                                pivot: {
+                                    crashes : 2
+                                }
+                            }
+
+                    const before = test.firestore.makeDocumentSnapshot(pivotData, '')
+
+                    pivotData.pivot.crashes = 3
+
+                    const after = test.firestore.makeDocumentSnapshot(pivotData, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await pivot.updateCache(change)
+
+                    expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
+                        [`${driver.name}.${driverId}.pivot.${cachedField}`] : 3
+                    })
+
+                    expect(firestoreMockData[`${driver.name}/${driverId}`]).to.deep.equal({
+                        [`${car.name}.${carId}.pivot.${cachedField}`] : 3
                     })
                 })
                 
