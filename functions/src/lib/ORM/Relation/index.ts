@@ -8,6 +8,7 @@ import { asyncForEach } from "../../util";
 export interface Relation {
    
     cache(id?: string): Promise<any>
+    getCacheFieldsToUpdateOnProperty(beforeData: FirebaseFirestore.DocumentData, afterData: FirebaseFirestore.DocumentData): Promise<any>
 }
 
 export default class RelationImpl implements Relation{
@@ -15,6 +16,7 @@ export default class RelationImpl implements Relation{
     protected db: FirebaseFirestore.Firestore
     protected owner: ModelImpl
     protected propertyModelName: string
+
     protected cacheOnToProperty: Array<string>
 
     constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
@@ -32,9 +34,8 @@ export default class RelationImpl implements Relation{
         return cache
     }
 
-    async getCacheFieldsToUpdate(beforeData: FirebaseFirestore.DocumentData, afterData: FirebaseFirestore.DocumentData): Promise<any>
+    async getCacheFieldsToUpdateOnProperty(beforeData: FirebaseFirestore.DocumentData, afterData: FirebaseFirestore.DocumentData): Promise<any>
     {
-        let changed = false
         const newCacheData = {}
         const ownerId = await this.owner.getId()
 
@@ -44,8 +45,6 @@ export default class RelationImpl implements Relation{
 
             const cachableFieldBefore = get(beforeData, fieldPath) // retrieve data associated with the cached field before update
             const cachableFieldAfter  = get(afterData, fieldPath) // retrieve data associated with the cached field after update
-
-            changed = (!(cachableFieldBefore === cachableFieldAfter) || changed) // check to see if changes have been made
 
             if(!cachableFieldAfter && !cachableFieldBefore) return //if the field havn't been updated return and do not include it in the data to be cached
 
@@ -152,7 +151,7 @@ export class Many2ManyRelation extends N2ManyRelation {
         const pivotId: string = await this.generatePivotId(propertyId)
 
         return new ModelImpl(this.name, this.db, null, pivotId).update({
-            pivot: data
+            pivot : data
         })
     }
 
@@ -163,7 +162,7 @@ export class Many2ManyRelation extends N2ManyRelation {
 
         if(this.cacheOnToProperty)
         {
-            const newCacheData = await this.getCacheFieldsToUpdate(beforeData, afterData)
+            const newCacheData = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
             
             if(!(Object.keys(newCacheData).length > 0)) return
 
@@ -180,7 +179,6 @@ export class Many2ManyRelation extends N2ManyRelation {
             const newCacheData = {}
 
             const propertyIds: Array<string> = await this.getIds()
-            let changed = false
 
             this.cacheFromPivot.forEach((field) => {
 
@@ -189,16 +187,14 @@ export class Many2ManyRelation extends N2ManyRelation {
                 const cachableFieldBefore = get(beforeData, fieldPath) // retrieve data associated with the cached field before update
                 const cachableFieldAfter  = get(afterData, fieldPath) // retrieve data associated with the cached field after update
 
-                changed = (!(cachableFieldBefore === cachableFieldAfter) || changed) // check to see if changes have been made
-                
-                if(!cachableFieldAfter && !cachableFieldBefore) return //if the field havn't been updated return and do not include it in the data to be cached
+                if(!cachableFieldAfter && !cachableFieldBefore) return // if the field havn't been updated return and do not include it in the data to be cached
                 
                 propertyIds.forEach((id) => {
                     newCacheData[`${this.propertyModelName}.${id}.pivot.${field}`] = cachableFieldAfter
                 })
             })
 
-            if(!changed || Object.keys(newCacheData).length < 1) return
+            if(!(Object.keys(newCacheData).length > 0)) return
 
             await this.owner.update(newCacheData)
         }  
@@ -226,11 +222,11 @@ export class Many2ManyRelation extends N2ManyRelation {
         return this
     }
 
-    defineCachableFields(cachedToProperty: Array<string>, cachedFromPivot?: Array<string>, cachedToPivot?: Array<string>): Many2ManyRelation
+    defineCachableFields(cachedOnToProperty: Array<string>, cachedFromPivot?: Array<string>, cachedOnToPivot?: Array<string>): Many2ManyRelation
     {
-        this.cacheOnToProperty = cachedToProperty
+        this.cacheOnToProperty = cachedOnToProperty
         this.cacheFromPivot    = cachedFromPivot
-        this.cachedOnToPivot    = cachedToPivot
+        this.cachedOnToPivot    = cachedOnToPivot
 
         return this
     }
@@ -306,7 +302,7 @@ export class N2OneRelation extends RelationImpl {
         const beforeData: FirebaseFirestore.DocumentData = change.before.data()
         const afterData: FirebaseFirestore.DocumentData = change.after.data()
 
-        const newCacheData = await this.getCacheFieldsToUpdate(beforeData, afterData)
+        const newCacheData = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
 
         const property: ModelImpl = await this.get()
 

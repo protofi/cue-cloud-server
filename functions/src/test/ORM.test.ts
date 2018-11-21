@@ -909,7 +909,40 @@ describe('STAGE', () => {
                     expect(cachedFromPivot).to.be.equal(cache)
                 })
 
+                
                 it('Fields to be cached from the owner to the property should be definable on the relation between the owner and the property', async () => {
+
+                    const driver = new Driver(firestoreStub)
+                    const car = new Car(adminFs)
+                    
+                    class Many2ManyRelationStub extends Many2ManyRelation
+                    {
+                        constructor(owner: ModelImpl, propertyModelName: string, _db)
+                        {
+                            super(owner, propertyModelName, _db)
+                        }
+
+                        getCachableFields()
+                        {
+                            return this.cacheOnToProperty
+                        }
+                    }
+
+                    const rel = new Many2ManyRelationStub(car, driver.name, firestoreStub)
+
+                    const cachedFromPivot = [
+                        'brand',
+                        'year'
+                    ]
+
+                    rel.defineCachableFields(cachedFromPivot)
+
+                    const cache = rel.getCachableFields()
+
+                    expect(cachedFromPivot).to.be.equal(cache)
+                })
+
+                it('Fields to be cached from the owner on to the property should be definable on the relation between the owner and the property', async () => {
 
                     const driver = new Driver(firestoreStub)
                     const car = new Car(adminFs)
@@ -941,7 +974,7 @@ describe('STAGE', () => {
                     expect(cachedToProperty).to.be.equal(cache)
                 })
 
-                it('Properties defined as cachable on the an owner A to owner B should be cached when new property is added', async () => {
+                it('Fields defined as cachable on the owner to property should be cached when new field is added', async () => {
 
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
@@ -978,7 +1011,7 @@ describe('STAGE', () => {
                     })
                 })
 
-                it('Properties defined as cachable on the an owner from the pivot should be cached when new property is added', async () => {
+                it('Fields defined as cachable on the an owner from the pivot should be cached when new field is added', async () => {
 
                     const cachedField = 'crashes'
 
@@ -1034,11 +1067,13 @@ describe('STAGE', () => {
                     })
                 })
 
-                it('Properties defined as cachable on the an owner from the pivot should be cached on property update', async () => {
+                it('Fields defined as cachable from the pivot on to the owner should be cached on field update', async () => {
 
                     const cachedField = 'crashes'
 
                     const driverId = uniqid()
+                    const carId = uniqid()
+
                     const driver = new Driver(firestoreStub, null, driverId)
 
                     class CarM extends Car {
@@ -1051,8 +1086,7 @@ describe('STAGE', () => {
                         }
                     }
 
-                    const carId = uniqid()
-                    const car = await new CarM(firestoreStub, null, carId)
+                    const car = new CarM(firestoreStub, null, carId)
 
                     await car.drivers().attach(driver)
 
@@ -1329,6 +1363,59 @@ describe('STAGE', () => {
                         [`${car.name}.${carId}.pivot.${cachedField}`] : 3
                     })
                 })
+
+                // it('Cached data from one owner model should be updated on pivot', async () => {
+         
+                //     const cachedField = 'crashes'
+
+                //     const driverId = uniqid()
+                //     const driver = await new Driver(firestoreStub, null, driverId)
+                    
+                //     class CarM extends Car {
+                //         drivers(): Many2ManyRelation
+                //         {
+                //             return this.belongsToMany(driver.name)
+                //                     .defineCachableFields(null, null, [
+                //                         'name'
+                //                     ])
+                //         }
+                //     }
+
+                //     const carId = uniqid()
+                //     const car = await new CarM(firestoreStub, null, carId)
+
+                //     await car.drivers().attach(driver)
+
+                //     const pivotId = `${carId}_${driverId}`
+
+                //     const pivot = new Pivot(firestoreStub, pivotId, car, driver)
+
+                //     const pivotData = {
+                //                 [car.name]: {
+                //                     id : carId
+                //                 },
+                //                 [driver.name]: {
+                //                     id : driverId
+                //                 },
+                //                 pivot: {
+                //                     crashes : 2
+                //                 }
+                //             }
+
+                //     const before = test.firestore.makeDocumentSnapshot(pivotData, '')
+
+                //     pivotData.pivot.crashes = 3
+
+                //     const after = test.firestore.makeDocumentSnapshot(pivotData, '')
+
+                //     const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                //     await pivot.updateCache(change)
+
+                //     expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
+                //         [`${driver.name}.${driverId}.pivot.${cachedField}`] : 3
+                //     })
+                // })
                 
                 // it('Create a pivot model on the basis of a change snapshot', async () => {
     
