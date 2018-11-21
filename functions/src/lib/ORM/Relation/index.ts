@@ -4,6 +4,7 @@ import { get } from 'lodash';
 import { singular } from 'pluralize'
 import { Pivot } from "./Pivot";
 import { asyncForEach } from "../../util";
+import { Relations } from "../../const";
 
 export interface Relation {
    
@@ -41,7 +42,7 @@ export default class RelationImpl implements Relation{
 
         this.cacheOnToProperty.forEach((field) => {
                 
-            const fieldPath = field.replace('pivot', `${this.propertyModelName}.pivot`) // prepend relevant model name to pivot field path
+            const fieldPath = field.replace(Relations.PIVOT, `${this.propertyModelName}.${Relations.PIVOT}`) // prepend relevant model name to pivot field path
 
             const cachableFieldBefore = get(beforeData, fieldPath) // retrieve data associated with the cached field before update
             const cachableFieldAfter  = get(afterData, fieldPath) // retrieve data associated with the cached field after update
@@ -155,7 +156,7 @@ export class Many2ManyRelation extends N2ManyRelation {
         const pivotId: string = await this.generatePivotId(propertyId)
 
         return new ModelImpl(this.name, this.db, null, pivotId).update({
-            pivot : data
+            [Relations.PIVOT] : data
         })
     }
 
@@ -188,7 +189,7 @@ export class Many2ManyRelation extends N2ManyRelation {
 
             this.cacheFromPivot.forEach((field) => {
 
-                const fieldPath = `pivot.${field}`
+                const fieldPath = `${Relations.PIVOT}.${field}`
 
                 const cachableFieldBefore = get(beforeData, fieldPath) // retrieve data associated with the cached field before update
                 const cachableFieldAfter  = get(afterData, fieldPath) // retrieve data associated with the cached field after update
@@ -196,7 +197,7 @@ export class Many2ManyRelation extends N2ManyRelation {
                 if(!cachableFieldAfter && !cachableFieldBefore) return // if the field havn't been updated return and do not include it in the data to be cached
                 
                 propertyIds.forEach((id) => {
-                    newCacheData[`${this.propertyModelName}.${id}.pivot.${field}`] = cachableFieldAfter
+                    newCacheData[`${this.propertyModelName}.${id}.${Relations.PIVOT}.${field}`] = cachableFieldAfter
                 })
             })
 
@@ -264,7 +265,7 @@ export class One2ManyRelation extends N2ManyRelation {
 
         return model.update({
             [this.owner.name] : {
-                pivot : data
+                [Relations.PIVOT] : data
             }
         })
     }
@@ -330,7 +331,7 @@ export class N2OneRelation extends RelationImpl {
     {
         return this.owner.update({
             [this.propertyModelName] : {
-                pivot : data
+                [Relations.PIVOT] : data
             }
         })
     }

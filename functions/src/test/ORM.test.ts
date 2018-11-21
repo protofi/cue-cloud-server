@@ -10,14 +10,14 @@ import DataORMImpl from "./lib/ORM"
 import { asyncForEach } from './lib/util'
 import User from './lib/ORM/Models/User'
 import Sensor from './lib/ORM/Models/Sensor'
-import ModelImpl, { Models, Model } from './lib/ORM/Models'
+import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
 import { Car, Wheel, Driver } from './stubs';
 import { Many2ManyRelation } from './lib/ORM/Relation';
 import { Pivot } from './lib/ORM/Relation/Pivot';
 import { Change } from 'firebase-functions';
-import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore';
+import { Relations } from './lib/const'
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -513,7 +513,7 @@ describe('STAGE', () => {
 
                     const doc: FirebaseFirestore.DocumentSnapshot = await adminFs.collection(wheel.name).doc(wheelId).get()
 
-                    expect(doc.get(`${car.name}.pivot.name`)).to.be.equal('Spare')
+                    expect(doc.get(`${car.name}.${Relations.PIVOT}.name`)).to.be.equal('Spare')
                 })
 
                 it('The pivot should be updatable trough the inverse relation', async () => {
@@ -536,7 +536,7 @@ describe('STAGE', () => {
 
                     const doc: FirebaseFirestore.DocumentSnapshot = await adminFs.collection(wheel.name).doc(wheelId).get()
 
-                    expect(doc.get(`${car.name}.pivot.name`)).to.be.equal('Spare')
+                    expect(doc.get(`${car.name}.${Relations.PIVOT}.name`)).to.be.equal('Spare')
                 })
 
                 it('Create root documents and relation by attaching two models', async () => {
@@ -774,7 +774,7 @@ describe('STAGE', () => {
 
                     const pivotData = await adminFs.collection(`${Models.SENSOR}_${Models.USER}`).doc(`${sensorId}_${userId}`).get()
 
-                    expect(pivotData.get('pivot.settings')).to.be.true
+                    expect(pivotData.get(`${Relations.PIVOT}.settings`)).to.be.true
 
                     //clean up
                     docsToBeDeleted.push((await user.getDocRef()).path)
@@ -1035,7 +1035,7 @@ describe('STAGE', () => {
                     const before = test.firestore.makeDocumentSnapshot({}, '')
 
                     const pivotData = {
-                        pivot : {
+                        [Relations.PIVOT] : {
                             [cachedField] : 3
                         }
                     }
@@ -1047,7 +1047,7 @@ describe('STAGE', () => {
                     await car.drivers().updateCache(change)
 
                     expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
-                        [`${driver.name}.${driverId}.pivot.${cachedField}`] : 3
+                        [`${driver.name}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
                     })
                 })
 
@@ -1075,14 +1075,14 @@ describe('STAGE', () => {
                     await car.drivers().attach(driver)
 
                     const pivotData = {
-                        pivot: {
+                        [Relations.PIVOT]: {
                             [cachedField] : 2
                         }
                     }
 
                     const before = test.firestore.makeDocumentSnapshot(pivotData, '')
 
-                    pivotData.pivot.crashes = 3 // change
+                    pivotData[Relations.PIVOT].crashes = 3 // change
 
                     const after = test.firestore.makeDocumentSnapshot(pivotData, '')
 
@@ -1091,7 +1091,7 @@ describe('STAGE', () => {
                     await car.drivers().updateCache(change)
 
                     expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
-                        [`${driver.name}.${driverId}.pivot.${cachedField}`] : 3
+                        [`${driver.name}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
                     })
                 })
 
@@ -1249,14 +1249,14 @@ describe('STAGE', () => {
                     const pivot = new Pivot(firestoreStub, pivotId, car, driver)
 
                     const pivotData = {
-                                pivot: {
+                                [Relations.PIVOT]: {
                                     crashes : 2
                                 }
                             }
 
                     const before = test.firestore.makeDocumentSnapshot(pivotData, '')
 
-                    pivotData.pivot.crashes = 3 // change
+                    pivotData[Relations.PIVOT].crashes = 3 // change
 
                     const after = test.firestore.makeDocumentSnapshot(pivotData, '')
 
@@ -1265,7 +1265,7 @@ describe('STAGE', () => {
                     await pivot.updateCache(change)
 
                     expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
-                        [`${driver.name}.${driverId}.pivot.${cachedField}`] : 3
+                        [`${driver.name}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
                     })
                 })
 
@@ -1307,14 +1307,14 @@ describe('STAGE', () => {
                     const pivot = new Pivot(firestoreStub, pivotId, car, driver)
 
                     const pivotData = {
-                                pivot: {
+                                [Relations.PIVOT]: {
                                     crashes : 2
                                 }
                             }
 
                     const before = test.firestore.makeDocumentSnapshot(pivotData, '')
 
-                    pivotData.pivot.crashes = 3 // change
+                    pivotData[Relations.PIVOT].crashes = 3 // change
 
                     const after = test.firestore.makeDocumentSnapshot(pivotData, '')
 
@@ -1323,11 +1323,11 @@ describe('STAGE', () => {
                     await pivot.updateCache(change)
 
                     expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
-                        [`${driver.name}.${driverId}.pivot.${cachedField}`] : 3
+                        [`${driver.name}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
                     })
 
                     expect(firestoreMockData[`${driver.name}/${driverId}`]).to.deep.equal({
-                        [`${car.name}.${carId}.pivot.${cachedField}`] : 3
+                        [`${car.name}.${carId}.${Relations.PIVOT}.${cachedField}`] : 3
                     })
                 })
 
@@ -1361,14 +1361,14 @@ describe('STAGE', () => {
                     const pivot = new Pivot(firestoreStub, pivotId, car, driver)
 
                     const pivotData = {
-                                pivot: {
+                                [Relations.PIVOT]: {
                                     [cachedField] : 2
                                 }
                             }
 
                     const before = test.firestore.makeDocumentSnapshot(pivotData, '')
 
-                    pivotData.pivot.crashes = 3 // change
+                    pivotData[Relations.PIVOT].crashes = 3 // change
 
                     const after = test.firestore.makeDocumentSnapshot(pivotData, '')
 
@@ -1377,7 +1377,7 @@ describe('STAGE', () => {
                     await pivot.updateCache(change)
 
                     expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
-                        [`${driver.name}.${driverId}.pivot.${cachedField}`] : 3
+                        [`${driver.name}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
                     })
                 })
 
