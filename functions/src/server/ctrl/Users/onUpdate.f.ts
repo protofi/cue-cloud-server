@@ -5,7 +5,7 @@ import { Models } from '../../lib/ORM/Models';
 
 exports = module.exports = functions.firestore
 .document(`${Models.USER}/{userId}`)
-.onUpdate(async (change: functions.Change<FirebaseFirestore.DocumentSnapshot>, context) => {
+.onUpdate(async (change: functions.Change<FirebaseFirestore.DocumentSnapshot>) => {
     
     const adminFs = firestore()
     const db = new DataORMImpl(adminFs)
@@ -13,7 +13,13 @@ exports = module.exports = functions.firestore
     const docSnap = change.after
     const user = db.user(docSnap)
 
-    // await user.sensors().updateCache(change)
+    try{
+        await user.sensors().updateCache(change)
+    }
+    catch(e)
+    {
+        console.log(e.message)
+    }
 
     return user.household()
             .updateCache(change)

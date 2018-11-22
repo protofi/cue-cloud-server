@@ -8,6 +8,10 @@ import { FeaturesList } from 'firebase-functions-test/lib/features'
 import ModelImpl, { Models } from './lib/ORM/Models';
 import { Many2ManyRelation } from './lib/ORM/Relation';
 import { Driver, Car } from './stubs';
+import { Change } from 'firebase-functions';
+import { Relations } from './lib/const';
+import * as _ from 'lodash';
+import * as flatten from 'flat'
 
 const test: FeaturesList = require('firebase-functions-test')()
 
@@ -37,7 +41,7 @@ describe('OFFLINE', () => {
         token: null
     }
     
-    beforeEach(async () => {
+    before(async () => {
 
         adminInitStub = sinon.stub(admin, 'initializeApp')
 
@@ -45,24 +49,26 @@ describe('OFFLINE', () => {
             settings: () => { return null },
             collection: (col) => {
                 return {
-                    doc: (doc) => {
+                    doc: (id) => {
                         return {
-                            id: uniqid(),
+                            id: (id) ? id : uniqid(),
                             set: (data) => {
-                                firestoreMockData[`${col}/${doc}`] = data
+                                firestoreMockData[`${col}/${id}`] = data
                                 return null
                             },
-                            get: (data) => {
+                            get: () => {
                                 return {
-                                    get: () => {
-                                        return {
-                                        }
+                                    get: (data) => {
+                                        
+                                        if(data)
+                                            return firestoreMockData[`${col}/${id}`][data]
+                                        else
+                                            return firestoreMockData[`${col}/${id}`]
                                     }
                                 }
                             },
                             update: (data) => {
-                                firestoreMockData[`${col}/${doc}`] = data
-                                return null
+                                firestoreMockData[`${col}/${id}`] = data
                             }
                         }
                     }
@@ -80,7 +86,7 @@ describe('OFFLINE', () => {
         myFunctions = require('../lib/index')
     })
 
-    afterEach(async () => {
+    after(async () => {
         test.cleanup()
         adminInitStub.restore()
         adminfirestoreStub.restore()
@@ -113,6 +119,10 @@ describe('OFFLINE', () => {
         //         })
         //     })
         // })
+
+        beforeEach(() => {
+            firestoreMockData = {}
+        })
 
         describe('Cache', () => {
 
@@ -299,6 +309,129 @@ describe('OFFLINE', () => {
             //     console.log(new model.default())
 
             // })
+        })
+
+        describe('Users', () => {
+        
+            it('Id should be cached on related sensors', async () => {
+    
+                const cacheField = 'id'
+                const sensorId = uniqid()
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+                
+                const change = {
+                    before : {
+                        data: () => {
+                            return {}
+                        }
+                    },
+                    after : {
+                        data: () => {
+                            return {
+                               [cacheField] : testUserDataOne.uid
+                            }
+                        },
+                        get : () => {
+                            return {
+                                [sensorId] : true
+                            }
+                        },
+                        ref : {
+                            [cacheField] : testUserDataOne.uid
+                        }
+                    }
+                }
+    
+                await wrappedUsersOnUpdate(change)
+    
+                expect(firestoreMockData[`${Models.SENSOR}/${sensorId}`]).to.deep.equal({
+                    [`${Models.USER}.${testUserDataOne.uid}.${cacheField}`] : testUserDataOne.uid
+                })
+            })
+    
+            it('Name should be cached on related household', async () => {
+    
+                const cacheField = 'name'
+                const householdId = uniqid()
+    
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+                
+                const change = {
+                    before : {
+                        data: () => {
+                            return {}
+                        }
+                    },
+                    after : {
+                        data: () => {
+                            return {
+                               [cacheField] : testUserDataOne.name
+                            }
+                        },
+                        get : () => {
+                            return {
+                                id : householdId
+                            }
+                        },
+                        ref : {
+                            id : testUserDataOne.uid,
+                        }
+                    }
+                }
+    
+                await wrappedUsersOnUpdate(change)
+    
+                expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.deep.equal({
+                    [`${Models.USER}.${testUserDataOne.uid}.${cacheField}`] : testUserDataOne.name
+                })
+            })
+        })
+    
+        describe('Sensors-Users-Relation', () => {
+    
+            it('Mute should be cached on related Sensor', async () => {
+                
+                const cacheField = 'muted'
+                const userId = uniqid()
+                const sensorId = uniqid()
+                const pivotId = `${sensorId}_${userId}`
+    
+                const wrappedSensorsUsersOnUpdate = test.wrap(myFunctions.ctrlSensorsUsersOnUpdate)
+    
+                //mock data
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Models.USER] : {
+                        [userId] : true
+                    }
+                }
+    
+                const change = {
+                    before : {
+                        data: () => {
+                            return {}
+                        }
+                    },
+                    after : {
+                        data: () => {
+                            return {
+                               [Relations.PIVOT] : {
+                                    [cacheField] : true
+                               },
+                            }
+                        },
+                        ref : {
+                            id : pivotId,
+                            path : `${Models.SENSOR}_${Models.USER}/${pivotId}`,
+                        }
+                    }
+                }
+    
+                await wrappedSensorsUsersOnUpdate(change)
+    
+                expect(firestoreMockData[`${Models.SENSOR}/${sensorId}`]).to.deep.equal({
+                    [`${Models.USER}.${userId}.pivot.${cacheField}`] : true
+                })
+            })
         })
     })
 })

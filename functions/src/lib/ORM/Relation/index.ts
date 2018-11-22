@@ -9,7 +9,6 @@ import { Relations } from "../../const";
 export interface Relation {
    
     cache(id?: string): Promise<any>
-    getCacheFieldsToUpdateOnProperty(beforeData: FirebaseFirestore.DocumentData, afterData: FirebaseFirestore.DocumentData): Promise<any>
 }
 
 export default class RelationImpl implements Relation{
@@ -35,7 +34,7 @@ export default class RelationImpl implements Relation{
         return cache
     }
 
-    async getCacheFieldsToUpdateOnProperty(beforeData: FirebaseFirestore.DocumentData, afterData: FirebaseFirestore.DocumentData): Promise<any>
+    protected async getCacheFieldsToUpdateOnProperty(beforeData: FirebaseFirestore.DocumentData, afterData: FirebaseFirestore.DocumentData): Promise<any>
     {
         const newCacheData = {}
         const ownerId = await this.owner.getId()
@@ -105,7 +104,8 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
     async getIds(): Promise<Array<string>>
     {
         const properties: Object = await this.owner.getField(this.propertyModelName)
-        
+
+
         if(!properties) return new Array()
         return Object.keys(properties)
     }

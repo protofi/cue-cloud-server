@@ -90,7 +90,7 @@ export default class ModelImpl implements Model {
     async getField(key: string): Promise<any>
     {
         if(this.snap) return this.snap.get(key)
-
+        
         const id = await this.getId()
         if(!id) return null
 

@@ -21,8 +21,8 @@ export default class User extends ModelImpl {
     {
         return this
             .belongsToMany(Models.SENSOR)
-            .defineCachableFields(null, [
-                'muted'
+            .defineCachableFields([
+                'id'
             ])
     }
 }
