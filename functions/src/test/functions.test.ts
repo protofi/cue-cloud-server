@@ -101,15 +101,18 @@ describe('OFFLINE', () => {
 
         describe('Households', async () => {
 
-            describe.only('On Create', async () => { 
+            describe('On Create', async () => { 
                 
-                it('Pivot between user and household should recieve a role property of admin', async () => {
+                it.only('Pivot between user and household should recieve a role property of admin', async () => {
                     
                     firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {}
 
                     const householdSnap = {
                         data : () => {
                             return { [Models.USER] : { [testUserDataOne.uid] : true } }
+                        },
+                        delete : () => {
+                            return
                         },
                         get : (field) => {
 
