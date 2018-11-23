@@ -19,5 +19,5 @@ exports = module.exports = functions.firestore
     
     return household.users().updatePivot(adminId, {
                     role : Roles.ADMIN
-                })
+                }).catch(console.error)
 });

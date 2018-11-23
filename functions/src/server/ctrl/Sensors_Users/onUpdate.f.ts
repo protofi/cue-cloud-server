@@ -14,4 +14,5 @@ exports = module.exports = functions.firestore
     const pivot = db.pivot(path)
 
     return pivot.updateCache(change)
+        .catch(console.error)
 })
