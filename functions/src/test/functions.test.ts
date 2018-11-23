@@ -103,7 +103,7 @@ describe('OFFLINE', () => {
 
             describe('On Create', async () => { 
                 
-                it.only('Pivot between user and household should recieve a role property of admin', async () => {
+                it('Pivot between user and household should recieve a role property of admin', async () => {
                     
                     firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {}
 
@@ -153,7 +153,10 @@ describe('OFFLINE', () => {
                             return { [Models.USER] : { [testUserDataOne.uid] : true } }
                         },
                         ref: {
-                            id : householdIdTwo
+                            id : householdIdTwo,
+                            delete : () => {
+                                return
+                            },
                         },
                         get : (field) => {
 
