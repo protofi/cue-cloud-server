@@ -1,7 +1,7 @@
 import * as functions from 'firebase-functions'
+import { Models } from '../../lib/ORM/Models'
 import { firestore } from 'firebase-admin'
-import DataORMImpl from './../../lib/ORM/';
-import { Models } from '../../lib/ORM/Models';
+import DataORMImpl from './../../lib/ORM/'
 
 exports = module.exports = functions.firestore
 .document(`${Models.USER}/{userId}`)
@@ -12,15 +12,9 @@ exports = module.exports = functions.firestore
     
     const docSnap = change.after
     const user = db.user(docSnap)
-
-    try{
-        await user.sensors().updateCache(change)
-    }
-    catch(e)
-    {
-        console.log(e.message)
-    }
-
-    return user.household()
-            .updateCache(change)
+    
+    return Promise.all([
+        user.sensors().updateCache(change),
+        user.household().updateCache(change)
+    ]).catch(console.error)
 })

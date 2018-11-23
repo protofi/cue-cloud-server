@@ -1,7 +1,9 @@
 import * as functions from 'firebase-functions'
-import { Models } from '../../lib/ORM/Models';
+import { Models } from '../../lib/ORM/Models'
 
-exports = module.exports = functions.firestore.document(`${Models.HOUSEHOLD}/{householdId}`).onUpdate((change, context) => {
+exports = module.exports = functions.firestore
+.document(`${Models.HOUSEHOLD}/{householdId}`)
+.onUpdate((change, context) => {
 
     console.log('OYI')
   

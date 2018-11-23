@@ -27,7 +27,7 @@ export default class RelationImpl implements Relation{
         this.propertyModelName = propertyModelName
     }
 
-    async cache(id?: string): Promise<any>
+    async cache(id?: string): Promise<Array<any> | any>
     {
         const cache: any = await this.owner.getField(this.propertyModelName)
         if(id) return cache[id]
@@ -159,7 +159,7 @@ export class Many2ManyRelation extends N2ManyRelation {
         })
     }
 
-    async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
+    async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
     {
         const beforeData: FirebaseFirestore.DocumentData = change.before.data()
         const afterData: FirebaseFirestore.DocumentData = change.after.data()
@@ -174,7 +174,7 @@ export class Many2ManyRelation extends N2ManyRelation {
 
                 await asyncForEach(properties,
                     async (property: ModelImpl) => {
-                        await property.update(newCacheData)
+                        await property.update(newCacheData, transaction)
                     }
                 )
             }

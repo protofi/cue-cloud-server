@@ -1,10 +1,12 @@
 import * as functions from 'firebase-functions'
+import { Models } from '../../lib/ORM/Models'
+import DataORMImpl from './../../lib/ORM/'
 import { firestore } from 'firebase-admin'
-import DataORMImpl from './../../lib/ORM/';
-import { Roles } from '../../lib/const';
-import { Models } from '../../lib/ORM/Models';
+import { Roles } from '../../lib/const'
 
-exports = module.exports = functions.firestore.document(`${Models.HOUSEHOLD}/{householdId}`).onCreate(async (snap: FirebaseFirestore.DocumentSnapshot, context) => {
+exports = module.exports = functions.firestore
+.document(`${Models.HOUSEHOLD}/{householdId}`)
+.onCreate(async (snap: FirebaseFirestore.DocumentSnapshot, context) => {
 
     const adminFs = firestore()
     const db = new DataORMImpl(adminFs)
