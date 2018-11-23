@@ -1,10 +1,10 @@
-import ModelImpl from "../Models";
-import { Change } from 'firebase-functions'
-import { get } from 'lodash';
-import { singular } from 'pluralize'
-import { Pivot } from "./Pivot";
-import { asyncForEach } from "../../util";
-import { Relations } from "../../const";
+import { Change } from "firebase-functions"
+import { asyncForEach } from "../../util"
+import { Relations } from "../../const"
+import { singular } from "pluralize"
+import ModelImpl from "../Models"
+import { Pivot } from "./Pivot"
+import { get } from "lodash"
 
 export interface Relation {
    
@@ -43,10 +43,9 @@ export default class RelationImpl implements Relation{
                 
             const fieldPath = field.replace(Relations.PIVOT, `${this.propertyModelName}.${Relations.PIVOT}`) // prepend relevant model name to pivot field path
 
-            const cachableFieldBefore = get(beforeData, fieldPath) // retrieve data associated with the cached field before update
-            const cachableFieldAfter  = get(afterData, fieldPath) // retrieve data associated with the cached field after update
-
-            if(!cachableFieldAfter && !cachableFieldBefore) return //if the field havn't been updated return and do not include it in the data to be cached
+            const cachableFieldBefore = get(beforeData, fieldPath, null) // retrieve data associated with the cached field before update
+            const cachableFieldAfter  = get(afterData, fieldPath, null) // retrieve data associated with the cached field after update
+            if(cachableFieldBefore === cachableFieldAfter) return //if the field have not been updated continue to next iteration and do not include it in the data to be cached
 
             newCacheData[`${this.owner.name}.${ownerId}.${field}`] = cachableFieldAfter
         })
@@ -191,8 +190,8 @@ export class Many2ManyRelation extends N2ManyRelation {
 
                 const fieldPath = `${Relations.PIVOT}.${field}`
 
-                const cachableFieldBefore = get(beforeData, fieldPath) // retrieve data associated with the cached field before update
-                const cachableFieldAfter  = get(afterData, fieldPath) // retrieve data associated with the cached field after update
+                const cachableFieldBefore = get(beforeData, fieldPath, null) // retrieve data associated with the cached field before update
+                const cachableFieldAfter  = get(afterData, fieldPath, null) // retrieve data associated with the cached field after update
 
                 if(!cachableFieldAfter && !cachableFieldBefore) return // if the field havn't been updated return and do not include it in the data to be cached
                 

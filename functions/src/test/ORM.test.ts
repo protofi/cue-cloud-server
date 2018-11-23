@@ -13,10 +13,10 @@ import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
-import { Car, Wheel, Driver } from './stubs';
-import { Many2ManyRelation } from './lib/ORM/Relation';
-import { Pivot } from './lib/ORM/Relation/Pivot';
-import { Change } from 'firebase-functions';
+import { Car, Wheel, Driver } from './stubs'
+import { Many2ManyRelation } from './lib/ORM/Relation'
+import { Pivot } from './lib/ORM/Relation/Pivot'
+import { Change, firestore } from 'firebase-functions'
 import { Relations } from './lib/const'
 
 const chaiThings = require("chai-things")
@@ -47,7 +47,7 @@ describe('STAGE', () => {
         }, `./${stageProjectId}.serviceAccountKey.json`)
 
         try {
-            admin.initializeApp();
+            admin.initializeApp()
         } catch (e) {}
         
         try {
@@ -88,7 +88,7 @@ describe('STAGE', () => {
                 }
             }
         }
-    });
+    })
 
     after(async () => {
         test.cleanup()
@@ -1008,6 +1008,85 @@ describe('STAGE', () => {
                     expect(firestoreMockData[`${driver.name}/${driverId}`]).to.deep.equal({
                         [`${car.name}.${carId}.name`] : 'Mustang'
                     })
+                })
+
+                it('Fields defined as cachable from the owner to property should not be cached data has not changed', async () => {
+
+                    class CarM extends Car {
+                        drivers(): Many2ManyRelation
+                        {
+                            return this.belongsToMany('drivers')
+                                    .defineCachableFields([
+                                        'name'
+                                    ])
+                        }
+                    }
+
+                    const carId = uniqid()
+                    const driverId = uniqid()
+
+                    const car = await new CarM(firestoreStub, null, carId)
+                    const driver = await new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attach(driver)
+
+                    const data = {
+                        name : 'Mustang'
+                    }
+
+                    const before = test.firestore.makeDocumentSnapshot(data, '')
+
+                    const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await car.drivers().updateCache(change)
+
+                    expect(firestoreMockData[`${driver.name}/${driverId}`][`${car.name}.${carId}.name`]).to.be.undefined
+                })
+
+                it('Fields defined as cachable from the owner to property should not be cached as null when deleted', async () => {
+
+                    class CarM extends Car {
+                        drivers(): Many2ManyRelation
+                        {
+                            return this.belongsToMany('drivers')
+                                    .defineCachableFields([
+                                        'name'
+                                    ])
+                        }
+                    }
+
+                    const carId = uniqid()
+                    const driverId = uniqid()
+
+                    const car = await new CarM(firestoreStub, null, carId)
+                    const driver = await new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attach(driver)
+
+                    const data = {
+                        name : 'Mustang'
+                    }
+
+                    const before = test.firestore.makeDocumentSnapshot({}, '')
+
+                    const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await car.drivers().updateCache(change)
+
+                    expect(firestoreMockData[`${driver.name}/${driverId}`]).to.deep.equal({
+                            [`${car.name}.${carId}.name`] : 'Mustang'
+                    })
+
+                    const change2 = new Change<FirebaseFirestore.DocumentSnapshot>(after, before)
+
+                    await car.drivers().updateCache(change2)
+
+                    expect(firestoreMockData[`${driver.name}/${driverId}`][`${car.name}.${carId}.name`])
+                        .to.be.null
                 })
 
                 it('Fields defined as cachable on to the owner from the pivot should be cached when new field is added', async () => {

@@ -9,7 +9,7 @@ import ModelImpl, { Models } from './lib/ORM/Models';
 import { Many2ManyRelation } from './lib/ORM/Relation';
 import { Driver, Car } from './stubs';
 import { Change } from 'firebase-functions';
-import { Relations } from './lib/const';
+import { Relations, Roles } from './lib/const';
 import * as _ from 'lodash';
 import * as flatten from 'flat'
 
@@ -95,294 +95,111 @@ describe('OFFLINE', () => {
 
     describe('Functions', async () => {
         
-        // describe('Households', async () => {
-
-        //     it('On Create. Pivot between user and household should recieve a role property of admin', async () => {
-                
-        //         const householdSnap = {
-        //             data : () => {
-        //                 return { [Models.USER] : { [testUserDataOne.uid] : true } }
-        //             },
-        //             get : () => {
-        //                 return {}
-        //             }
-        //         }
-
-        //         const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
-
-        //         await wrappedHouseholdsOnCreate(householdSnap)
-
-        //         expect(firestoreMockData[`${Models.USER}/undefined`][Models.HOUSEHOLD]).to.deep.equal({
-        //             pivot : {
-        //                 role: Roles.ADMIN
-        //             }
-        //         })
-        //     })
-        // })
-
         beforeEach(() => {
             firestoreMockData = {}
         })
 
-        describe('Cache', () => {
+        describe('Households', async () => {
 
-            it('The name of the user should be cached on the household collection', async () => {
+            describe('On Create', async () => { 
                 
-                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
-
-                const householdId = 'household-test-1'
-
-                const change = {
-                    before : {
-                        data: () => {
-                            return {
-                                households: {
-                                    id : householdId
-                                },
-                            }
-                        },
-                    },
-                    after : {
-                        data: () => {
-                            return {
-                                households: {
-                                    id : householdId
-                                },
-                                name: testUserDataOne.name
-                            }
+                it('Pivot between user and household should recieve a role property of admin', async () => {
+                    
+                    const householdSnap = {
+                        data : () => {
+                            return { [Models.USER] : { [testUserDataOne.uid] : true } }
                         },
                         get : () => {
                             return {}
-                        },
-                        ref : {
-                            update: () => {
-                                return {}
-                            },
-                            id : testUserDataOne.uid
                         }
                     }
-                }
 
-                await wrappedUsersOnUpdate(change, null)
+                    const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
 
-                expect(firestoreMockData[`${Models.HOUSEHOLD}/undefined`]).to.deep.equal({
-                    [`${Models.USER}.${testUserDataOne.uid}.name`] : testUserDataOne.name
+                    await wrappedHouseholdsOnCreate(householdSnap)
+
+                    expect(firestoreMockData[`${Models.USER}/undefined`]).to.deep.equal({
+                        [`${Models.HOUSEHOLD}.${Relations.PIVOT}.role`] : Roles.ADMIN
+                    })
                 })
             })
-
-            // it('---', async () => {
-            //     const wrappedSensorsUsersOnUpdate = test.wrap(myFunctions.ctrlSensorsUsersOnUpdate)
-
-            //     const change = test.makeChange({
-            //         data: () => {
-            //             return {
-            //                 [Models.SENSOR]: {
-            //                     id : 'Sensor1'
-            //                 },
-            //                 [Models.USER]: {
-            //                     id : 'User2'
-            //                 },
-            //                 pivot: {
-            //                     muted : false
-            //                 },
-            //             }
-            //         }
-            //     }, {
-            //         data: () => {
-            //             return {
-            //                 [Models.SENSOR]: {
-            //                     id : 'Sensor1'
-            //                 },
-            //                 [Models.USER]: {
-            //                     id : 'User2'
-            //                 },
-            //                 pivot: {
-            //                     muted : true
-            //                 },
-            //             }
-            //         },
-            //         get : () => {
-            //             return {}
-            //         },
-            //         ref : {
-            //             update: () => {
-            //                 return {}
-            //             },
-            //             id : 'Sensor1_User2'
-            //         }
-            //     })
-
-            //     await wrappedSensorsUsersOnUpdate(change, {
-            //         eventId : 'Sensor1_User2'
-            //     })
-            // })
-
-        //     it('The role of the pivot between a user and a household should be cached on the household collection', async () => {
-                
-        //         const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
-
-        //         const householdId = 'household-test-1'
-        //         const userId = 'user-test-1'
-
-        //         const change = {
-        //             before : {
-        //                 data: () => {
-        //                     return {
-        //                         households: {
-        //                             id : householdId
-        //                         },
-        //                     }
-        //                 },
-        //             },
-        //             after : {
-        //                 data: () => {
-        //                     return {
-        //                         households: {
-        //                             id : householdId,
-        //                             pivot : {
-        //                                 role: Roles.ADMIN
-        //                             }
-        //                         }
-        //                     }
-        //                 },
-        //                 get : () => {
-        //                     return {}
-        //                 },
-        //                 ref : {
-        //                     update: () => {
-        //                         return {}
-        //                     },
-        //                     id : userId
-        //                 }
-        //             }
-        //         }
-
-        //         await wrappedUsersOnUpdate(change, null)
-
-        //         expect(firestoreMockData[`${Models.HOUSEHOLD}/undefined`]).to.deep.equal({
-        //             [`${Models.USER}.${userId}.pivot.role`] : Roles.ADMIN
-        //         })
-        //     })
-
-
-            // it('Cachable fields should be defined on the relation.', async () => {
-
-            //     const driver = new Driver(firestoreStub)
-            //     const car = new Car(firestoreStub)
-
-            //     const rel = await car.drivers().attach(driver)
-
-            //     console.log(firestoreMockData)
-
-            //     // const pivot = await m1.modal2().pivot(await m2.getId())
-            //     // pivot.update({
-            //     //     active: true
-            //     // })
-            // })
-
-            // it('Properties of Owner model should be cachable on Property model', async () => {
-
-            //     const driver = new Driver(firestoreStub)
-            //     const car = new Car(firestoreStub)
-
-            //     car.create({
-            //         brand: 'Ford',
-            //         year: 1984
-            //     })
-
-            //     const rel = new Many2ManyRelation(car, driver.name, firestoreStub)
-
-            //     const cache1 = [
-            //         'brand',
-            //         'year'
-            //     ]
-
-            //     rel.defineCachableFields(cache1)
-
-            //     console.log(firestoreMockData)
-            // })
-
-            // it('instance', async () => {
-                
-            //     const model = await import(`./lib/ORM/Models/${singular(Models.USER)}`)
-                
-            //     console.log(new model.default())
-
-            // })
         })
 
         describe('Users', () => {
+
+            describe('On Update', () => {
         
-            it('Id should be cached on related sensors', async () => {
-    
-                const cacheField = 'id'
-                const sensorId = uniqid()
-                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
-                
-                const change = {
-                    before : {
-                        data: () => {
-                            return {}
-                        }
-                    },
-                    after : {
-                        data: () => {
-                            return {
-                               [cacheField] : testUserDataOne.uid
+                it('Id should be cached on related sensors', async () => {
+        
+                    const cacheField = 'id'
+                    const sensorId = uniqid()
+                    const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+                    
+                    const change = {
+                        before : {
+                            data: () => {
+                                return {}
                             }
                         },
-                        get : () => {
-                            return {
-                                [sensorId] : true
+                        after : {
+                            data: () => {
+                                return {
+                                [cacheField] : testUserDataOne.uid
+                                }
+                            },
+                            get : () => {
+                                return {
+                                    [sensorId] : true
+                                }
+                            },
+                            ref : {
+                                [cacheField] : testUserDataOne.uid
                             }
-                        },
-                        ref : {
-                            [cacheField] : testUserDataOne.uid
                         }
                     }
-                }
-    
-                await wrappedUsersOnUpdate(change)
-    
-                expect(firestoreMockData[`${Models.SENSOR}/${sensorId}`]).to.deep.equal({
-                    [`${Models.USER}.${testUserDataOne.uid}.${cacheField}`] : testUserDataOne.uid
+        
+                    await wrappedUsersOnUpdate(change)
+        
+                    expect(firestoreMockData[`${Models.SENSOR}/${sensorId}`]).to.deep.equal({
+                        [`${Models.USER}.${testUserDataOne.uid}.${cacheField}`] : testUserDataOne.uid
+                    })
                 })
-            })
-    
-            it('Name should be cached on related household', async () => {
-    
-                const cacheField = 'name'
-                const householdId = uniqid()
-    
-                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
-                
-                const change = {
-                    before : {
-                        data: () => {
-                            return {}
-                        }
-                    },
-                    after : {
-                        data: () => {
-                            return {
-                               [cacheField] : testUserDataOne.name
+        
+                it('Name should be cached on related household', async () => {
+        
+                    const cacheField = 'name'
+                    const householdId = uniqid()
+        
+                    const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+                    
+                    const change = {
+                        before : {
+                            data: () => {
+                                return {}
                             }
                         },
-                        get : () => {
-                            return {
-                                id : householdId
+                        after : {
+                            data: () => {
+                                return {
+                                [cacheField] : testUserDataOne.name
+                                }
+                            },
+                            get : () => {
+                                return {
+                                    id : householdId
+                                }
+                            },
+                            ref : {
+                                id : testUserDataOne.uid,
                             }
-                        },
-                        ref : {
-                            id : testUserDataOne.uid,
                         }
                     }
-                }
-    
-                await wrappedUsersOnUpdate(change)
-    
-                expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.deep.equal({
-                    [`${Models.USER}.${testUserDataOne.uid}.${cacheField}`] : testUserDataOne.name
+        
+                    await wrappedUsersOnUpdate(change)
+        
+                    expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.deep.equal({
+                        [`${Models.USER}.${testUserDataOne.uid}.${cacheField}`] : testUserDataOne.name
+                    })
                 })
             })
         })

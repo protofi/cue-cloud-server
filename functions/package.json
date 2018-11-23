@@ -20,7 +20,7 @@
     "test": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 || true",
     "test:stage": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep STAGE || true",
     "test:offline": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep OFFLINE || true",
-    "test:report:rules" : "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep Emulated_Rules 2>&1 | tee ./../rules.description.txt"
+    "test:report:rules": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep Emulated_Rules 2>&1 | tee ./../rules.description.txt"
   },
   "main": "lib/index.js",
   "dependencies": {
@@ -45,6 +45,7 @@
     "@types/chai-things": "0.0.33",
     "@types/express": "^4.16.0",
     "@types/mocha": "^5.2.5",
+    "@types/pluralize": "0.0.29",
     "@types/sinon": "^5.0.2",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
