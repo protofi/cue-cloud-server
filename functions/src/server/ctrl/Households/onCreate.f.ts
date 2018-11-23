@@ -25,6 +25,7 @@ exports = module.exports = functions.firestore
     {
         if(adminRelatedHousehold.id !== household.getId())
         {
+            await household.delete()
             return Promise.reject(Errors.UNAUTHORIZED).catch(console.error)
         }
     }
