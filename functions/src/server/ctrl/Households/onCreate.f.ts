@@ -2,7 +2,8 @@ import * as functions from 'firebase-functions'
 import { Models } from '../../lib/ORM/Models'
 import DataORMImpl from './../../lib/ORM/'
 import { firestore } from 'firebase-admin'
-import { Roles } from '../../lib/const'
+import { Roles, Errors } from '../../lib/const'
+import User from '../../lib/ORM/Models/User';
 
 exports = module.exports = functions.firestore
 .document(`${Models.HOUSEHOLD}/{householdId}`)
@@ -15,8 +16,19 @@ exports = module.exports = functions.firestore
 
     const householdUsers = await household.users().cache()
 
-    const adminId = Object.keys(householdUsers)[0] // Get the id of the first user which will be declared the admin of the
-    
+    const adminId = Object.keys(householdUsers)[0] // Get the id of the first user which will be declared the admin of the household
+
+    const adminUser = await db.user().find(adminId) as User
+    const adminRelatedHousehold = await adminUser.getField(Models.HOUSEHOLD)
+
+    if(adminRelatedHousehold)
+    {
+        if(adminRelatedHousehold.id !== household.getId())
+        {
+            return Promise.reject(Errors.UNAUTHORIZED).catch(console.error)
+        }
+    }
+
     return household.users().updatePivot(adminId, {
                     role : Roles.ADMIN
                 }).catch(console.error)

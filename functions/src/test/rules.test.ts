@@ -62,14 +62,14 @@ describe('OFFLINE', () => {
                 expect(await firestore.assertFails(ref.add({})))
             })
 
-            it('Autherized users should not be able to create households without a users property', async () => {
+            it('Users should not be able to create households without a users property', async () => {
                 const db = await setup(testUserDataOne)
                 const ref = db.collection(Models.HOUSEHOLD)
 
                 expect(await firestore.assertFails(ref.add({})))
             })
             
-            it('Autherized users should be able to create households with a users property including ID ref to themselves', async () => {
+            it('Users should be able to create households with a users property including ID ref to themselves', async () => {
                 const db = await setup(testUserDataOne)
                 const ref = db.collection(Models.HOUSEHOLD)
 
@@ -80,7 +80,7 @@ describe('OFFLINE', () => {
                 })))
             })
 
-            it('Autherized users should not be able to create households without a users property including ID ref to themselves', async () => {
+            it('Users should not be able to create households without a users property including ID ref to themselves', async () => {
                 const db = await setup(testUserDataOne)
                 const ref = db.collection(Models.HOUSEHOLD)
 
@@ -91,7 +91,7 @@ describe('OFFLINE', () => {
                 })))
             })
 
-            it('Autherized users should not be able to create households with a users property including ID refs to other users', async () => {
+            it('Users should not be able to create households with a users property including ID refs to other users', async () => {
                 const db = await setup(testUserDataOne)
                 const ref = db.collection(Models.HOUSEHOLD)
 
@@ -138,7 +138,7 @@ describe('OFFLINE', () => {
                 ))
             })
 
-            it('Autherized users not included in a household should not be able to retrieve data about it', async () => {
+            it('Users not included in a household should not be able to retrieve data about it', async () => {
                 const db = await setup(testUserDataOne)
 
                 const ref = db.collection(Models.HOUSEHOLD)
@@ -154,7 +154,7 @@ describe('OFFLINE', () => {
                 expect(await firestore.assertFails(ref.doc().delete()))
             })
 
-            it('Autherized users should not be able the delete households', async () => {
+            it('Users should not be able the delete households', async () => {
                 const db = await setup(testHouseDataOne)
 
                 const ref = db.collection(Models.HOUSEHOLD)
@@ -172,7 +172,7 @@ describe('OFFLINE', () => {
                 expect(await firestore.assertFails(ref.add({})))
             })
 
-            it('Autherized users should not be able to create users', async () => {
+            it('Users should not be able to create users', async () => {
                 const db = await setup(testUserDataOne)
                 const ref = db.collection(Models.USER)
 
@@ -293,7 +293,7 @@ describe('OFFLINE', () => {
                 expect(await firestore.assertFails(ref.doc().delete()))
             })
 
-            it('Autherized users should not be able the delete users', async () => {
+            it('Users should not be able the delete users', async () => {
                 const db = await setup(testHouseDataOne)
 
                 const ref = db.collection(Models.USER)

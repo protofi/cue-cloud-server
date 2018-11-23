@@ -5,3 +5,7 @@ export enum Roles {
 export enum Relations {
     PIVOT = 'pivot'
 }
+
+export enum Errors {
+    UNAUTHORIZED = 'You do not have sufficient privileges.'
+} 

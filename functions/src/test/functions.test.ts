@@ -101,16 +101,27 @@ describe('OFFLINE', () => {
 
         describe('Households', async () => {
 
-            describe('On Create', async () => { 
+            describe.only('On Create', async () => { 
                 
                 it('Pivot between user and household should recieve a role property of admin', async () => {
                     
+                    firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {}
+
                     const householdSnap = {
                         data : () => {
                             return { [Models.USER] : { [testUserDataOne.uid] : true } }
                         },
-                        get : () => {
-                            return {}
+                        get : (field) => {
+
+                            switch(field)
+                            {
+                                case Models.USER : {
+                                    return { [testUserDataOne.uid] : true }
+                                }
+                                default : {
+                                    return undefined
+                                }
+                            }
                         }
                     }
 
@@ -118,9 +129,53 @@ describe('OFFLINE', () => {
 
                     await wrappedHouseholdsOnCreate(householdSnap)
 
-                    expect(firestoreMockData[`${Models.USER}/undefined`]).to.deep.equal({
+                    expect(firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]).to.deep.equal({
                         [`${Models.HOUSEHOLD}.${Relations.PIVOT}.role`] : Roles.ADMIN
                     })
+                })
+
+                it('Role field should not be added to pivot property if user aleady have a property of HOUSEHOLD with a different ID', async () => {
+                    
+                    const householdIdOne = uniqid()
+                    const householdIdTwo = uniqid()
+
+                    firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdIdOne
+                        }
+                    }
+
+                    const householdSnap = {
+                        data : () => {
+                            return { [Models.USER] : { [testUserDataOne.uid] : true } }
+                        },
+                        ref: {
+                            id : householdIdTwo
+                        },
+                        get : (field) => {
+
+                            switch(field)
+                            {
+                                case Models.USER : {
+                                    return { [testUserDataOne.uid] : true }
+                                }
+                                default : {
+                                    return undefined
+                                }
+                            }
+                        }
+                    }
+
+                    const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
+
+                    await wrappedHouseholdsOnCreate(householdSnap)
+
+                    expect(firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`])
+                        .to.deep.equal({
+                            [Models.HOUSEHOLD] : {
+                                id : householdIdOne
+                            }
+                        })
                 })
             })
         })

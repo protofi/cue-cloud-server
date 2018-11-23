@@ -11,7 +11,7 @@ export enum Models {
 
 export interface Model{
     getDocRef(id?: string): FirebaseFirestore.DocumentReference
-    getId(): Promise<string>
+    getId(): string
     create(data: object): Promise<ModelImpl>
     find(id: string): Promise<ModelImpl>
     where(fieldPath: string, operator: FirebaseFirestore.WhereFilterOp, value: string): FirebaseFirestore.Query
@@ -55,10 +55,9 @@ export default class ModelImpl implements Model {
         return this.ref
     }
 
-    async getId(): Promise<string>
+    getId(): string
     {
-        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
-        return docRef.id
+        return this.getDocRef().id
     }
 
     async create(data: object, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
