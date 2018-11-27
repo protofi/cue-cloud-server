@@ -1,104 +1,104 @@
-import * as chai from 'chai'
-import * as sinon from 'sinon'
-import * as mocha from 'mocha'
-import * as firebase from 'firebase'
-import * as admin from 'firebase-admin'
-import * as functionsTest from 'firebase-functions-test'
-import { UserRecord, user } from 'firebase-functions/lib/providers/auth'
-import Database, { Datastore } from './../lib/database'
-import { FeaturesList } from 'firebase-functions-test/lib/features'
-import { Collection } from './../lib/database/Collections'
-import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore'
-import { asyncForEach } from './../lib/util'
+// import * as chai from 'chai'
+// import * as sinon from 'sinon'
+// import * as mocha from 'mocha'
+// import * as firebase from 'firebase'
+// import * as admin from 'firebase-admin'
+// import * as functionsTest from 'firebase-functions-test'
+// import { UserRecord, user } from 'firebase-functions/lib/providers/auth'
+// import Database, { Datastore } from './../lib/database'
+// import { FeaturesList } from 'firebase-functions-test/lib/features'
+// import { Collection } from './../lib/database/Collections'
+// import { DocumentSnapshot } from 'firebase-functions/lib/providers/firestore'
+// import { asyncForEach } from './../lib/util'
 
-const chaiThings = require("chai-things")
-const chaiAsPromised = require("chai-as-promised")
+// const chaiThings = require("chai-things")
+// const chaiAsPromised = require("chai-as-promised")
 
-chai.should()
-chai.use(chaiThings)
-chai.use(chaiAsPromised)
+// chai.should()
+// chai.use(chaiThings)
+// chai.use(chaiAsPromised)
 
-const assert = chai.assert
-const expect = chai.expect
+// const assert = chai.assert
+// const expect = chai.expect
 
-describe('STAGE', () => {
+// describe('STAGE', () => {
 
-    var test: FeaturesList
-    var myFunctions
-    var adminFs: FirebaseFirestore.Firestore
-    var fs: firebase.firestore.Firestore
-    var db: Datastore
-    var adminDb: Datastore
+//     var test: FeaturesList
+//     var myFunctions
+//     var adminFs: FirebaseFirestore.Firestore
+//     var fs: firebase.firestore.Firestore
+//     var db: Datastore
+//     var adminDb: Datastore
 
-    const testUserDataOne = {
-        uid: "test-user-1",
-        name: "Andy",
-        email: "andy@mail.com",
-        token: null
-    }
+//     const testUserDataOne = {
+//         uid: "test-user-1",
+//         name: "Andy",
+//         email: "andy@mail.com",
+//         token: null
+//     }
 
-    const testUserDataTwo = {
-        uid: "test-user-2",
-        name: "Benny",
-        email: "Benny@mail.com",
-        token: null
-    }
+//     const testUserDataTwo = {
+//         uid: "test-user-2",
+//         name: "Benny",
+//         email: "Benny@mail.com",
+//         token: null
+//     }
 
-    beforeEach(async () => {
+//     beforeEach(async () => {
 
-        const stageProjectId = "staging-iot-cloud-server"
+//         const stageProjectId = "staging-iot-cloud-server"
 
-        test = functionsTest({
-            databaseURL: `https://${stageProjectId}.firebaseio.com`,
-            projectId: stageProjectId,
-        }, `./${stageProjectId}.serviceAccountKey.json`)
+//         test = functionsTest({
+//             databaseURL: `https://${stageProjectId}.firebaseio.com`,
+//             projectId: stageProjectId,
+//         }, `./${stageProjectId}.serviceAccountKey.json`)
 
-        try {
-            admin.initializeApp();
-          } catch (e) {}
+//         try {
+//             admin.initializeApp();
+//           } catch (e) {}
 
-        myFunctions = require('../lib/index');
+//         myFunctions = require('../lib/index');
         
-        fs = firebase.firestore()
-        try {
-            adminFs.settings({ timestampsInSnapshots: true })
-        } catch (e) {}
+//         fs = firebase.firestore()
+//         try {
+//             adminFs.settings({ timestampsInSnapshots: true })
+//         } catch (e) {}
 
-        adminFs = admin.firestore();
+//         adminFs = admin.firestore();
         
-        db = new Database(fs);
-        adminDb = new Database(adminFs);
+//         db = new Database(fs);
+//         adminDb = new Database(adminFs);
 
-        testUserDataOne.token = await admin.auth().createCustomToken(testUserDataOne.uid)
-        testUserDataTwo.token = await admin.auth().createCustomToken(testUserDataTwo.uid)
-    })
+//         testUserDataOne.token = await admin.auth().createCustomToken(testUserDataOne.uid)
+//         testUserDataTwo.token = await admin.auth().createCustomToken(testUserDataTwo.uid)
+//     })
 
-    afterEach(async () => {
-        await adminDb.users.delete(testUserDataOne.uid)
-    })
+//     afterEach(async () => {
+//         await adminDb.users.delete(testUserDataOne.uid)
+//     })
 
-    after(async () => {
-        test.cleanup()
-    })
+//     after(async () => {
+//         test.cleanup()
+//     })
 
-    describe('User', () => {
+//     describe('User', () => {
 
-        it('Sign up', async () => {
+//         it('Sign up', async () => {
 
-            const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(testUserDataOne)
-            const wrappedAuthUsersOnCreate = test.wrap(myFunctions.authUsersOnCreate)
+//             const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(testUserDataOne)
+//             const wrappedAuthUsersOnCreate = test.wrap(myFunctions.authUsersOnCreate)
 
-            await wrappedAuthUsersOnCreate(userRecord)
+//             await wrappedAuthUsersOnCreate(userRecord)
 
-            const doc: FirebaseFirestore.DocumentSnapshot = await adminDb.users.get(testUserDataOne.uid)
+//             const doc: FirebaseFirestore.DocumentSnapshot = await adminDb.users.get(testUserDataOne.uid)
 
-            const comparisonData = {
-                email: testUserDataOne.email
-            }
+//             const comparisonData = {
+//                 email: testUserDataOne.email
+//             }
 
-            expect(doc.data()).to.include(comparisonData);
-        })
-    })
+//             expect(doc.data()).to.include(comparisonData);
+//         })
+//     })
 
     // describe('Rules', () => {
 
@@ -237,4 +237,4 @@ describe('STAGE', () => {
         //     })
         // })
     // })
-})
+// })

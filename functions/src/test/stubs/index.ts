@@ -34,20 +34,6 @@ export class Car extends ModelImpl {
         return this.hasMany('wheels')
     }
 }
-
-export class Wheel extends ModelImpl {
-
-    constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
-    {
-        super('wheels', db, snap, id)
-    }
-
-    car(): N2OneRelation
-    {
-        return this.belongsTo('cars')
-    }
-}
-
 export class WindSheild extends ModelImpl {
 
     constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)

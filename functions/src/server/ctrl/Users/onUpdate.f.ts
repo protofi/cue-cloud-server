@@ -1,7 +1,7 @@
 import * as functions from 'firebase-functions'
 import { Models } from '../../lib/ORM/Models'
 import { firestore } from 'firebase-admin'
-import DataORMImpl from './../../lib/ORM/'
+import DataORMImpl from './../../lib/ORM'
 
 exports = module.exports = functions.firestore
 .document(`${Models.USER}/{userId}`)

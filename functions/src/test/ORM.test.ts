@@ -13,11 +13,13 @@ import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
-import { Car, Wheel, Driver } from './stubs'
-import { Many2ManyRelation } from './lib/ORM/Relation'
+import { Car, Driver } from './stubs'
+import { Many2ManyRelation, One2ManyRelation, N2ManyRelation, N2OneRelation, StandardModelImport, ModelImportStategy } from './lib/ORM/Relation'
 import { Pivot } from './lib/ORM/Relation/Pivot'
 import { Change, firestore } from 'firebase-functions'
 import { Relations } from './lib/const'
+import { singular } from 'pluralize';
+import Wheel from './stubs/Wheel';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -153,28 +155,28 @@ describe('STAGE', () => {
 
             it('Get ref returns the same ref after initialization.', async () => {
                 const car: ModelImpl = new Car(adminFs)
-                const docRef1: FirebaseFirestore.DocumentReference = await car.getDocRef()
-                const docRef2: FirebaseFirestore.DocumentReference = await car.getDocRef()
+                const docRef1: FirebaseFirestore.DocumentReference = car.getDocRef()
+                const docRef2: FirebaseFirestore.DocumentReference = car.getDocRef()
 
                 expect(docRef1.id).to.equals(docRef2.id)
             })
 
             it('Get ID of new Model.', async () => {
                 const car: ModelImpl = new Car(adminFs)
-                const id: string = await car.getId()
+                const id: string = car.getId()
 
                 expect(id).exist
             })
 
             it('Get ID of created docRef.', async () => {
                 const car: ModelImpl = await new Car(adminFs).create({
-                    name : 'Tob'
+                    name : 'Mustang'
                 })
 
-                const id: string = await car.getId()
+                const id: string = car.getId()
                 
                 // Clean up
-                docsToBeDeleted.push((await car.getDocRef()).path)
+                docsToBeDeleted.push((car.getDocRef()).path)
                 
                 expect(id).exist
             })
@@ -187,7 +189,7 @@ describe('STAGE', () => {
                 })
 
                 // Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((user.getDocRef()).path)
 
                 const name: string = await user.getField('name')
                 expect(name).to.equals('Bob')
@@ -200,7 +202,7 @@ describe('STAGE', () => {
                 }, batch)
 
                 //Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((user.getDocRef()).path)
 
                 await batch.commit()
                 
@@ -240,7 +242,7 @@ describe('STAGE', () => {
 
                 const age = await user.getField('age')
 
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((user.getDocRef()).path)
 
                 expect(age).to.not.exist
             })
@@ -274,7 +276,7 @@ describe('STAGE', () => {
                 }, batch)
 
                 //Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((user.getDocRef()).path)
 
                 await user.update({
                     age: 28
@@ -282,7 +284,7 @@ describe('STAGE', () => {
 
                 await batch.commit()
 
-                const userId = await user.getId()
+                const userId = user.getId()
 
                 const doc = await adminFs.doc(`${Models.USER}/${userId}`).get()
                 const name = doc.get('name')
@@ -300,13 +302,13 @@ describe('STAGE', () => {
                 }, batch)
 
                 //Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((user.getDocRef()).path)
 
                 await user.update({
                     age: 28
                 }, batch)
 
-                const userId = await user.getId()
+                const userId = user.getId()
 
                 const doc = await adminFs.doc(`${Models.USER}/${userId}`).get()
                 const name = doc.get('name')
@@ -325,17 +327,17 @@ describe('STAGE', () => {
                 })
 
                 //Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((user.getDocRef()).path)
 
                 await user.update({
                     age: 28
                 })
 
-                const id = await user.getId()
+                const id = user.getId()
                 const name = await user.getField('name')
                 const age = await user.getField('age')
 
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((user.getDocRef()).path)
 
                 expect(name).equals('Bobby')
                 expect(age).equals(28)
@@ -346,6 +348,17 @@ describe('STAGE', () => {
                 const age2 = await user.getField('age')
                 
                 expect(age2).to.not.exist
+            })
+
+            describe('Actionable fields', () => {
+
+                // it('Actionable field should be definable on the model along an action', async () => {
+
+                //     const car = new Car(firestoreStub)
+
+                //     car.defineActionableFields
+
+                // })
             })
         })
 
@@ -365,7 +378,7 @@ describe('STAGE', () => {
 
                 it('Save model to an other', async () => {
                     
-                    const sensor: Sensor = await db.sensor()
+                    const sensor: Sensor = db.sensor()
                     const room: Room = db.room()
 
                     await sensor.room().set(room)
@@ -383,7 +396,7 @@ describe('STAGE', () => {
 
                 it('Save model to an other reverse I2M', async () => {
                     
-                    const sensor: Sensor = await db.sensor()
+                    const sensor: Sensor = db.sensor()
                     const room: Room = db.room()
 
                     await sensor.room().set(room)
@@ -411,9 +424,9 @@ describe('STAGE', () => {
                     await room.sensors().attach(sensor)
 
                     //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
-                    docsToBeDeleted.push((await event.getDocRef()).path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
+                    docsToBeDeleted.push(room.getDocRef().path)
+                    docsToBeDeleted.push(event.getDocRef().path)
                     
                     const attRoom = await sensor.getField(room.name)
                     const attEvents = await sensor.getField(event.name)
@@ -421,9 +434,9 @@ describe('STAGE', () => {
                     const attSensors = await room.getField(sensor.name)
                     const attSensor = await event.getField(sensor.name)
 
-                    const sensorId = await sensor.getId()
-                    const roomId = await room.getId()
-                    const eventId = await event.getId()
+                    const sensorId = sensor.getId()
+                    const roomId = room.getId()
+                    const eventId = event.getId()
 
                     expect(roomId).to.deep.equals(attRoom.id)
                     expect(sensorId).to.deep.equals(attSensor.id)
@@ -433,7 +446,7 @@ describe('STAGE', () => {
 
                 it('Save model to an other reverse I2M BATCH', async () => {
                     
-                    const sensor: Sensor = await db.sensor()
+                    const sensor: Sensor = db.sensor()
                     const room: Room = db.room()
 
                     const batch = db.batch()
@@ -441,13 +454,13 @@ describe('STAGE', () => {
                     await sensor.room().set(room, batch)
 
                     //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
+                    docsToBeDeleted.push(room.getDocRef().path)
                     
                     await batch.commit()
 
-                    const roomId = await room.getId()
-                    const sensorId = await sensor.getId()
+                    const roomId = room.getId()
+                    const sensorId = sensor.getId()
                     
                     const attRoom = await sensor.getField(room.name)
                     const attSensors = await room.getField(sensor.name)
@@ -457,15 +470,15 @@ describe('STAGE', () => {
                 })
 
                 it('Save model to an other reverse I2M BATCH SHOULD FAIL', async () => {
-                    const sensor: Sensor = await db.sensor()
+                    const sensor: Sensor = db.sensor()
                     const room: Room = db.room()
 
                     const batch = db.batch()
 
                     await sensor.room().set(room, batch)
 
-                    const roomId = await room.getId()
-                    const sensorId = await sensor.getId()
+                    const roomId = room.getId()
+                    const sensorId = sensor.getId()
                     
                     const sensorDoc = await adminFs.doc(`${Models.SENSOR}/${sensorId}`).get()
                     const roomDoc = await adminFs.doc(`${Models.ROOM}/${roomId}`).get()
@@ -496,14 +509,16 @@ describe('STAGE', () => {
 
                     await car.wheels().attach(wheel)
 
-                    //clean up
-                    docsToBeDeleted.push((await wheel.getDocRef()).path)
-                    docsToBeDeleted.push((await car.getDocRef()).path)
+                    const dataName = 'Spare'
 
-                    const wheelId = await wheel.getId()
+                    //clean up
+                    docsToBeDeleted.push(wheel.getDocRef().path)
+                    docsToBeDeleted.push(car.getDocRef().path)
+
+                    const wheelId = wheel.getId()
                     
                     await car.wheels().updatePivot(wheelId, {
-                        name : 'Spare',
+                        name : dataName,
                         flat: true
                     })
 
@@ -513,47 +528,97 @@ describe('STAGE', () => {
 
                     const doc: FirebaseFirestore.DocumentSnapshot = await adminFs.collection(wheel.name).doc(wheelId).get()
 
-                    expect(doc.get(`${car.name}.${Relations.PIVOT}.name`)).to.be.equal('Spare')
+                    expect(doc.get(`${car.name}.${Relations.PIVOT}.name`)).to.be.equal(dataName)
                 })
 
                 it('The pivot should be updatable trough the inverse relation', async () => {
                     
-                    const car = new Car(adminFs)
-                    const wheel = new Wheel(adminFs)
+                    const carId = uniqid()
+                    const wheelId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+                    const wheel = new Wheel(firestoreStub, null, wheelId)
+
+                    const dataName = 'Spare'
 
                     await car.wheels().attach(wheel)
 
-                    //clean up
-                    docsToBeDeleted.push((await wheel.getDocRef()).path)
-                    docsToBeDeleted.push((await car.getDocRef()).path)
-
-                    const carId = await car.getId()
-                    const wheelId = await wheel.getId()
-
                     await wheel.car().updatePivot({
-                        name : 'Spare'
+                        name : dataName
                     })
 
-                    const doc: FirebaseFirestore.DocumentSnapshot = await adminFs.collection(wheel.name).doc(wheelId).get()
+                    const wheelDoc = firestoreMockData[`${wheel.name}/${wheelId}`]
+                    const expectedWheelDoc = {
+                        [`${car.name}.${Relations.PIVOT}.name`] : dataName
+                    }
 
-                    expect(doc.get(`${car.name}.${Relations.PIVOT}.name`)).to.be.equal('Spare')
+                    expect(wheelDoc).to.deep.equal(expectedWheelDoc)
+                })
+
+                it('Property model should be attachable by id', async () => {
+                    
+                    class ModelImportStub implements ModelImportStategy{
+                        async import(db_: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl> {
+                            return new Wheel(db_, null, id)
+                        }
+                    } 
+
+                    class One2ManyRelationStub extends One2ManyRelation {
+                        importStrategy = new ModelImportStub()
+                    }
+
+                    class CarM extends Car {
+
+                        /**
+                         * Attach one model to many others
+                         */
+                        protected hasMany(property: string): One2ManyRelation
+                        {
+                            if(!this.relations.has(property))
+                            {
+                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
+                                this.relations.set(property, relation)
+                            }
+
+                            return this.relations.get(property) as One2ManyRelation
+                        }
+                    }
+
+                    const carId = uniqid()
+                    const car = new CarM(firestoreStub, null, carId)
+
+                    const wheel = new Wheel(firestoreStub)
+
+                    await car.wheels().attachById(wheel.getId())
+                    
+                    const carDoc = firestoreMockData[`${car.name}/${carId}`]
+                    const expectedCarDoc = {
+                        [wheel.name] : { [wheel.getId()] : true }
+                    }
+
+                    const wheelDoc = firestoreMockData[`${wheel.name}/${wheel.getId()}`]
+                    const expectedWheelDoc = {
+                        [car.name] : { id : carId }
+                    }
+
+                    expect(carDoc).to.deep.equal(expectedCarDoc)
+                    expect(wheelDoc).to.deep.equal(expectedWheelDoc)
                 })
 
                 it('Create root documents and relation by attaching two models', async () => {
-                    const room: Room = db.room()
-                    const sensor: Sensor = db.sensor()
+                    const room = db.room()
+                    const sensor = db.sensor()
 
                     await room.sensors().attach(sensor)
 
                     //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
+                    docsToBeDeleted.push(room.getDocRef().path)
                     
                     const roomSensors = await room.getField(sensor.name)
                     const sensorRoom = await sensor.getField(room.name)
 
-                    const roomId = await room.getId()
-                    const sensorId = await sensor.getId()
+                    const roomId = room.getId()
+                    const sensorId = sensor.getId()
 
                     expect(Object.keys(roomSensors), 'Foreign key on room').to.include(sensorId)
                     expect(roomId, 'Foreign key on sensor').equals(sensorRoom.id)
@@ -564,29 +629,29 @@ describe('STAGE', () => {
                     const room: Room = db.room()
                     const sensor: Sensor = db.sensor()
 
-                    const roomId = await room.getId()
+                    const roomId = room.getId()
 
                     await room.sensors().attach(sensor)
 
                     //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
+                    docsToBeDeleted.push(room.getDocRef().path)
                     
                     const attRoom = await sensor.room().get()
 
-                    expect(roomId).to.equal(await attRoom.getId())
+                    expect(roomId).to.equal(attRoom.getId())
                 })
 
                 it('Retrieve cached relational data', async () => {
                     const sensor = db.sensor()
                     const room = db.room()
-                    const sensorId = await sensor.getId();
+                    const sensorId = sensor.getId();
 
                     await room.sensors().attach(sensor)
                     
                     //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
+                    docsToBeDeleted.push(room.getDocRef().path)
                     
                     const sensorData = {[sensorId] : {
                         name: 'Doorbell'
@@ -607,7 +672,58 @@ describe('STAGE', () => {
                     const cache2 = await room.sensors().cache(sensorId)
 
                     expect(cache1).to.deep.include(sensorData)
-                    expect(cache2).to.deep.equal(sensorData[sensorId])              
+                    expect(cache2).to.deep.equal(sensorData[sensorId])
+                })
+
+                describe('Actionable fields', () => {
+
+                    it('Actionable fields should be defined on the relation between the owner model and property model', async () => {
+
+
+                        class N2OneRelationStub extends N2OneRelation
+                        {
+                            getFieldActions()
+                            {
+                                return this.fieldActions
+                            }
+                        }
+
+                        const rel = new N2OneRelationStub(new Wheel(firestoreStub), 'Car', firestoreStub)
+
+                        rel.defineActionableFields({'flat' : () => {
+                            return true
+                        }})
+
+                        const fieldActions = rel.getFieldActions()
+
+                        expect(fieldActions.get('flat')()).to.true
+                    })
+
+                    // it('Actionable fields should be defined on the relation between the owner model and property model', async () => {
+
+
+                    //     class N2OneRelationStub extends N2OneRelation
+                    //     {
+                    //         getFieldActions()
+                    //         {
+                    //             return this.fieldActions
+                    //         }
+                    //     }
+
+                    //     const rel = new N2OneRelationStub(new Wheel(firestoreStub), 'Car', firestoreStub)
+
+                    //     rel.defineActionableFields({'flat' : () => {
+                            
+                    //         return
+                            
+                    //     }})
+
+                    //     const fieldActions = rel.getFieldActions()
+
+                    //     console.log(firestoreMockData)
+                    //     // expect(fieldActions.get('flat')()).to.true
+                        
+                    // })
                 })
             })
 
@@ -623,20 +739,20 @@ describe('STAGE', () => {
                 })
 
                 it('Create root documents and relation by attaching two models', async () => {
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
+                    const user = db.user()
+                    const sensor = db.sensor()
 
                     await user.sensors().attach(sensor)
 
                     const userSensors = await user.getField(sensor.name)
                     const sensorUsers = await sensor.getField(user.name)
 
-                    const sensorId = await sensor.getId()
-                    const userId = await user.getId()
+                    const sensorId = sensor.getId()
+                    const userId = user.getId()
 
                     //clean up
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                     
                     expect(Object.keys(userSensors), 'Foreign key on user').to.include(sensorId)
@@ -644,9 +760,9 @@ describe('STAGE', () => {
                 })
 
                 it('Attach multiple models to one many-to-many related model', async () => {
-                    const user = db.user() as User
-                    const sensor1 = db.sensor() as Sensor
-                    const sensor2 = db.sensor() as Sensor
+                    const user = db.user()
+                    const sensor1 = db.sensor()
+                    const sensor2 = db.sensor()
 
                     await user.sensors().attach(sensor1)
                     await user.sensors().attach(sensor2)
@@ -655,14 +771,14 @@ describe('STAGE', () => {
                     const sensor1Users = await sensor1.getField(user.name)
                     const sensor2Users = await sensor2.getField(user.name)
 
-                    const userId: string = await user.getId()
-                    const sensor1Id: string = await sensor1.getId()
-                    const sensor2Id: string = await sensor2.getId()
+                    const userId: string = user.getId()
+                    const sensor1Id: string = sensor1.getId()
+                    const sensor2Id: string = sensor2.getId()
 
                     //clean up
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor1.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor2.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor1.getDocRef().path)
+                    docsToBeDeleted.push(sensor2.getDocRef().path)
                     docsToBeDeleted.push(`${sensor1.name}_${user.name}/${sensor1Id}_${userId}`)
                     docsToBeDeleted.push(`${sensor2.name}_${user.name}/${sensor2Id}_${userId}`)
 
@@ -674,30 +790,30 @@ describe('STAGE', () => {
 
                 it('Retrieve attached blank model of relation', async () => {
 
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
+                    const user = db.user()
+                    const sensor = db.sensor()
 
                     await user.sensors().attach(sensor)
 
                     const sensors: Array<ModelImpl> = await user.sensors().get()
 
-                    const attachedSensorId = await sensors[0].getId()
-                    const sensorId = await sensor.getId()
+                    const attachedSensorId = sensors[0].getId()
+                    const sensorId = sensor.getId()
 
                     expect(sensorId).to.equal(attachedSensorId)
 
-                    const userId: string = await user.getId()
+                    const userId: string = user.getId()
 
                     //clean up
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
 
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
                 it('Retrieve attached model with data of relation', async () => {
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
+                    const user = db.user()
+                    const sensor = db.sensor()
 
                     const location: string = 'Office'
 
@@ -708,25 +824,25 @@ describe('STAGE', () => {
                     await user.sensors().attach(sensor)
 
                     const sensors: Array<ModelImpl> = await user.sensors().get()
-                    const attachedSensor = await sensors[0]
+                    const attachedSensor = sensors[0]
                     const attLocation: string = await attachedSensor.getField('location')
 
                     expect(attLocation).to.equal(location)
 
                     //clean up
-                    const senorId = await sensor.getId()
-                    const userId: string = await user.getId()
+                    const senorId = sensor.getId()
+                    const userId: string = user.getId()
 
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
 
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${senorId}_${userId}`)
                 })
 
                 it('Retrieve cached relational data', async () => {
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
-                    const sensorId = await sensor.getId();
+                    const user = db.user()
+                    const sensor = db.sensor()
+                    const sensorId = sensor.getId()
 
                     await user.sensors().attach(sensor)
                     
@@ -752,19 +868,19 @@ describe('STAGE', () => {
                     expect(cache2).to.deep.equal(sensorData[sensorId])
 
                     //clean up
-                    const userId: string = await user.getId()
+                    const userId: string = user.getId()
 
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
 
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
                 it('Attach pivot data to many-to-many relation', async () => {
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
-                    const userId = await user.getId()
-                    const sensorId = await sensor.getId()
+                    const user = db.user()
+                    const sensor = db.sensor()
+                    const userId = user.getId()
+                    const sensorId = sensor.getId()
 
                     await user.sensors().attach(sensor)
 
@@ -772,62 +888,62 @@ describe('STAGE', () => {
                         settings: true
                     })
 
-                    const pivotData = await adminFs.collection(`${Models.SENSOR}_${Models.USER}`).doc(`${sensorId}_${userId}`).get()
+                    const pivotData = await adminFs.doc(`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`).get()
 
                     expect(pivotData.get(`${Relations.PIVOT}.settings`)).to.be.true
 
                     //clean up
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await pivot.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
+                    docsToBeDeleted.push(pivot.getDocRef().path)
                 })
 
                 it('Returned Pivot of a relation should have a correct name of the to owner models', async () => {
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
-                    const sensorId = await sensor.getId()
-                    const userId = await user.getId()
+                    const user = db.user()
+                    const sensor = db.sensor()
+                    const sensorId = sensor.getId()
+                    const userId = user.getId()
                     
                     await user.sensors().attach(sensor)
                     await sensor.users().attach(user)
 
                     const pivot: Pivot = await user.sensors().pivot(sensorId)
 
-                    expect(await pivot.getName()).to.equal(`${sensor.name}_${user.name}`)
+                    expect(pivot.getName()).to.equal(`${sensor.name}_${user.name}`)
 
                     //clean up
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
 
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
                 it('Returned Pivot of a relation should have a correct name of the to owner models', async () => {
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
-                    const sensorId = await sensor.getId()
-                    const userId = await user.getId()
+                    const user = db.user()
+                    const sensor = db.sensor()
+                    const sensorId = sensor.getId()
+                    const userId = user.getId()
                     
                     await user.sensors().attach(sensor)
                     await sensor.users().attach(user)
 
                     const pivot: Pivot = await user.sensors().pivot(sensorId)
 
-                    expect(await pivot.getId()).to.equal(`${sensorId}_${userId}`)
+                    expect(pivot.getId()).to.equal(`${sensorId}_${userId}`)
 
                     //clean up
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
 
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
                 it('Make sure models can be attached in "inverse"', async () => {
 
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
-                    const sensorId = await sensor.getId()
-                    const userId = await user.getId()
+                    const user = db.user()
+                    const sensor = db.sensor()
+                    const sensorId = sensor.getId()
+                    const userId = user.getId()
 
                     await user.sensors().attach(sensor)
                     await sensor.users().attach(user)
@@ -835,11 +951,11 @@ describe('STAGE', () => {
                     const pivot1: Pivot = await user.sensors().pivot(sensorId)
                     const pivot2: Pivot = await sensor.users().pivot(userId)
 
-                    expect(await pivot1.getId()).to.equal(await pivot2.getId())
+                    expect(pivot1.getId()).to.equal(pivot2.getId())
 
                     //clean up
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
 
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
@@ -988,8 +1104,8 @@ describe('STAGE', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const car = await new CarM(firestoreStub, null, carId)
-                    const driver = await new Driver(firestoreStub, null, driverId)
+                    const car = new CarM(firestoreStub, null, carId)
+                    const driver = new Driver(firestoreStub, null, driverId)
 
                     await car.drivers().attach(driver)
 
@@ -1025,8 +1141,8 @@ describe('STAGE', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const car = await new CarM(firestoreStub, null, carId)
-                    const driver = await new Driver(firestoreStub, null, driverId)
+                    const car = new CarM(firestoreStub, null, carId)
+                    const driver = new Driver(firestoreStub, null, driverId)
 
                     await car.drivers().attach(driver)
 
@@ -1060,8 +1176,8 @@ describe('STAGE', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const car = await new CarM(firestoreStub, null, carId)
-                    const driver = await new Driver(firestoreStub, null, driverId)
+                    const car = new CarM(firestoreStub, null, carId)
+                    const driver = new Driver(firestoreStub, null, driverId)
 
                     await car.drivers().attach(driver)
 
@@ -1107,7 +1223,7 @@ describe('STAGE', () => {
                     }
 
                     const carId = uniqid()
-                    const car = await new CarM(firestoreStub, null, carId)
+                    const car = new CarM(firestoreStub, null, carId)
 
                     await car.drivers().attach(driver)
 
@@ -1179,7 +1295,7 @@ describe('STAGE', () => {
                     const driver = new Driver(firestoreStub)
                     const car = new Car(firestoreStub)
                     
-                    const pivotId = `${await car.getId()}_${await driver.getId()}`
+                    const pivotId = `${car.getId()}_${driver.getId()}`
 
                     const pivot = new Pivot(firestoreStub, pivotId, car, driver)
     
@@ -1191,11 +1307,11 @@ describe('STAGE', () => {
                     const driver = new Driver(firestoreStub)
                     const car = new Car(firestoreStub)
     
-                    const pivotId = `${await car.getId()}_${await driver.getId()}`
+                    const pivotId = `${car.getId()}_${driver.getId()}`
 
                     const pivot = new Pivot(firestoreStub, pivotId, car, driver)
     
-                    expect(await pivot.getId()).to.equal(pivotId)
+                    expect(pivot.getId()).to.equal(pivotId)
                 })
 
                 it('Pivot should be initialiazable though ORM by a path', async () => {
@@ -1210,7 +1326,7 @@ describe('STAGE', () => {
                     const pivot: Pivot = db.pivot(path)
 
                     expect(pivot.getName()).to.be.equals(pivotName)
-                    expect(await pivot.getId()).to.be.equals(pivotId)
+                    expect(pivot.getId()).to.be.equals(pivotId)
                 })
                 
                 it('Pivot should be initialiazable though ORM by a path should fail if path contains name of pivot collection', async () => {
@@ -1307,7 +1423,7 @@ describe('STAGE', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const driver = await new Driver(firestoreStub, null, driverId)
+                    const driver = new Driver(firestoreStub, null, driverId)
                     
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
@@ -1319,7 +1435,7 @@ describe('STAGE', () => {
                         }
                     }
 
-                    const car = await new CarM(firestoreStub, null, carId)
+                    const car = new CarM(firestoreStub, null, carId)
 
                     await car.drivers().attach(driver)
 
@@ -1363,7 +1479,7 @@ describe('STAGE', () => {
                     }
 
                     const driverId = uniqid()
-                    const driver = await new DriverM(firestoreStub, null, driverId)
+                    const driver = new DriverM(firestoreStub, null, driverId)
                     
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
@@ -1376,7 +1492,7 @@ describe('STAGE', () => {
                     }
 
                     const carId = uniqid()
-                    const car = await new CarM(firestoreStub, null, carId)
+                    const car = new CarM(firestoreStub, null, carId)
 
                     await car.drivers().attach(driver)
                     await driver.cars().attach(car)
@@ -1417,7 +1533,7 @@ describe('STAGE', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const driver = await new Driver(firestoreStub, null, driverId)
+                    const driver = new Driver(firestoreStub, null, driverId)
                     
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
@@ -1431,7 +1547,7 @@ describe('STAGE', () => {
                         }
                     }
 
-                    const car = await new CarM(firestoreStub, null, carId)
+                    const car = new CarM(firestoreStub, null, carId)
 
                     await car.drivers().attach(driver)
 
@@ -1479,8 +1595,8 @@ describe('STAGE', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const car = await new CarM(firestoreStub, null, carId)
-                    const driver = await new Driver(firestoreStub, null, driverId)
+                    const car = new CarM(firestoreStub, null, carId)
+                    const driver = new Driver(firestoreStub, null, driverId)
 
                     await car.drivers().attach(driver)
 

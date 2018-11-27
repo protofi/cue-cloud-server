@@ -1,9 +1,9 @@
+import { Roles, Errors } from '../../lib/const'
 import * as functions from 'firebase-functions'
 import { Models } from '../../lib/ORM/Models'
+import User from '../../lib/ORM/Models/User'
 import DataORMImpl from './../../lib/ORM/'
 import { firestore } from 'firebase-admin'
-import { Roles, Errors } from '../../lib/const'
-import User from '../../lib/ORM/Models/User';
 
 exports = module.exports = functions.firestore
 .document(`${Models.HOUSEHOLD}/{householdId}`)
@@ -30,7 +30,9 @@ exports = module.exports = functions.firestore
         }
     }
 
-    return household.users().updatePivot(adminId, {
+    return household
+                .users()
+                .updatePivot(adminId, {
                     role : Roles.ADMIN
                 }).catch(console.error)
-});
+})

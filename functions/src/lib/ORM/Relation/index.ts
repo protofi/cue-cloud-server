@@ -7,7 +7,6 @@ import { Pivot } from "./Pivot"
 import { get } from "lodash"
 
 export interface Relation {
-   
     cache(id?: string): Promise<any>
 }
 
@@ -18,6 +17,8 @@ export default class RelationImpl implements Relation{
     protected propertyModelName: string
 
     protected cacheOnToProperty: Array<string>
+
+    protected importStrategy: ModelImportStategy = new StandardModelImport()
 
     constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
     {
@@ -86,6 +87,13 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         return this
     }
 
+    async attachById(propertyId: string, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<One2ManyRelation>
+    {
+        const property = await this.importStrategy.import(this.db, this.propertyModelName, propertyId)
+
+        return this.attach(property, transaction)
+    }
+
      /**
      * Returns the attached property Models
      */
@@ -142,8 +150,7 @@ export class Many2ManyRelation extends N2ManyRelation {
 
     async pivot(propertyId: string): Promise<Pivot>
     {
-        const model = await import(`./../Models/${singular(this.propertyModelName)}`)
-        const property = new model.default(this.propertyModelName, this.db, null, propertyId)
+        const property = await this.importStrategy.import(this.db, this.propertyModelName, propertyId)
 
         const pivotId: string = await this.generatePivotId(propertyId)
 
@@ -240,10 +247,10 @@ export class Many2ManyRelation extends N2ManyRelation {
 
 export class One2ManyRelation extends N2ManyRelation {
 
-    constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
-    {
-        super(owner, propertyModelName, db)
-    }
+    // constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
+    // {
+    //     super(owner, propertyModelName, db)
+    // }
 
     async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<One2ManyRelation>
     {
@@ -276,7 +283,8 @@ interface SimpleRelation {
 
 export class N2OneRelation extends RelationImpl {
     
-    protected cacheOnToProperty: Array<string> = []
+    protected cacheOnToProperty: Array<string> = new Array<string>()
+    protected fieldActions: Map<string, Function> = new Map<string, Function>()
 
     constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
     {
@@ -286,6 +294,14 @@ export class N2OneRelation extends RelationImpl {
     defineCachableFields(cacheOnToProperty: Array<string>): N2OneRelation
     {
         this.cacheOnToProperty = cacheOnToProperty
+        return this
+    }
+
+    defineActionableFields(actionableFields: object): N2OneRelation
+    {
+        Object.keys(actionableFields).forEach((field: string) => {
+            this.fieldActions.set(field, actionableFields[field])
+        })
         return this
     }
 
@@ -333,5 +349,18 @@ export class N2OneRelation extends RelationImpl {
                 [Relations.PIVOT] : data
             }
         })
+    }
+}
+
+export interface ModelImportStategy {
+    import(db: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl>
+}
+
+export class StandardModelImport implements ModelImportStategy{
+    async import(db: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl>
+    {
+        const model = await import(`./../Models/${singular(name)}`)
+        const property = new model.default(name, db, null, id)
+        return property
     }
 }

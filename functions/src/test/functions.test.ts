@@ -5,18 +5,18 @@ import { singular } from 'pluralize'
 import * as admin from 'firebase-admin'
 import * as uniqid from 'uniqid'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
-import ModelImpl, { Models } from './lib/ORM/Models';
-import { Many2ManyRelation } from './lib/ORM/Relation';
-import { Driver, Car } from './stubs';
-import { Change } from 'firebase-functions';
-import { Relations, Roles } from './lib/const';
-import * as _ from 'lodash';
+import ModelImpl, { Models } from './lib/ORM/Models'
+import { Many2ManyRelation } from './lib/ORM/Relation'
+import { Driver, Car } from './stubs'
+import { Change } from 'firebase-functions'
+import { Relations, Roles } from './lib/const'
+import * as _ from 'lodash'
 import * as flatten from 'flat'
 
 const test: FeaturesList = require('firebase-functions-test')()
 
-const assert = chai.assert;
-const expect = chai.expect;
+const assert = chai.assert
+const expect = chai.expect
 
 describe('OFFLINE', () => {
 

@@ -1,4 +1,4 @@
-import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from "../Relation";
+import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from "../Relation"
 import * as flatten from 'flat'
 
 export enum Models {
@@ -22,12 +22,13 @@ export interface Model{
 
 export default class ModelImpl implements Model {
 
-    readonly name: string
     private ref: FirebaseFirestore.DocumentReference
     private snap: FirebaseFirestore.DocumentSnapshot
-    private db: FirebaseFirestore.Firestore
+    readonly name: string
+    protected db: FirebaseFirestore.Firestore
 
-    private relations: Map<string, RelationImpl>
+    protected actionableFields: Map<string, Function>
+    protected relations: Map<string, RelationImpl>
     
     constructor(name: string, db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
@@ -62,7 +63,7 @@ export default class ModelImpl implements Model {
 
     async create(data: object, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
     {
-        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
+        const docRef: FirebaseFirestore.DocumentReference = this.getDocRef()
     
         if(transaction)
         {
@@ -75,7 +76,7 @@ export default class ModelImpl implements Model {
 
     async find(id: string): Promise<ModelImpl>
     {
-        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef(id)
+        const docRef: FirebaseFirestore.DocumentReference = this.getDocRef(id)
         this.snap = await docRef.get()
 
         return this
@@ -90,7 +91,7 @@ export default class ModelImpl implements Model {
     {
         if(this.snap) return this.snap.get(key)
         
-        const id = await this.getId()
+        const id = this.getId()
         if(!id) return null
 
         await this.find(id)
@@ -99,7 +100,7 @@ export default class ModelImpl implements Model {
 
     async update(data: object, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
     {
-        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
+        const docRef: FirebaseFirestore.DocumentReference = this.getDocRef()
         
         if(transaction)
         {
@@ -116,7 +117,7 @@ export default class ModelImpl implements Model {
 
     async updateOrCreate(data: object, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
     {
-        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
+        const docRef: FirebaseFirestore.DocumentReference = this.getDocRef()
         
         if(transaction)
         {
@@ -139,8 +140,9 @@ export default class ModelImpl implements Model {
 
     async delete(): Promise<void>
     {
-        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
+        const docRef: FirebaseFirestore.DocumentReference = this.getDocRef()
         await docRef.delete()
+        
         this.snap = null
         this.ref = null
     }
