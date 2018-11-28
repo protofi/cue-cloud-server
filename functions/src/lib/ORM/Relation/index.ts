@@ -307,8 +307,10 @@ export class N2OneRelation extends RelationImpl {
 
     async takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
     {
-        const beforePivotData = change.before.get(Relations.PIVOT)
-        const afterPivotData = change.after.get(Relations.PIVOT)
+        const pivotPath = `${this.propertyModelName}.${Relations.PIVOT}`
+
+        const beforePivotData = change.before.get(pivotPath)
+        const afterPivotData = change.after.get(pivotPath)
         
         if(!afterPivotData) return
         

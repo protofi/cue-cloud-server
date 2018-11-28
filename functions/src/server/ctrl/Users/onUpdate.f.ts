@@ -2,12 +2,13 @@ import * as functions from 'firebase-functions'
 import { Models } from '../../lib/ORM/Models'
 import { firestore } from 'firebase-admin'
 import DataORMImpl from './../../lib/ORM'
+import User from '../../lib/ORM/Models/User';
 
 exports = module.exports = functions.firestore
 .document(`${Models.USER}/{userId}`)
 .onUpdate(async (change: functions.Change<FirebaseFirestore.DocumentSnapshot>) => {
     
-    let user
+    let user: User
 
     try{
 
@@ -23,11 +24,13 @@ exports = module.exports = functions.firestore
     }
 
     return Promise.all([
-        user.sensors().updateCache(change),
-        user.household().updateCache(change),
 
-        user.household().takeActionOn(change),
         user.takeActionOn(change),
+
+        user.sensors().updateCache(change),
+
+        user.household().updateCache(change),
+        user.household().takeActionOn(change),
 
     ]).catch(console.error)
 })

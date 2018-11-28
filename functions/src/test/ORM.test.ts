@@ -721,7 +721,7 @@ describe('STAGE', () => {
                             }
                         }
 
-                        const rel = new N2OneRelationStub(new Wheel(firestoreStub), 'Car', firestoreStub)
+                        const rel = new N2OneRelationStub(new Wheel(firestoreStub), 'cars', firestoreStub)
 
                         rel.defineActionableField(actionableField, spyAction)
 
@@ -741,14 +741,18 @@ describe('STAGE', () => {
 
                         const actionableField = 'flat'
 
-                        const rel = new N2OneRelation(wheel, 'Car', firestoreStub)
+                        const rel = new N2OneRelation(wheel, 'cars', firestoreStub)
 
                         const spyAction = sinon.spy()
 
                         rel.defineActionableField(actionableField, spyAction)
 
                         const data = {
-                            [Relations.PIVOT] : { [actionableField] : true }
+                            'cars' : {
+                                [Relations.PIVOT] : {
+                                    [actionableField] : true
+                                }
+                            }
                         }
                        
                         const before = test.firestore.makeDocumentSnapshot({}, '')
@@ -800,7 +804,7 @@ describe('STAGE', () => {
 
                         const actionableField = 'flat'
 
-                        const rel = new N2OneRelation(wheel, 'Car', firestoreStub)
+                        const rel = new N2OneRelation(wheel, 'cars', firestoreStub)
 
                         const spyAction = sinon.spy()
 
@@ -809,7 +813,9 @@ describe('STAGE', () => {
                         const before = test.firestore.makeDocumentSnapshot({}, '')
 
                         const data = {
-                            [Relations.PIVOT] : { [actionableField] : true }
+                            'cars' : {
+                                [Relations.PIVOT] : { [actionableField] : true }
+                            }
                         }
 
                         const after = test.firestore.makeDocumentSnapshot(data, '')
@@ -830,7 +836,7 @@ describe('STAGE', () => {
 
                         const actionableField = 'flat'
 
-                        const rel = new N2OneRelation(wheel, 'Car', firestoreStub)
+                        const rel = new N2OneRelation(wheel, 'cars', firestoreStub)
 
                         const spyAction = sinon.spy()
 
@@ -842,7 +848,11 @@ describe('STAGE', () => {
                        
                         const before = test.firestore.makeDocumentSnapshot(data, '')
 
-                        data[Relations.PIVOT] = { [actionableField] : true }
+                        data['cars'] = {
+                            [Relations.PIVOT] : {
+                                [actionableField] : true
+                            }
+                        }
 
                         const after = test.firestore.makeDocumentSnapshot(data, '')
     
@@ -862,14 +872,14 @@ describe('STAGE', () => {
 
                         const actionableField = 'flat'
 
-                        const rel = new N2OneRelation(wheel, 'Car', firestoreStub)
+                        const rel = new N2OneRelation(wheel, 'cars', firestoreStub)
 
                         const spyAction = sinon.spy()
 
                         rel.defineActionableField(actionableField, spyAction)
 
                         const data = {
-                            'name' : 'FL'
+                            'name' : 'front-left'
                         }
 
                         const before = test.firestore.makeDocumentSnapshot(data, '')
