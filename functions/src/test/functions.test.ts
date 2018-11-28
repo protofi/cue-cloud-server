@@ -136,8 +136,8 @@ describe('OFFLINE', () => {
                             id : householdIdTwo,
                             delete : () => {
                                 return
-                            },
-                        }                      
+                            }
+                        }
                     })
 
                     const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
