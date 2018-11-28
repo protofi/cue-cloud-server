@@ -1,5 +1,5 @@
 import ModelImpl, { Models } from "./";
-import { One2ManyRelation } from "./../Relation";
+import { One2ManyRelation, Many2ManyRelation } from "./../Relation";
 
 export default class Household extends ModelImpl {
 
@@ -10,8 +10,11 @@ export default class Household extends ModelImpl {
 
     users(): One2ManyRelation
     {
-        const rel = this.hasMany(Models.USER)
-        
-        return rel
+        return this.hasMany(Models.USER)
+    }
+
+    sensors(): Many2ManyRelation
+    {
+        return this.belongsToMany(Models.SENSOR)
     }
 }

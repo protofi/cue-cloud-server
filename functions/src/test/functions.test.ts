@@ -7,7 +7,7 @@ import * as uniqid from 'uniqid'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import { Many2ManyRelation } from './lib/ORM/Relation'
-import { Driver, Car } from './stubs'
+import { Driver, Car, OfflineDocumentSnapshotStub } from './stubs'
 import { Change } from 'firebase-functions'
 import { Relations, Roles } from './lib/const'
 import * as _ from 'lodash'
@@ -59,7 +59,6 @@ describe('OFFLINE', () => {
                             get: () => {
                                 return {
                                     get: (data) => {
-                                        
                                         if(data)
                                             return firestoreMockData[`${col}/${id}`][data]
                                         else
@@ -107,26 +106,9 @@ describe('OFFLINE', () => {
                     
                     firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {}
 
-                    const householdSnap = {
-                        data : () => {
-                            return { [Models.USER] : { [testUserDataOne.uid] : true } }
-                        },
-                        delete : () => {
-                            return
-                        },
-                        get : (field) => {
-
-                            switch(field)
-                            {
-                                case Models.USER : {
-                                    return { [testUserDataOne.uid] : true }
-                                }
-                                default : {
-                                    return undefined
-                                }
-                            }
-                        }
-                    }
+                    const householdSnap = new OfflineDocumentSnapshotStub({
+                        data : { [Models.USER] : { [testUserDataOne.uid] : true } }
+                    })
 
                     const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
 
@@ -148,29 +130,15 @@ describe('OFFLINE', () => {
                         }
                     }
 
-                    const householdSnap = {
-                        data : () => {
-                            return { [Models.USER] : { [testUserDataOne.uid] : true } }
-                        },
+                    const householdSnap = new OfflineDocumentSnapshotStub({
+                        data : { [Models.USER] : { [testUserDataOne.uid] : true } },
                         ref: {
                             id : householdIdTwo,
                             delete : () => {
                                 return
                             },
-                        },
-                        get : (field) => {
-
-                            switch(field)
-                            {
-                                case Models.USER : {
-                                    return { [testUserDataOne.uid] : true }
-                                }
-                                default : {
-                                    return undefined
-                                }
-                            }
-                        }
-                    }
+                        }                      
+                    })
 
                     const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
 
@@ -193,35 +161,29 @@ describe('OFFLINE', () => {
                 it('Id should be cached on related sensors', async () => {
         
                     const cacheField = 'id'
-                    const sensorId = uniqid()
+                    const sensorsId = uniqid()
                     const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
                     
-                    const change = {
-                        before : {
-                            data: () => {
-                                return {}
+                    const afterDocSnap = new OfflineDocumentSnapshotStub({
+                        data : {
+                            [cacheField] : testUserDataOne.uid,
+                            [Models.SENSOR] : {
+                                [sensorsId] : true
                             }
                         },
-                        after : {
-                            data: () => {
-                                return {
-                                [cacheField] : testUserDataOne.uid
-                                }
-                            },
-                            get : () => {
-                                return {
-                                    [sensorId] : true
-                                }
-                            },
-                            ref : {
-                                [cacheField] : testUserDataOne.uid
-                            }
+                        ref : {
+                            [cacheField] : testUserDataOne.uid
                         }
+                    })
+
+                    const change = {
+                        before : new OfflineDocumentSnapshotStub(),
+                        after : afterDocSnap 
                     }
         
                     await wrappedUsersOnUpdate(change)
         
-                    expect(firestoreMockData[`${Models.SENSOR}/${sensorId}`]).to.deep.equal({
+                    expect(firestoreMockData[`${Models.SENSOR}/${sensorsId}`]).to.deep.equal({
                         [`${Models.USER}.${testUserDataOne.uid}.${cacheField}`] : testUserDataOne.uid
                     })
                 })
@@ -231,33 +193,27 @@ describe('OFFLINE', () => {
                     const cacheField = 'name'
                     const householdId = uniqid()
         
-                    const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
-                    
-                    const change = {
-                        before : {
-                            data: () => {
-                                return {}
+                    const afterDocSnap = new OfflineDocumentSnapshotStub({
+                        data : {
+                            [cacheField] : testUserDataOne.name,
+                            [Models.HOUSEHOLD] : {
+                                id : householdId
                             }
                         },
-                        after : {
-                            data: () => {
-                                return {
-                                [cacheField] : testUserDataOne.name
-                                }
-                            },
-                            get : () => {
-                                return {
-                                    id : householdId
-                                }
-                            },
-                            ref : {
-                                id : testUserDataOne.uid,
-                            }
+                        ref : {
+                            id : testUserDataOne.uid,
                         }
+                    })
+
+                    const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+
+                    const change = {
+                        before : new OfflineDocumentSnapshotStub(),
+                        after : afterDocSnap
                     }
         
                     await wrappedUsersOnUpdate(change)
-        
+                    
                     expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.deep.equal({
                         [`${Models.USER}.${testUserDataOne.uid}.${cacheField}`] : testUserDataOne.name
                     })
@@ -276,32 +232,31 @@ describe('OFFLINE', () => {
     
                 const wrappedSensorsUsersOnUpdate = test.wrap(myFunctions.ctrlSensorsUsersOnUpdate)
     
-                //mock data
+                // mock data
                 firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
                     [Models.USER] : {
                         [userId] : true
                     }
                 }
-    
-                const change = {
-                    before : {
-                        data: () => {
-                            return {}
+
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [Relations.PIVOT] : {
+                            [cacheField] : true
+                        },
+                        [Models.USER] : {
+                            [userId] : true
                         }
                     },
-                    after : {
-                        data: () => {
-                            return {
-                               [Relations.PIVOT] : {
-                                    [cacheField] : true
-                               },
-                            }
-                        },
-                        ref : {
-                            id : pivotId,
-                            path : `${Models.SENSOR}_${Models.USER}/${pivotId}`,
-                        }
+                    ref : {
+                        id : pivotId,
+                        path : `${Models.SENSOR}_${Models.USER}/${pivotId}`,
                     }
+                })
+
+                const change = {
+                    before : new OfflineDocumentSnapshotStub(),
+                    after : afterDocSnap
                 }
     
                 await wrappedSensorsUsersOnUpdate(change)

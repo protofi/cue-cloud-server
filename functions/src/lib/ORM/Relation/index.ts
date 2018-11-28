@@ -1,10 +1,23 @@
 import { Change } from "firebase-functions"
-import { asyncForEach } from "../../util"
+import { asyncForEach, difference } from "../../util"
 import { Relations } from "../../const"
 import { singular } from "pluralize"
 import ModelImpl from "../Models"
 import { Pivot } from "./Pivot"
-import { get } from "lodash"
+import { get, capitalize } from "lodash"
+
+export interface ModelImportStategy {
+    import(db: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl>
+}
+
+export class StandardModelImport implements ModelImportStategy{
+    async import(db: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl>
+    {
+        const model = await import(`./../Models/${capitalize(singular(name))}`)
+        const property = new model.default(db, null, id)
+        return property
+    }
+}
 
 export interface Relation {
     cache(id?: string): Promise<any>
@@ -111,7 +124,6 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
     async getIds(): Promise<Array<string>>
     {
         const properties: Object = await this.owner.getField(this.propertyModelName)
-
 
         if(!properties) return new Array()
         return Object.keys(properties)
@@ -247,11 +259,6 @@ export class Many2ManyRelation extends N2ManyRelation {
 
 export class One2ManyRelation extends N2ManyRelation {
 
-    // constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
-    // {
-    //     super(owner, propertyModelName, db)
-    // }
-
     async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<One2ManyRelation>
     {
         await super.attach(newPropModel, transaction)
@@ -284,12 +291,7 @@ interface SimpleRelation {
 export class N2OneRelation extends RelationImpl {
     
     protected cacheOnToProperty: Array<string> = new Array<string>()
-    protected fieldActions: Map<string, Function> = new Map<string, Function>()
-
-    constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
-    {
-        super(owner, propertyModelName, db)
-    }
+    protected actionableFields: Map<string, Function> = new Map<string, Function>()
 
     defineCachableFields(cacheOnToProperty: Array<string>): N2OneRelation
     {
@@ -297,12 +299,27 @@ export class N2OneRelation extends RelationImpl {
         return this
     }
 
-    defineActionableFields(actionableFields: object): N2OneRelation
+    defineActionableField(field: string, action: (owner: ModelImpl, value: string) => Promise<void>): N2OneRelation
     {
-        Object.keys(actionableFields).forEach((field: string) => {
-            this.fieldActions.set(field, actionableFields[field])
-        })
+        this.actionableFields.set(field, action)
         return this
+    }
+
+    async takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
+    {
+        const beforePivotData = change.before.get(Relations.PIVOT)
+        const afterPivotData = change.after.get(Relations.PIVOT)
+        
+        const changes = (beforePivotData) ? difference(beforePivotData, afterPivotData) : afterPivotData
+
+        await asyncForEach(Object.keys(changes),
+            async (field) => {
+
+                const action = this.actionableFields.get(field)
+                if(action) await action(this.owner, changes[field])
+
+                return
+        })
     }
 
      /**
@@ -311,6 +328,7 @@ export class N2OneRelation extends RelationImpl {
     async get(): Promise<ModelImpl>
     {
         const property: SimpleRelation = await this.owner.getField(this.propertyModelName) as SimpleRelation
+        if(!property) return null
         return new ModelImpl(this.propertyModelName, this.db, null, property.id)
     }
 
@@ -327,6 +345,8 @@ export class N2OneRelation extends RelationImpl {
         const newCacheData = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
 
         const property: ModelImpl = await this.get()
+
+        if(!property) return null
 
         if(!(Object.keys(newCacheData).length > 0)) return property
 
@@ -349,18 +369,5 @@ export class N2OneRelation extends RelationImpl {
                 [Relations.PIVOT] : data
             }
         })
-    }
-}
-
-export interface ModelImportStategy {
-    import(db: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl>
-}
-
-export class StandardModelImport implements ModelImportStategy{
-    async import(db: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl>
-    {
-        const model = await import(`./../Models/${singular(name)}`)
-        const property = new model.default(name, db, null, id)
-        return property
     }
 }

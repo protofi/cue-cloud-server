@@ -7,14 +7,27 @@ exports = module.exports = functions.firestore
 .document(`${Models.USER}/{userId}`)
 .onUpdate(async (change: functions.Change<FirebaseFirestore.DocumentSnapshot>) => {
     
-    const adminFs = firestore()
-    const db = new DataORMImpl(adminFs)
-    
-    const docSnap = change.after
-    const user = db.user(docSnap)
-    
+    let user
+
+    try{
+
+        const adminFs = firestore()
+        const db = new DataORMImpl(adminFs)
+        
+        const docSnap = change.after
+        user = db.user(docSnap)
+    }
+    catch(e)
+    {
+        return e
+    }
+
     return Promise.all([
         user.sensors().updateCache(change),
-        user.household().updateCache(change)
+        user.household().updateCache(change),
+
+        user.household().takeActionOn(change),
+        user.takeActionOn(change),
+
     ]).catch(console.error)
 })

@@ -5,7 +5,7 @@ exports = module.exports = functions.firestore
 .document(`${Models.HOUSEHOLD}/{householdId}`)
 .onUpdate((change, context) => {
 
-    console.log('OYI')
+    console.log('OYI BOI HOUSEHOLD')
   
     return Promise.resolve()
 })

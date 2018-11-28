@@ -1,5 +1,8 @@
 import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from "../Relation"
+import { Change } from "firebase-functions";
 import * as flatten from 'flat'
+import { get } from "lodash"
+import { difference, asyncForEach } from "../../util";
 
 export enum Models {
     HOUSEHOLD = 'households',
@@ -17,6 +20,8 @@ export interface Model{
     where(fieldPath: string, operator: FirebaseFirestore.WhereFilterOp, value: string): FirebaseFirestore.Query
     getField(key: string): any
     update(data: object): Promise<ModelImpl>
+    takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
+    defineActionableField(field: string, action: Function): void
     delete(): Promise<void>
 }
 
@@ -27,7 +32,7 @@ export default class ModelImpl implements Model {
     readonly name: string
     protected db: FirebaseFirestore.Firestore
 
-    protected actionableFields: Map<string, Function>
+    private actionableFields: Map<string, Function> = new Map<string, Function>()
     protected relations: Map<string, RelationImpl>
     
     constructor(name: string, db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
@@ -187,5 +192,26 @@ export default class ModelImpl implements Model {
         }
 
         return this.relations.get(property) as N2OneRelation
+    }
+
+    defineActionableField(field: string, action: Function): void
+    {
+        this.actionableFields.set(field, action)
+    }
+
+    async takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
+    {
+        const beforeData = change.before.data()
+        const afterData = change.after.data()
+        
+        const changes = difference(beforeData, afterData)
+
+        await asyncForEach(Object.keys(changes),
+            async (field) => {
+                const action = this.actionableFields.get(field)
+                if(action) await action(changes[field])
+
+                return
+        })
     }
 }
