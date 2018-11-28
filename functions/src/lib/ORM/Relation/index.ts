@@ -310,6 +310,8 @@ export class N2OneRelation extends RelationImpl {
         const beforePivotData = change.before.get(Relations.PIVOT)
         const afterPivotData = change.after.get(Relations.PIVOT)
         
+        if(!afterPivotData) return
+        
         const changes = (beforePivotData) ? difference(beforePivotData, afterPivotData) : afterPivotData
 
         await asyncForEach(Object.keys(changes),

@@ -734,7 +734,7 @@ describe('STAGE', () => {
                         expect(spyAction.callCount).to.equals(1)
                     })
                     
-                    it('TakeActionOn should be able to able changes when before is empty', async () => {
+                    it('TakeActionOn should be able to react to changes when before is empty', async () => {
 
                         const wheelId = uniqid()
                         const wheel = new Wheel(firestoreStub, null, wheelId)
@@ -763,6 +763,35 @@ describe('STAGE', () => {
                         expect(typeof spyAction.firstCall.args[0]).to.equals(typeof wheel)
                         expect(spyAction.firstCall.args[1]).to.be.true
                     })
+
+                    it('TakeActionOn should be able to handle if no changes has been made to the pivot data', async () => {
+
+                        const wheelId = uniqid()
+                        const wheel = new Wheel(firestoreStub, null, wheelId)
+
+                        const actionableField = 'flat'
+
+                        const rel = new N2OneRelation(wheel, 'Car', firestoreStub)
+
+                        const spyAction = sinon.spy()
+
+                        rel.defineActionableField(actionableField, spyAction)
+
+                        const data = {
+                            name : 'bob'
+                        }
+                       
+                        const before = test.firestore.makeDocumentSnapshot({}, '')
+
+                        const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                        await rel.takeActionOn(change)
+                        
+                        expect(spyAction.callCount).to.equals(0)
+                    })
+
 
                     it('A defined field action should be executed when changes to the particular field are passed to takeActionOn', async () => {
 
