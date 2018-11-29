@@ -1,6 +1,6 @@
 import ModelImpl, { Models } from "./"
 import { Many2ManyRelation, N2OneRelation } from "./../Relation"
-import { asyncForEach } from "../../util";
+import CreateUserSensorRelationsCommand from "./../../Command/CreateUserSensorRelationsCommand";
 
 export default class User extends ModelImpl {
 
@@ -15,23 +15,7 @@ export default class User extends ModelImpl {
             .belongsTo(Models.HOUSEHOLD)
             .defineCachableFields([
                 'name'
-            ]).defineActionableField(
-                'accepted', async (owner: User, accecpted: string) => {
-
-                    if(!accecpted) return
-
-                    const household = await owner.household().get()
-                    if(!household) return
-
-                    const sensors: any = await household.getField(Models.SENSOR)
-                    if(!sensors) return
-
-                    await asyncForEach(Object.keys(sensors), async (sensorId) => {
-                        await this.sensors().attachById(sensorId)
-                    })
-
-                    return
-            })
+            ]).defineActionableField('accepted', new CreateUserSensorRelationsCommand())
     }
 
     sensors(): Many2ManyRelation

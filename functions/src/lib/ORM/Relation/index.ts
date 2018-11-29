@@ -5,6 +5,7 @@ import { singular } from "pluralize"
 import ModelImpl from "../Models"
 import { Pivot } from "./Pivot"
 import { get, capitalize } from "lodash"
+import IActionableFieldCommand from "./../../Command/Command";
 
 export interface ModelImportStategy {
     import(db: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl>
@@ -291,7 +292,7 @@ interface SimpleRelation {
 export class N2OneRelation extends RelationImpl {
     
     protected cacheOnToProperty: Array<string> = new Array<string>()
-    protected actionableFields: Map<string, Function> = new Map<string, Function>()
+    protected actionableFields: Map<string, IActionableFieldCommand> = new Map<string, IActionableFieldCommand>()
 
     defineCachableFields(cacheOnToProperty: Array<string>): N2OneRelation
     {
@@ -299,9 +300,9 @@ export class N2OneRelation extends RelationImpl {
         return this
     }
 
-    defineActionableField(field: string, action: (owner: ModelImpl, value: string) => Promise<void>): N2OneRelation
+    defineActionableField(field: string, command: IActionableFieldCommand): N2OneRelation
     {
-        this.actionableFields.set(field, action)
+        this.actionableFields.set(field, command)
         return this
     }
 
@@ -319,8 +320,8 @@ export class N2OneRelation extends RelationImpl {
         await asyncForEach(Object.keys(changes),
             async (field) => {
 
-                const action = this.actionableFields.get(field)
-                if(action) await action(this.owner, changes[field])
+                const action: IActionableFieldCommand = this.actionableFields.get(field)
+                if(action) await action.execute(this.owner, changes[field])
 
                 return
         })

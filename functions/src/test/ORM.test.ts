@@ -14,13 +14,14 @@ import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
-import { Car, Driver } from './stubs'
+import { Car, Driver, ActionableFieldCommandStub } from './stubs'
 import { Many2ManyRelation, One2ManyRelation, N2ManyRelation, N2OneRelation, StandardModelImport, ModelImportStategy } from './lib/ORM/Relation'
 import { Pivot } from './lib/ORM/Relation/Pivot'
 import { Change, firestore } from 'firebase-functions'
 import { Relations } from './lib/const'
 import { singular } from 'pluralize';
 import Wheel from './stubs/Wheel';
+import IActionableFieldCommand from './lib/Command/Command';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -710,8 +711,12 @@ describe('STAGE', () => {
 
                     it('Actionable fields should be defined on the relation between the owner model and property model', async () => {
 
+                        const wheel = new Wheel(firestoreStub)
+
                         const actionableField = 'flat'
-                        const spyAction = sinon.spy()
+
+                        const command = new ActionableFieldCommandStub()
+                        const commandSpy = sinon.spy(command, 'execute')
 
                         class N2OneRelationStub extends N2OneRelation
                         {
@@ -721,31 +726,31 @@ describe('STAGE', () => {
                             }
                         }
 
-                        const rel = new N2OneRelationStub(new Wheel(firestoreStub), 'cars', firestoreStub)
+                        const rel = new N2OneRelationStub(wheel, 'cars', firestoreStub)
 
-                        rel.defineActionableField(actionableField, spyAction)
+                        rel.defineActionableField(actionableField, command)
 
                         const fieldActions = rel.getFieldActions()
 
                         expect(fieldActions.get(actionableField)).to.not.be.null
 
-                        await fieldActions.get(actionableField)()
+                        await fieldActions.get(actionableField).execute(wheel, 'true')
 
-                        expect(spyAction.callCount).to.equals(1)
+                        expect(commandSpy.callCount).to.equals(1)
                     })
                     
                     it('TakeActionOn should be able to react to changes when before is empty', async () => {
 
-                        const wheelId = uniqid()
-                        const wheel = new Wheel(firestoreStub, null, wheelId)
+                        const wheel = new Wheel(firestoreStub)
 
                         const actionableField = 'flat'
 
+                        const command = new ActionableFieldCommandStub()
+                        const commandSpy = sinon.spy(command, 'execute')
+
                         const rel = new N2OneRelation(wheel, 'cars', firestoreStub)
 
-                        const spyAction = sinon.spy()
-
-                        rel.defineActionableField(actionableField, spyAction)
+                        rel.defineActionableField(actionableField, command)
 
                         const data = {
                             'cars' : {
@@ -763,23 +768,21 @@ describe('STAGE', () => {
     
                         await rel.takeActionOn(change)
                         
-                        expect(spyAction.callCount).to.equals(1)
-                        expect(typeof spyAction.firstCall.args[0]).to.equals(typeof wheel)
-                        expect(spyAction.firstCall.args[1]).to.be.true
+                        expect(commandSpy.callCount).to.equals(1)
+                        expect(typeof commandSpy.firstCall.args[0]).to.equals(typeof wheel)
+                        expect(commandSpy.firstCall.args[1]).to.be.true
                     })
 
                     it('TakeActionOn should be able to handle if no changes has been made to the pivot data', async () => {
 
-                        const wheelId = uniqid()
-                        const wheel = new Wheel(firestoreStub, null, wheelId)
-
                         const actionableField = 'flat'
 
-                        const rel = new N2OneRelation(wheel, 'Car', firestoreStub)
+                        const rel = new N2OneRelation(new Wheel(firestoreStub), 'Car', firestoreStub)
 
-                        const spyAction = sinon.spy()
+                        const command = new ActionableFieldCommandStub()
+                        const commandSpy = sinon.spy(command, 'execute')
 
-                        rel.defineActionableField(actionableField, spyAction)
+                        rel.defineActionableField(actionableField, command)
 
                         const data = {
                             name : 'bob'
@@ -793,22 +796,21 @@ describe('STAGE', () => {
     
                         await rel.takeActionOn(change)
                         
-                        expect(spyAction.callCount).to.equals(0)
+                        expect(commandSpy.callCount).to.equals(0)
                     })
-
 
                     it('A defined field action should be executed when changes to the particular field are passed to takeActionOn', async () => {
 
-                        const wheelId = uniqid()
-                        const wheel = new Wheel(firestoreStub, null, wheelId)
+                        const wheel = new Wheel(firestoreStub)
 
                         const actionableField = 'flat'
 
                         const rel = new N2OneRelation(wheel, 'cars', firestoreStub)
 
-                        const spyAction = sinon.spy()
+                        const command = new ActionableFieldCommandStub()
+                        const commandSpy = sinon.spy(command, 'execute')
 
-                        rel.defineActionableField(actionableField, spyAction)
+                        rel.defineActionableField(actionableField, command)
 
                         const before = test.firestore.makeDocumentSnapshot({}, '')
 
@@ -824,23 +826,22 @@ describe('STAGE', () => {
     
                         await rel.takeActionOn(change)
                         
-                        expect(spyAction.callCount).to.equals(1)
-                        expect(typeof spyAction.firstCall.args[0]).to.equals(typeof wheel)
-                        expect(spyAction.firstCall.args[1]).to.be.true
+                        expect(commandSpy.callCount).to.equals(1)
+                        expect(typeof commandSpy.firstCall.args[0]).to.equals(typeof wheel)
+                        expect(commandSpy.firstCall.args[1]).to.be.true
                     })
 
                     it('A defined field action should be executed when changes to the particular field are passed to takeActionOn', async () => {
 
-                        const wheelId = uniqid()
-                        const wheel = new Wheel(firestoreStub, null, wheelId)
-
+                        const wheel = new Wheel(firestoreStub)
                         const actionableField = 'flat'
 
                         const rel = new N2OneRelation(wheel, 'cars', firestoreStub)
 
-                        const spyAction = sinon.spy()
+                        const command = new ActionableFieldCommandStub()
+                        const commandSpy = sinon.spy(command, 'execute')
 
-                        rel.defineActionableField(actionableField, spyAction)
+                        rel.defineActionableField(actionableField, command)
 
                         const data = {
                             name : 'spare'
@@ -860,23 +861,23 @@ describe('STAGE', () => {
     
                         await rel.takeActionOn(change)
                         
-                        expect(spyAction.callCount).to.equals(1)
-                        expect(typeof spyAction.firstCall.args[0]).to.equals(typeof wheel)
-                        expect(spyAction.firstCall.args[1]).to.be.true
+                        expect(commandSpy.callCount).to.equals(1)
+                        expect(typeof commandSpy.firstCall.args[0]).to.equals(typeof wheel)
+                        expect(commandSpy.firstCall.args[1]).to.be.true
                     })
 
                     it('Changes made the fields on the owner model with simular names should course a action on pivot to execute', async () => {
 
-                        const wheelId = uniqid()
-                        const wheel = new Wheel(firestoreStub, null, wheelId)
+                        const wheel = new Wheel(firestoreStub)
 
                         const actionableField = 'flat'
 
                         const rel = new N2OneRelation(wheel, 'cars', firestoreStub)
 
-                        const spyAction = sinon.spy()
+                        const command = new ActionableFieldCommandStub()
+                        const commandSpy = sinon.spy(command, 'execute')
 
-                        rel.defineActionableField(actionableField, spyAction)
+                        rel.defineActionableField(actionableField, command)
 
                         const data = {
                             'name' : 'front-left'
@@ -892,7 +893,7 @@ describe('STAGE', () => {
     
                         await rel.takeActionOn(change)
                         
-                        expect(spyAction.callCount).to.equals(0)
+                        expect(commandSpy.callCount).to.equals(0)
                     })
                 })
             })

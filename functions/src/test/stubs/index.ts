@@ -1,6 +1,7 @@
 import * as uniqid from 'uniqid'
 import ModelImpl from "../lib/ORM/Models";
 import { Many2ManyRelation, N2OneRelation, One2ManyRelation } from "../lib/ORM/Relation";
+import IActionableFieldCommand from '../lib/Command/Command';
 
 export class Driver extends ModelImpl {
     constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
@@ -73,5 +74,14 @@ export class OfflineDocumentSnapshotStub {
     async get(field): Promise<Object>
     {
         return this.docData[field]
+    }
+}
+
+export class ActionableFieldCommandStub implements IActionableFieldCommand {
+    async execute(owner: ModelImpl, field: string): Promise<void> {
+        return
+    }
+    async undo(): Promise<void> {
+        return
     }
 }
