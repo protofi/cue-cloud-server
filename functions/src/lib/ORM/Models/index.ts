@@ -1,8 +1,8 @@
 import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from "../Relation"
 import { Change } from "firebase-functions";
 import * as flatten from 'flat'
-import { get } from "lodash"
 import { difference, asyncForEach } from "../../util";
+import IActionableFieldCommand from "./../../Command/Command";
 
 export enum Models {
     HOUSEHOLD = 'households',
@@ -21,7 +21,7 @@ export interface Model{
     getField(key: string): any
     update(data: object): Promise<ModelImpl>
     takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
-    defineActionableField(field: string, action: Function): void
+    defineActionableField(field: string, command: IActionableFieldCommand): void
     delete(): Promise<void>
 }
 
@@ -32,7 +32,7 @@ export default class ModelImpl implements Model {
     readonly name: string
     protected db: FirebaseFirestore.Firestore
 
-    private actionableFields: Map<string, Function> = new Map<string, Function>()
+    protected actionableFields: Map<string, IActionableFieldCommand> = new Map<string, IActionableFieldCommand>()
     protected relations: Map<string, RelationImpl>
     
     constructor(name: string, db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
@@ -194,9 +194,9 @@ export default class ModelImpl implements Model {
         return this.relations.get(property) as N2OneRelation
     }
 
-    defineActionableField(field: string, action: Function): void
+    defineActionableField(field: string, command: IActionableFieldCommand): void
     {
-        this.actionableFields.set(field, action)
+        this.actionableFields.set(field, command)
     }
 
     async takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
@@ -204,12 +204,12 @@ export default class ModelImpl implements Model {
         const beforeData = change.before.data()
         const afterData = change.after.data()
         
-        const changes = difference(beforeData, afterData)
+        const changes = (beforeData) ? difference(beforeData, afterData) : afterData
 
         await asyncForEach(Object.keys(changes),
             async (field) => {
-                const action = this.actionableFields.get(field)
-                if(action) await action(changes[field])
+                const command = this.actionableFields.get(field)
+                if(command) await command.execute(this, changes[field] as string)
 
                 return
         })

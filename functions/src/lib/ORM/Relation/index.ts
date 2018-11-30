@@ -74,6 +74,7 @@ export interface N2ManyRelation {
     get(): Promise<Array<ModelImpl>>
     attach(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<N2ManyRelation>
     updatePivot(propertyId: string, data: object): Promise<ModelImpl>
+    attachBulk(propertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
 }
 
 export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
@@ -106,6 +107,22 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         const property = await this.importStrategy.import(this.db, this.propertyModelName, propertyId)
 
         return this.attach(property, transaction)
+    }
+
+    async attachBulk(propertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    {
+        const propertyRelations: Object = {}
+
+        propertyModels.forEach((propertyModel: ModelImpl) => {
+            const propertyId: string = propertyModel.getId()
+            propertyRelations[propertyId] = true
+        })
+
+        await this.owner.updateOrCreate({
+            [this.propertyModelName] : propertyRelations
+        }, transaction)
+
+        return
     }
 
      /**
@@ -236,8 +253,8 @@ export class Many2ManyRelation extends N2ManyRelation {
         const pivotModel: ModelImpl = new ModelImpl(this.name, this.db, null, id)
 
         const pivotData = {
-            [this.owner.name]           : { id : await this.owner.getId()},
-            [this.propertyModelName]    : { id : await newPropModel.getId()}
+            [this.owner.name]           : { id : await this.owner.getId() },
+            [this.propertyModelName]    : { id : await newPropModel.getId() }
         }
 
         await pivotModel.updateOrCreate(pivotData)
@@ -271,6 +288,21 @@ export class One2ManyRelation extends N2ManyRelation {
         }, transaction)
 
         return this
+    }
+
+    async attachBulk(propertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    {
+        await super.attachBulk(propertyModels, transaction)
+
+        await asyncForEach(propertyModels,
+            async (propertyModel: ModelImpl) => {
+                await propertyModel.updateOrCreate({
+                    [this.owner.name] : {
+                        id : this.owner.getId()
+                    }
+                }, transaction)
+            }
+        )
     }
 
     async updatePivot(id: string, data: object)

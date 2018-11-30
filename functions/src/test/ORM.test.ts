@@ -5,7 +5,6 @@ import * as admin from 'firebase-admin'
 import * as functionsTest from 'firebase-functions-test'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
 import * as uniqid from 'uniqid'
-import { union } from "lodash"
 
 import DataORMImpl from "./lib/ORM"
 import { asyncForEach, difference } from './lib/util'
@@ -15,13 +14,11 @@ import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
 import { Car, Driver, ActionableFieldCommandStub } from './stubs'
-import { Many2ManyRelation, One2ManyRelation, N2ManyRelation, N2OneRelation, StandardModelImport, ModelImportStategy } from './lib/ORM/Relation'
+import { Many2ManyRelation, One2ManyRelation, N2OneRelation, ModelImportStategy } from './lib/ORM/Relation'
 import { Pivot } from './lib/ORM/Relation/Pivot'
-import { Change, firestore } from 'firebase-functions'
+import { Change } from 'firebase-functions'
 import { Relations } from './lib/const'
-import { singular } from 'pluralize';
-import Wheel from './stubs/Wheel';
-import IActionableFieldCommand from './lib/Command/Command';
+import Wheel from './stubs/Wheel'
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -128,7 +125,7 @@ describe('STAGE', () => {
             it('Create doc new ref with certain id.', async () => {
                 const id: string = '123';
 
-                const docRef: FirebaseFirestore.DocumentReference = await db.user().getDocRef(id)
+                const docRef: FirebaseFirestore.DocumentReference = db.user().getDocRef(id)
                 expect(docRef).exist
                 expect(docRef.id).to.equals(id)
                 expect(docRef.path).exist
@@ -141,7 +138,7 @@ describe('STAGE', () => {
 
                 const car = new Car(adminFs, null, id)
 
-                const docRef = await car.getDocRef()
+                const docRef = car.getDocRef()
            
                 expect(id).to.equal(docRef.id)
             })
@@ -150,15 +147,15 @@ describe('STAGE', () => {
                 const snap = test.firestore.exampleDocumentSnapshot()
            
                 const car = new Car(adminFs, snap)
-                const docRef = await car.getDocRef()
+                const docRef = car.getDocRef()
            
                 expect(snap.ref.id).to.equal(docRef.id)
             })
 
             it('Get ref returns the same ref after initialization.', async () => {
                 const car: ModelImpl = new Car(adminFs)
-                const docRef1: FirebaseFirestore.DocumentReference = car.getDocRef()
-                const docRef2: FirebaseFirestore.DocumentReference = car.getDocRef()
+                const docRef1 = car.getDocRef()
+                const docRef2 = car.getDocRef()
 
                 expect(docRef1.id).to.equals(docRef2.id)
             })
@@ -178,7 +175,7 @@ describe('STAGE', () => {
                 const id: string = car.getId()
                 
                 // Clean up
-                docsToBeDeleted.push((car.getDocRef()).path)
+                docsToBeDeleted.push(car.getDocRef().path)
                 
                 expect(id).exist
             })
@@ -257,7 +254,7 @@ describe('STAGE', () => {
                 })
 
                 //Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push(user.getDocRef().path)
 
                 await user.update({
                     age: 28
@@ -352,35 +349,151 @@ describe('STAGE', () => {
                 expect(age2).to.not.exist
             })
 
-            // describe('Actionable fields', () => {
+            describe('Actionable fields', () => {
 
-            //     // it('Actionable field should be definable on the model along an action', async () => {
+                it('Actionable fields should be defined on the relation between the owner model and property model', async () => {
 
-            //     //     const car = new Car(firestoreStub)
+                    const actionableField = 'flat'
 
-            //     //     car.defineActionableFields
+                    const command = new ActionableFieldCommandStub()
+                    const commandSpy = sinon.spy(command, 'execute')
 
-            //     // })
+                    class ModelStub extends ModelImpl
+                    {
+                        getFieldActions()
+                        {
+                            return this.actionableFields
+                        }
+                    }
 
-            //     it('Test', async () => {
-            //         const obj1 = {
-            //             name : 'Bobby',
-            //             age : 12,
-            //             gender: 'male',
-            //             pivot : {
-            //                 name : 'lol'
-            //             }
-            //         }
+                    const model = new ModelStub('', firestoreStub)
 
-            //         const obj2 = {
-            //             name : 'Bob',
-            //             height : 183,
-            //             gender: 'null'
-            //         }
+                    model.defineActionableField(actionableField, command)
 
-            //         console.log(difference(obj1, obj2))
-            //     })
-            // })
+                    const fieldActions = model.getFieldActions()
+
+                    expect(fieldActions.get(actionableField)).to.not.be.null
+
+                    await fieldActions.get(actionableField).execute(model, 'true')
+
+                    expect(commandSpy.callCount).to.equals(1)
+                })
+                
+                it('TakeActionOn should be able to react to changes when before snap is empty', async () => {
+
+                    const wheelId = uniqid()
+                    const wheel = new Wheel(firestoreStub, null, wheelId)
+
+                    const actionableField = 'flat'
+
+                    const command = new ActionableFieldCommandStub()
+                    const commandSpy = sinon.spy(command, 'execute')
+
+                    wheel.defineActionableField(actionableField, command)
+                    const data = {
+                        [actionableField] : true
+                    }
+                   
+                    const before = test.firestore.makeDocumentSnapshot({}, '')
+
+                    const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await wheel.takeActionOn(change)
+
+                    expect(commandSpy.callCount).to.equals(1)
+                    expect(typeof commandSpy.firstCall.args[0]).to.equals(typeof wheel)
+                    expect(commandSpy.firstCall.args[1]).to.be.true
+                })
+
+                it('TakeActionOn should be able to handle if no changes has been made to the model data', async () => {
+
+                    const actionableField = 'flat'
+
+                    const model = new Wheel(firestoreStub)
+
+                    const command = new ActionableFieldCommandStub()
+                    const commandSpy = sinon.spy(command, 'execute')
+
+                    model.defineActionableField(actionableField, command)
+
+                    const data = {
+                        [Relations.PIVOT] : {
+                            'cars' : {
+                                [actionableField] : 'bob'
+                            }
+                        }
+                    }
+                   
+                    const before = test.firestore.makeDocumentSnapshot({}, '')
+
+                    const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await model.takeActionOn(change)
+                    
+                    expect(commandSpy.callCount).to.equals(0)
+                })
+
+                it('A defined field action should be executed when changes to the particular field are passed to takeActionOn', async () => {
+
+                    const wheel = new Wheel(firestoreStub)
+                    const actionableField = 'flat'
+
+                    const command = new ActionableFieldCommandStub()
+                    const commandSpy = sinon.spy(command, 'execute')
+
+                    wheel.defineActionableField(actionableField, command)
+
+                    const data = {
+                        name : 'spare'
+                    }
+                   
+                    const before = test.firestore.makeDocumentSnapshot(data, '')
+
+                    data[actionableField] = true
+
+                    const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await wheel.takeActionOn(change)
+                    
+                    expect(commandSpy.callCount).to.equals(1)
+                    expect(typeof commandSpy.firstCall.args[0]).to.equals(typeof wheel)
+                    expect(commandSpy.firstCall.args[1]).to.be.true
+                })
+
+                it('Changes made the fields on the owner model with simular names should not course a action on pivot to execute', async () => {
+
+                    const wheel = new Wheel(firestoreStub)
+
+                    const actionableField = 'flat'
+
+                    const command = new ActionableFieldCommandStub()
+                    const commandSpy = sinon.spy(command, 'execute')
+
+                    wheel.defineActionableField(actionableField, command)
+
+                    const data = {
+                        'name' : 'front-left'
+                    }
+
+                    const before = test.firestore.makeDocumentSnapshot(data, '')
+
+                    data[Relations.PIVOT] = true
+
+                    const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await wheel.takeActionOn(change)
+                    
+                    expect(commandSpy.callCount).to.equals(0)
+                })
+            })
         })
 
 
@@ -553,10 +666,131 @@ describe('STAGE', () => {
                     expect(doc.get(`${car.name}.${Relations.PIVOT}.name`)).to.be.equal(dataName)
                 })
 
+                it('When models are attached in bulk relations to all property models should be made on the owner', async () => {
+
+                    const carId = uniqid()
+
+                    const wheelId1 = uniqid()
+                    const wheelId2 = uniqid()
+                    const wheelId3 = uniqid()
+                    
+                    const wheelName = 'wheels'
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(firestoreStub, null, wheelId1),
+                        new Wheel(firestoreStub, null, wheelId2),
+                        new Wheel(firestoreStub, null, wheelId3)
+                    ])
+
+                    expect(firestoreMockData[`${car.name}/${carId}`][wheelName][wheelId1]).to.exist
+                    expect(firestoreMockData[`${car.name}/${carId}`][wheelName][wheelId2]).to.exist
+                    expect(firestoreMockData[`${car.name}/${carId}`][wheelName][wheelId3]).to.exist
+                })
+
+                it('When models are attached in bulk relations to the owner model should be made on the properties', async () => {
+
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const wheelName = 'wheels'
+
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(firestoreStub, null, wheelId1),
+                        new Wheel(firestoreStub, null, wheelId2),
+                        new Wheel(firestoreStub, null, wheelId3)
+                    ])
+
+                    expect(firestoreMockData[`${wheelName}/${wheelId1}`][`${car.name}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${wheelName}/${wheelId2}`][`${car.name}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${wheelName}/${wheelId3}`][`${car.name}`]['id']).to.equal(carId)
+                })
+
+                it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const wheelName = 'wheels'
+
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(adminFs, null, wheelId1),
+                        new Wheel(adminFs, null, wheelId2),
+                        new Wheel(adminFs, null, wheelId3)
+                    ], batch)
+
+                    //clean up
+                    docsToBeDeleted.push(`${wheelName}/${wheelId1}`)
+                    docsToBeDeleted.push(`${wheelName}/${wheelId2}`)
+                    docsToBeDeleted.push(`${wheelName}/${wheelId3}`)
+                    docsToBeDeleted.push(`${'cars'}/${carId}`)
+
+                    await batch.commit()
+
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+                    const w1 = await adminFs.doc(`${wheelName}/${wheelId1}`).get()
+                    const w2 = await adminFs.doc(`${wheelName}/${wheelId2}`).get()
+                    const w3 = await adminFs.doc(`${wheelName}/${wheelId3}`).get()
+
+                    expect(c.data()).to.deep.include({ [wheelName] : {
+                            [wheelId1] : true,
+                            [wheelId2] : true,
+                            [wheelId3] : true
+                        }
+                    })
+
+                    expect(w1.data()).to.deep.equal({ [car.name] : { id : carId }})
+                    expect(w2.data()).to.deep.equal({ [car.name] : { id : carId }})
+                    expect(w3.data()).to.deep.equal({ [car.name] : { id : carId }})
+                })
+
+                it('When a write batch are passed to attachBulk and commit on batch is not invoked the relations should not be made', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const wheelName = 'wheels'
+
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(adminFs, null, wheelId1),
+                        new Wheel(adminFs, null, wheelId2),
+                        new Wheel(adminFs, null, wheelId3)
+                    ], batch)
+
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+                    const w1 = await adminFs.doc(`${wheelName}/${wheelId1}`).get()
+                    const w2 = await adminFs.doc(`${wheelName}/${wheelId2}`).get()
+                    const w3 = await adminFs.doc(`${wheelName}/${wheelId3}`).get()
+
+                    expect(c.exists).to.be.false
+                    expect(w1.exists).to.be.false
+                    expect(w2.exists).to.be.false
+                    expect(w3.exists).to.be.false
+                })
+
                 it('The pivot should be updatable trough the inverse relation', async () => {
                     
                     const carId = uniqid()
                     const wheelId = uniqid()
+
                     const car = new Car(firestoreStub, null, carId)
                     const wheel = new Wheel(firestoreStub, null, wheelId)
 
@@ -739,7 +973,7 @@ describe('STAGE', () => {
                         expect(commandSpy.callCount).to.equals(1)
                     })
                     
-                    it('TakeActionOn should be able to react to changes when before is empty', async () => {
+                    it('TakeActionOn should be able to react to changes when before snap is empty', async () => {
 
                         const wheel = new Wheel(firestoreStub)
 
@@ -802,38 +1036,6 @@ describe('STAGE', () => {
                     it('A defined field action should be executed when changes to the particular field are passed to takeActionOn', async () => {
 
                         const wheel = new Wheel(firestoreStub)
-
-                        const actionableField = 'flat'
-
-                        const rel = new N2OneRelation(wheel, 'cars', firestoreStub)
-
-                        const command = new ActionableFieldCommandStub()
-                        const commandSpy = sinon.spy(command, 'execute')
-
-                        rel.defineActionableField(actionableField, command)
-
-                        const before = test.firestore.makeDocumentSnapshot({}, '')
-
-                        const data = {
-                            'cars' : {
-                                [Relations.PIVOT] : { [actionableField] : true }
-                            }
-                        }
-
-                        const after = test.firestore.makeDocumentSnapshot(data, '')
-    
-                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
-    
-                        await rel.takeActionOn(change)
-                        
-                        expect(commandSpy.callCount).to.equals(1)
-                        expect(typeof commandSpy.firstCall.args[0]).to.equals(typeof wheel)
-                        expect(commandSpy.firstCall.args[1]).to.be.true
-                    })
-
-                    it('A defined field action should be executed when changes to the particular field are passed to takeActionOn', async () => {
-
-                        const wheel = new Wheel(firestoreStub)
                         const actionableField = 'flat'
 
                         const rel = new N2OneRelation(wheel, 'cars', firestoreStub)
@@ -866,7 +1068,7 @@ describe('STAGE', () => {
                         expect(commandSpy.firstCall.args[1]).to.be.true
                     })
 
-                    it('Changes made the fields on the owner model with simular names should course a action on pivot to execute', async () => {
+                    it('Changes made the fields on the owner model with simular names should not course a action on pivot to execute', async () => {
 
                         const wheel = new Wheel(firestoreStub)
 

@@ -5,11 +5,11 @@ import { Models } from "./../ORM/Models";
 
 export default class CreateUserSensorRelationsCommand implements IActionableFieldCommand
 {
-    async execute(owner: User, accepted: string): Promise<void>
+    async execute(user: User, accepted: string): Promise<void>
     {
         if(!accepted) return
 
-        const household = await owner.household().get()
+        const household = await user.household().get()
         if(!household) return
 
         const sensors: any = await household.getField(Models.SENSOR)
@@ -19,7 +19,7 @@ export default class CreateUserSensorRelationsCommand implements IActionableFiel
 
         await asyncForEach(sensorIds,
             async (sensorId) => {
-                await owner.sensors().attachById(sensorId)
+                await user.sensors().attachById(sensorId)
             }
         )
 
