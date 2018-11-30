@@ -6,12 +6,11 @@ import User from '../../lib/ORM/Models/User'
 
 exports = module.exports = functions.firestore
 .document(`${Models.USER}/{userId}`)
-.onUpdate(async (change: functions.Change<FirebaseFirestore.DocumentSnapshot>) => {
+.onUpdate(async (change: functions.Change<FirebaseFirestore.DocumentSnapshot>, context) => {
     
     let user: User
 
     try{
-
         const adminFs = firestore()
         const db = new DataORMImpl(adminFs)
         
@@ -20,7 +19,8 @@ exports = module.exports = functions.firestore
     }
     catch(e)
     {
-        return e
+        console.error(e)
+        return
     }
 
     return Promise.all([

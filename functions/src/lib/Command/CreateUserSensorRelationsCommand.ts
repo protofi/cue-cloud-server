@@ -1,6 +1,5 @@
 import IActionableFieldCommand from "./Command";
 import User from "./../ORM/Models/User";
-import { asyncForEach } from "./../util";
 import { Models } from "./../ORM/Models";
 
 export default class CreateUserSensorRelationsCommand implements IActionableFieldCommand
@@ -17,11 +16,7 @@ export default class CreateUserSensorRelationsCommand implements IActionableFiel
 
         const sensorIds = Object.keys(sensors)
 
-        await asyncForEach(sensorIds,
-            async (sensorId) => {
-                await user.sensors().attachById(sensorId)
-            }
-        )
+        await user.sensors().attachByIdBulk(sensorIds)
 
         return
     }

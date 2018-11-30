@@ -75,6 +75,8 @@ export interface N2ManyRelation {
     attach(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<N2ManyRelation>
     updatePivot(propertyId: string, data: object): Promise<ModelImpl>
     attachBulk(propertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    attachById(propertyId: string, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    attachByIdBulk(propertyModelIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
 }
 
 export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
@@ -102,13 +104,6 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         return this
     }
 
-    async attachById(propertyId: string, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<One2ManyRelation>
-    {
-        const property = await this.importStrategy.import(this.db, this.propertyModelName, propertyId)
-
-        return this.attach(property, transaction)
-    }
-
     async attachBulk(propertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
     {
         const propertyRelations: Object = {}
@@ -123,6 +118,19 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         }, transaction)
 
         return
+    }
+
+    async attachById(propertyId: string, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    {
+        const property = await this.importStrategy.import(this.db, this.propertyModelName, propertyId)
+        await this.attach(property, transaction)
+
+        return
+    }
+
+    async attachByIdBulk(propertyIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    {
+        throw Error('NOT IMPLEMENTED')
     }
 
      /**
@@ -266,6 +274,29 @@ export class Many2ManyRelation extends N2ManyRelation {
         return this
     }
 
+    async attachBulk(propertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    {
+        await super.attachBulk(propertyModels)
+
+        await asyncForEach(propertyModels, async (propModel) => {
+            await propModel.updateOrCreate({
+                [this.owner.name] : {[await this.owner.getId()] : true}
+            }, transaction)
+        })
+        
+        return
+    }
+
+    async attachById(propertyId: string, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    {
+        throw new Error('NOT IMPLEMENTED')
+    }
+
+    async attachByIdBulk(propertyIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    {
+        throw Error('MOT IMPLEMENTED')
+    }
+
     defineCachableFields(cachedOnToProperty: Array<string>, cachedFromPivot?: Array<string>): Many2ManyRelation
     {
         this.cacheOnToProperty = cachedOnToProperty
@@ -294,15 +325,27 @@ export class One2ManyRelation extends N2ManyRelation {
     {
         await super.attachBulk(propertyModels, transaction)
 
-        await asyncForEach(propertyModels,
-            async (propertyModel: ModelImpl) => {
-                await propertyModel.updateOrCreate({
-                    [this.owner.name] : {
-                        id : this.owner.getId()
-                    }
-                }, transaction)
-            }
-        )
+        await asyncForEach(propertyModels, async (propertyModel: ModelImpl) => {
+            await propertyModel.updateOrCreate({
+                [this.owner.name] : {
+                    id : this.owner.getId()
+                }
+            }, transaction)
+        })
+    }
+
+    async attachByIdBulk(propertyModelIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    {
+        const models = Array<ModelImpl>()
+        
+        await asyncForEach(propertyModelIds, async (id) => {
+            const model = await this.importStrategy.import(this.db, this.propertyModelName, id)
+            models.push(model)
+        })
+
+        await this.attachBulk(models, transaction)
+
+        return
     }
 
     async updatePivot(id: string, data: object)

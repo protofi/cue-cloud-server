@@ -13,7 +13,7 @@ describe('OFFLINE', () => {
     let adminInitStub
     let firestoreMockData
     let adminfirestoreStub
-    let myFunctions;
+    let myFunctions
     
     beforeEach(async () => {
 

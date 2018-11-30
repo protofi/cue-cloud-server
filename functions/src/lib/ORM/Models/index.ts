@@ -83,7 +83,6 @@ export default class ModelImpl implements Model {
     {
         const docRef: FirebaseFirestore.DocumentReference = this.getDocRef(id)
         this.snap = await docRef.get()
-
         return this
     }
 
@@ -95,11 +94,12 @@ export default class ModelImpl implements Model {
     async getField(key: string): Promise<any>
     {
         if(this.snap) return this.snap.get(key)
-        
+
         const id = this.getId()
         if(!id) return null
 
         await this.find(id)
+
         return this.getField(key)
     }
 

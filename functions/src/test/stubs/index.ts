@@ -1,6 +1,6 @@
 import * as uniqid from 'uniqid'
 import ModelImpl from "../lib/ORM/Models";
-import { Many2ManyRelation, N2OneRelation, One2ManyRelation } from "../lib/ORM/Relation";
+import { Many2ManyRelation, N2OneRelation, One2ManyRelation, ModelImportStategy } from "../lib/ORM/Relation";
 import IActionableFieldCommand from '../lib/Command/Command';
 
 export class Driver extends ModelImpl {
@@ -85,3 +85,17 @@ export class ActionableFieldCommandStub implements IActionableFieldCommand {
         return
     }
 }
+
+export class ModelImportStrategyStub implements ModelImportStategy{
+    private path: string
+    
+    constructor(modulePath: string)
+    {
+        this.path = modulePath
+    }
+    async import(db_: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl> {
+        const model = await import(this.path)
+        const property = new model.default(db_, null, id)
+        return property
+    }
+} 

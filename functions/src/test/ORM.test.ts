@@ -13,7 +13,7 @@ import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
-import { Car, Driver, ActionableFieldCommandStub } from './stubs'
+import { Car, Driver, ActionableFieldCommandStub, ModelImportStrategyStub } from './stubs'
 import { Many2ManyRelation, One2ManyRelation, N2OneRelation, ModelImportStategy } from './lib/ORM/Relation'
 import { Pivot } from './lib/ORM/Relation/Pivot'
 import { Change } from 'firebase-functions'
@@ -666,6 +666,240 @@ describe('STAGE', () => {
                     expect(doc.get(`${car.name}.${Relations.PIVOT}.name`)).to.be.equal(dataName)
                 })
 
+                it('The pivot should be updatable trough the inverse relation', async () => {
+                    
+                    const carId = uniqid()
+                    const wheelId = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+                    const wheel = new Wheel(firestoreStub, null, wheelId)
+
+                    const dataName = 'Spare'
+
+                    await car.wheels().attach(wheel)
+
+                    await wheel.car().updatePivot({
+                        name : dataName
+                    })
+
+                    const wheelDoc = firestoreMockData[`${wheel.name}/${wheelId}`]
+                    const expectedWheelDoc = {
+                        [`${car.name}.${Relations.PIVOT}.name`] : dataName
+                    }
+
+                    expect(wheelDoc).to.deep.equal(expectedWheelDoc)
+                })
+
+                it('Create root documents and relation by attaching two models', async () => {
+                    const room = db.room()
+                    const sensor = db.sensor()
+
+                    await room.sensors().attach(sensor)
+
+                    //clean up
+                    docsToBeDeleted.push(sensor.getDocRef().path)
+                    docsToBeDeleted.push(room.getDocRef().path)
+                    
+                    const roomSensors = await room.getField(sensor.name)
+                    const sensorRoom = await sensor.getField(room.name)
+
+                    const roomId = room.getId()
+                    const sensorId = sensor.getId()
+
+                    expect(Object.keys(roomSensors), 'Foreign key on room').to.include(sensorId)
+                    expect(roomId, 'Foreign key on sensor').equals(sensorRoom.id)
+                })
+
+                it('Make sure models can be attached and retrieved "inverse"', async () => {
+
+                    const room: Room = db.room()
+                    const sensor: Sensor = db.sensor()
+
+                    const roomId = room.getId()
+
+                    await room.sensors().attach(sensor)
+
+                    //clean up
+                    docsToBeDeleted.push(sensor.getDocRef().path)
+                    docsToBeDeleted.push(room.getDocRef().path)
+                    
+                    const attRoom = await sensor.room().get()
+
+                    expect(roomId).to.equal(attRoom.getId())
+                })
+
+                it('If no models are attached retrieving "inverse" should return null', async () => {
+
+                    const sensor: Sensor = db.sensor()
+
+                    const attRoom = await sensor.room().get()
+                    expect(attRoom).to.be.null
+                })
+
+                it('When models are attached by id relation to the property model should be made on the owner', async () => {
+                    
+                    class One2ManyRelationStub extends One2ManyRelation {
+                        importStrategy = new ModelImportStrategyStub('./Wheel')
+                    }
+
+                    class CarM extends Car {
+
+                        /**
+                         * Attach one model to many others
+                         */
+                        protected hasMany(property: string): One2ManyRelation
+                        {
+                            if(!this.relations.has(property))
+                            {
+                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
+                                this.relations.set(property, relation)
+                            }
+
+                            return this.relations.get(property) as One2ManyRelation
+                        }
+                    }
+
+                    const carId = uniqid()
+                    const car = new CarM(firestoreStub, null, carId)
+
+                    const wheel = new Wheel(firestoreStub)
+
+                    await car.wheels().attachById(wheel.getId())
+                    
+                    const carDoc = firestoreMockData[`${car.name}/${carId}`]
+                    const expectedCarDoc = {
+                        [wheel.name] : { [wheel.getId()] : true }
+                    }
+
+                    expect(carDoc).to.deep.equal(expectedCarDoc)
+                })
+                
+                it('When models are attached by id relation to the owner model should be made on the property model', async () => {
+                    
+                    class One2ManyRelationStub extends One2ManyRelation {
+                        importStrategy = new ModelImportStrategyStub('./Wheel')
+                    }
+
+                    class CarM extends Car {
+
+                        /**
+                         * Attach one model to many others
+                         */
+                        protected hasMany(property: string): One2ManyRelation
+                        {
+                            if(!this.relations.has(property))
+                            {
+                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
+                                this.relations.set(property, relation)
+                            }
+
+                            return this.relations.get(property) as One2ManyRelation
+                        }
+                    }
+
+                    const carId = uniqid()
+                    const car = new CarM(firestoreStub, null, carId)
+
+                    const wheel = new Wheel(firestoreStub)
+
+                    await car.wheels().attachById(wheel.getId())
+                    
+                    const wheelDoc = firestoreMockData[`${wheel.name}/${wheel.getId()}`]
+                    const expectedWheelDoc = {
+                        [car.name] : { id : carId }
+                    }
+
+                    expect(wheelDoc).to.deep.equal(expectedWheelDoc)
+                })
+
+                it('When a write batch are passed to attachbyId the relations should be made when commit on batch is invoked', async () => {
+                    
+                    class One2ManyRelationStub extends One2ManyRelation {
+                        importStrategy = new ModelImportStrategyStub('./Wheel')
+                    }
+
+                    class CarM extends Car {
+
+                        /**
+                         * Attach one model to many others
+                         */
+                        protected hasMany(property: string): One2ManyRelation
+                        {
+                            if(!this.relations.has(property))
+                            {
+                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
+                                this.relations.set(property, relation)
+                            }
+
+                            return this.relations.get(property) as One2ManyRelation
+                        }
+                    }
+
+                    const carId = uniqid()
+                    const car = new CarM(adminFs, null, carId)
+
+                    const wheel = new Wheel(adminFs)
+
+                    //clean up
+                    docsToBeDeleted.push(car.getDocRef().path)
+                    docsToBeDeleted.push(wheel.getDocRef().path)
+
+                    const batch = adminFs.batch()
+
+                    await car.wheels().attachById(wheel.getId(), batch)
+                    
+                    await batch.commit()
+
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+                    const w = await adminFs.doc(`${wheel.name}/${wheel.getId()}`).get()
+
+                    expect(c.data()).to.deep.equal({ [wheel.name] : { [wheel.getId()] : true }})
+                    expect(w.data()).to.deep.equal({ [car.name] : { id : carId }})
+                })
+
+                it('When a write batch are passed to attachById and commit on batch is not invoked the relations should not be made', async () => {
+                    
+                    class One2ManyRelationStub extends One2ManyRelation {
+                        importStrategy = new ModelImportStrategyStub('./Wheel')
+                    }
+
+                    class CarM extends Car {
+
+                        /**
+                         * Attach one model to many others
+                         */
+                        protected hasMany(property: string): One2ManyRelation
+                        {
+                            if(!this.relations.has(property))
+                            {
+                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
+                                this.relations.set(property, relation)
+                            }
+
+                            return this.relations.get(property) as One2ManyRelation
+                        }
+                    }
+
+                    const carId = uniqid()
+                    const car = new CarM(adminFs, null, carId)
+
+                    const wheel = new Wheel(adminFs)
+
+                    //clean up
+                    docsToBeDeleted.push(car.getDocRef().path)
+                    docsToBeDeleted.push(wheel.getDocRef().path)
+
+                    const batch = adminFs.batch()
+
+                    await car.wheels().attachById(wheel.getId(), batch)
+                    
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+                    const w = await adminFs.doc(`${wheel.name}/${wheel.getId()}`).get()
+
+                    expect(c.exists).to.be.false
+                    expect(w.exists).to.be.false
+                })
+
                 it('When models are attached in bulk relations to all property models should be made on the owner', async () => {
 
                     const carId = uniqid()
@@ -786,42 +1020,130 @@ describe('STAGE', () => {
                     expect(w3.exists).to.be.false
                 })
 
-                it('The pivot should be updatable trough the inverse relation', async () => {
-                    
+                it('When models are attached in bulk relations to all property models should be made on the owner', async () => {
+
                     const carId = uniqid()
-                    const wheelId = uniqid()
 
+                    const wheelId1 = uniqid()
+                    const wheelId2 = uniqid()
+                    const wheelId3 = uniqid()
+                    
+                    const wheelName = 'wheels'
+                    
                     const car = new Car(firestoreStub, null, carId)
-                    const wheel = new Wheel(firestoreStub, null, wheelId)
 
-                    const dataName = 'Spare'
+                    await car.wheels().attachBulk([
+                        new Wheel(firestoreStub, null, wheelId1),
+                        new Wheel(firestoreStub, null, wheelId2),
+                        new Wheel(firestoreStub, null, wheelId3)
+                    ])
 
-                    await car.wheels().attach(wheel)
-
-                    await wheel.car().updatePivot({
-                        name : dataName
-                    })
-
-                    const wheelDoc = firestoreMockData[`${wheel.name}/${wheelId}`]
-                    const expectedWheelDoc = {
-                        [`${car.name}.${Relations.PIVOT}.name`] : dataName
-                    }
-
-                    expect(wheelDoc).to.deep.equal(expectedWheelDoc)
+                    expect(firestoreMockData[`${car.name}/${carId}`][wheelName][wheelId1]).to.exist
+                    expect(firestoreMockData[`${car.name}/${carId}`][wheelName][wheelId2]).to.exist
+                    expect(firestoreMockData[`${car.name}/${carId}`][wheelName][wheelId3]).to.exist
                 })
 
-                it('Property model should be attachable by id', async () => {
-                    
-                    class ModelImportStub implements ModelImportStategy{
-                        async import(db_: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl> {
-                            const model = await import('./stubs/Wheel')
-                            const property = new model.default(db_, null, id)
-                            return property
+                it('When models are attached in bulk relations to the owner model should be made on the properties', async () => {
+
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const wheelName = 'wheels'
+
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(firestoreStub, null, wheelId1),
+                        new Wheel(firestoreStub, null, wheelId2),
+                        new Wheel(firestoreStub, null, wheelId3)
+                    ])
+
+                    expect(firestoreMockData[`${wheelName}/${wheelId1}`][`${car.name}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${wheelName}/${wheelId2}`][`${car.name}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${wheelName}/${wheelId3}`][`${car.name}`]['id']).to.equal(carId)
+                })
+
+                it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const wheelName = 'wheels'
+
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(adminFs, null, wheelId1),
+                        new Wheel(adminFs, null, wheelId2),
+                        new Wheel(adminFs, null, wheelId3)
+                    ], batch)
+
+                    //clean up
+                    docsToBeDeleted.push(`${wheelName}/${wheelId1}`)
+                    docsToBeDeleted.push(`${wheelName}/${wheelId2}`)
+                    docsToBeDeleted.push(`${wheelName}/${wheelId3}`)
+                    docsToBeDeleted.push(`${'cars'}/${carId}`)
+
+                    await batch.commit()
+
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+                    const w1 = await adminFs.doc(`${wheelName}/${wheelId1}`).get()
+                    const w2 = await adminFs.doc(`${wheelName}/${wheelId2}`).get()
+                    const w3 = await adminFs.doc(`${wheelName}/${wheelId3}`).get()
+
+                    expect(c.data()).to.deep.include({ [wheelName] : {
+                            [wheelId1] : true,
+                            [wheelId2] : true,
+                            [wheelId3] : true
                         }
-                    } 
+                    })
+
+                    expect(w1.data()).to.deep.equal({ [car.name] : { id : carId }})
+                    expect(w2.data()).to.deep.equal({ [car.name] : { id : carId }})
+                    expect(w3.data()).to.deep.equal({ [car.name] : { id : carId }})
+                })
+
+                it('When a write batch are passed to attachBulk and commit on batch is not invoked the relations should not be made', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const wheelName = 'wheels'
+
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(adminFs, null, wheelId1),
+                        new Wheel(adminFs, null, wheelId2),
+                        new Wheel(adminFs, null, wheelId3)
+                    ], batch)
+
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+                    const w1 = await adminFs.doc(`${wheelName}/${wheelId1}`).get()
+                    const w2 = await adminFs.doc(`${wheelName}/${wheelId2}`).get()
+                    const w3 = await adminFs.doc(`${wheelName}/${wheelId3}`).get()
+
+                    expect(c.exists).to.be.false
+                    expect(w1.exists).to.be.false
+                    expect(w2.exists).to.be.false
+                    expect(w3.exists).to.be.false
+                }) 
+                
+                it('When models are attached in bulk relations to all property models should be made on the owner', async () => {
 
                     class One2ManyRelationStub extends One2ManyRelation {
-                        importStrategy = new ModelImportStub()
+                        importStrategy = new ModelImportStrategyStub('./Wheel')
                     }
 
                     class CarM extends Car {
@@ -842,70 +1164,184 @@ describe('STAGE', () => {
                     }
 
                     const carId = uniqid()
+
+                    const wheelId1 = uniqid()
+                    const wheelId2 = uniqid()
+                    const wheelId3 = uniqid()
+                    
+                    const wheelName = 'wheels'
+                    
                     const car = new CarM(firestoreStub, null, carId)
 
-                    const wheel = new Wheel(firestoreStub)
+                    await car.wheels().attachByIdBulk([
+                        wheelId1,
+                        wheelId2,
+                        wheelId3
+                    ])
 
-                    await car.wheels().attachById(wheel.getId())
-                    
-                    const carDoc = firestoreMockData[`${car.name}/${carId}`]
-                    const expectedCarDoc = {
-                        [wheel.name] : { [wheel.getId()] : true }
+                    expect(firestoreMockData[`${car.name}/${carId}`][wheelName][wheelId1]).to.exist
+                    expect(firestoreMockData[`${car.name}/${carId}`][wheelName][wheelId2]).to.exist
+                    expect(firestoreMockData[`${car.name}/${carId}`][wheelName][wheelId3]).to.exist
+                })
+
+                it('When models are attached in bulk relations to the owner model should be made on the properties', async () => {
+
+                    class One2ManyRelationStub extends One2ManyRelation {
+                        importStrategy = new ModelImportStrategyStub('./Wheel')
                     }
 
-                    const wheelDoc = firestoreMockData[`${wheel.name}/${wheel.getId()}`]
-                    const expectedWheelDoc = {
-                        [car.name] : { id : carId }
+                    class CarM extends Car {
+
+                        /**
+                         * Attach one model to many others
+                         */
+                        protected hasMany(property: string): One2ManyRelation
+                        {
+                            if(!this.relations.has(property))
+                            {
+                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
+                                this.relations.set(property, relation)
+                            }
+
+                            return this.relations.get(property) as One2ManyRelation
+                        }
                     }
 
-                    expect(carDoc).to.deep.equal(expectedCarDoc)
-                    expect(wheelDoc).to.deep.equal(expectedWheelDoc)
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const wheelName = 'wheels'
+
+                    const car = new CarM(firestoreStub, null, carId)
+
+                    await car.wheels().attachByIdBulk([
+                        wheelId1,
+                        wheelId2,
+                        wheelId3
+                    ])
+
+                    expect(firestoreMockData[`${wheelName}/${wheelId1}`][`${car.name}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${wheelName}/${wheelId2}`][`${car.name}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${wheelName}/${wheelId3}`][`${car.name}`]['id']).to.equal(carId)
                 })
 
-                it('Create root documents and relation by attaching two models', async () => {
-                    const room = db.room()
-                    const sensor = db.sensor()
+                it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
 
-                    await room.sensors().attach(sensor)
+                    class One2ManyRelationStub extends One2ManyRelation {
+                        importStrategy = new ModelImportStrategyStub('./Wheel')
+                    }
+
+                    class CarM extends Car {
+
+                        /**
+                         * Attach one model to many others
+                         */
+                        protected hasMany(property: string): One2ManyRelation
+                        {
+                            if(!this.relations.has(property))
+                            {
+                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
+                                this.relations.set(property, relation)
+                            }
+
+                            return this.relations.get(property) as One2ManyRelation
+                        }
+                    }
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const wheelName = 'wheels'
+
+                    const car = new CarM(adminFs, null, carId)
+
+                    await car.wheels().attachByIdBulk([
+                        wheelId1,
+                        wheelId2,
+                        wheelId3
+                    ], batch)
 
                     //clean up
-                    docsToBeDeleted.push(sensor.getDocRef().path)
-                    docsToBeDeleted.push(room.getDocRef().path)
-                    
-                    const roomSensors = await room.getField(sensor.name)
-                    const sensorRoom = await sensor.getField(room.name)
+                    docsToBeDeleted.push(`${wheelName}/${wheelId1}`)
+                    docsToBeDeleted.push(`${wheelName}/${wheelId2}`)
+                    docsToBeDeleted.push(`${wheelName}/${wheelId3}`)
+                    docsToBeDeleted.push(`${'cars'}/${carId}`)
 
-                    const roomId = room.getId()
-                    const sensorId = sensor.getId()
+                    await batch.commit()
 
-                    expect(Object.keys(roomSensors), 'Foreign key on room').to.include(sensorId)
-                    expect(roomId, 'Foreign key on sensor').equals(sensorRoom.id)
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+                    const w1 = await adminFs.doc(`${wheelName}/${wheelId1}`).get()
+                    const w2 = await adminFs.doc(`${wheelName}/${wheelId2}`).get()
+                    const w3 = await adminFs.doc(`${wheelName}/${wheelId3}`).get()
+
+                    expect(c.data()).to.deep.include({ [wheelName] : {
+                            [wheelId1] : true,
+                            [wheelId2] : true,
+                            [wheelId3] : true
+                        }
+                    })
+
+                    expect(w1.data()).to.deep.equal({ [car.name] : { id : carId }})
+                    expect(w2.data()).to.deep.equal({ [car.name] : { id : carId }})
+                    expect(w3.data()).to.deep.equal({ [car.name] : { id : carId }})
                 })
 
-                it('Make sure models can be attached and retrieved "inverse"', async () => {
+                it('When a write batch are passed to attachBulk and commit on batch is not invoked the relations should not be made', async () => {
 
-                    const room: Room = db.room()
-                    const sensor: Sensor = db.sensor()
+                    class One2ManyRelationStub extends One2ManyRelation {
+                        importStrategy = new ModelImportStrategyStub('./Wheel')
+                    }
 
-                    const roomId = room.getId()
+                    class CarM extends Car {
 
-                    await room.sensors().attach(sensor)
+                        /**
+                         * Attach one model to many others
+                         */
+                        protected hasMany(property: string): One2ManyRelation
+                        {
+                            if(!this.relations.has(property))
+                            {
+                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
+                                this.relations.set(property, relation)
+                            }
 
-                    //clean up
-                    docsToBeDeleted.push(sensor.getDocRef().path)
-                    docsToBeDeleted.push(room.getDocRef().path)
-                    
-                    const attRoom = await sensor.room().get()
+                            return this.relations.get(property) as One2ManyRelation
+                        }
+                    }
 
-                    expect(roomId).to.equal(attRoom.getId())
-                })
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
 
-                it('If no models are attached retrieving "inverse" should return null', async () => {
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
 
-                    const sensor: Sensor = db.sensor()
+                    const wheelName = 'wheels'
 
-                    const attRoom = await sensor.room().get()
-                    expect(attRoom).to.be.null
+                    const car = new CarM(adminFs, null, carId)
+
+                    await car.wheels().attachByIdBulk([
+                        wheelId1,
+                        wheelId2,
+                        wheelId3
+                    ], batch)
+
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+                    const w1 = await adminFs.doc(`${wheelName}/${wheelId1}`).get()
+                    const w2 = await adminFs.doc(`${wheelName}/${wheelId2}`).get()
+                    const w3 = await adminFs.doc(`${wheelName}/${wheelId3}`).get()
+
+                    expect(c.exists).to.be.false
+                    expect(w1.exists).to.be.false
+                    expect(w2.exists).to.be.false
+                    expect(w3.exists).to.be.false
                 })
 
                 it('Retrieve cached relational data', async () => {
@@ -1160,6 +1596,152 @@ describe('STAGE', () => {
                     expect(Object.keys(sensor1Users), 'Foreign key on sensor1').to.include(userId)
                     expect(Object.keys(sensor2Users), 'Foreign key on sensor2').to.include(userId)
                 })
+
+                it('When models are attached in bulk relations to all property models should be made on the owner', async () => {
+
+                    const carId = uniqid()
+
+                    const driverId1 = uniqid()
+                    const driverId2 = uniqid()
+                    const driverId3 = uniqid()
+                    
+                    const driverName = 'drivers'
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachBulk([
+                        new Driver(firestoreStub, null, driverId1),
+                        new Driver(firestoreStub, null, driverId2),
+                        new Driver(firestoreStub, null, driverId3)
+                    ])
+
+                    expect(firestoreMockData[`${car.name}/${carId}`][driverName][driverId1]).to.exist
+                    expect(firestoreMockData[`${car.name}/${carId}`][driverName][driverId2]).to.exist
+                    expect(firestoreMockData[`${car.name}/${carId}`][driverName][driverId3]).to.exist
+                })
+
+                it('When models are attached in bulk relations to the owner model should be made on the property models', async () => {
+
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const wheelName = 'wheels'
+
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(firestoreStub, null, wheelId1),
+                        new Wheel(firestoreStub, null, wheelId2),
+                        new Wheel(firestoreStub, null, wheelId3)
+                    ])
+
+                    expect(firestoreMockData[`${wheelName}/${wheelId1}`][`${car.name}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${wheelName}/${wheelId2}`][`${car.name}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${wheelName}/${wheelId3}`][`${car.name}`]['id']).to.equal(carId)
+                })
+
+                // it('When models are attached in bulk relations to all property models should create pivot collections', async () => {
+
+                //     const carId = uniqid()
+
+                //     const driverId1 = uniqid()
+                //     const driverId2 = uniqid()
+                //     const driverId3 = uniqid()
+                    
+                //     const driverName = 'drivers'
+                    
+                //     const car = new Car(firestoreStub, null, carId)
+
+                //     await car.drivers().attachBulk([
+                //         new Driver(firestoreStub, null, driverId1),
+                //         new Driver(firestoreStub, null, driverId2),
+                //         new Driver(firestoreStub, null, driverId3)
+                //     ])
+
+                //     console.log(firestoreMockData)
+
+                //     expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId1}`][driverName]['id'][driverId1]).to.exist
+                //     expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId2}`][driverName]['id'][driverId2]).to.exist
+                //     expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId3}`][driverName]['id'][driverId3]).to.exist
+                // })
+
+                // it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
+
+                //     const batch     = adminFs.batch()
+                //     const carId     = uniqid()
+
+                //     const wheelId1  = uniqid()
+                //     const wheelId2  = uniqid()
+                //     const wheelId3  = uniqid()
+
+                //     const wheelName = 'wheels'
+
+                //     const car = new Car(adminFs, null, carId)
+
+                //     await car.wheels().attachBulk([
+                //         new Wheel(adminFs, null, wheelId1),
+                //         new Wheel(adminFs, null, wheelId2),
+                //         new Wheel(adminFs, null, wheelId3)
+                //     ], batch)
+
+                //     //clean up
+                //     docsToBeDeleted.push(`${wheelName}/${wheelId1}`)
+                //     docsToBeDeleted.push(`${wheelName}/${wheelId2}`)
+                //     docsToBeDeleted.push(`${wheelName}/${wheelId3}`)
+                //     docsToBeDeleted.push(`${'cars'}/${carId}`)
+
+                //     await batch.commit()
+
+                //     const c = await adminFs.doc(`${car.name}/${carId}`).get()
+                //     const w1 = await adminFs.doc(`${wheelName}/${wheelId1}`).get()
+                //     const w2 = await adminFs.doc(`${wheelName}/${wheelId2}`).get()
+                //     const w3 = await adminFs.doc(`${wheelName}/${wheelId3}`).get()
+
+                //     expect(c.data()).to.deep.include({ [wheelName] : {
+                //             [wheelId1] : true,
+                //             [wheelId2] : true,
+                //             [wheelId3] : true
+                //         }
+                //     })
+
+                //     expect(w1.data()).to.deep.equal({ [car.name] : { id : carId }})
+                //     expect(w2.data()).to.deep.equal({ [car.name] : { id : carId }})
+                //     expect(w3.data()).to.deep.equal({ [car.name] : { id : carId }})
+                // })
+
+                // it('When a write batch are passed to attachBulk and commit on batch is not invoked the relations should not be made', async () => {
+
+                //     const batch     = adminFs.batch()
+                //     const carId     = uniqid()
+
+                //     const wheelId1  = uniqid()
+                //     const wheelId2  = uniqid()
+                //     const wheelId3  = uniqid()
+
+                //     const wheelName = 'wheels'
+
+                //     const car = new Car(adminFs, null, carId)
+
+                //     await car.wheels().attachBulk([
+                //         new Wheel(adminFs, null, wheelId1),
+                //         new Wheel(adminFs, null, wheelId2),
+                //         new Wheel(adminFs, null, wheelId3)
+                //     ], batch)
+
+                //     const c = await adminFs.doc(`${car.name}/${carId}`).get()
+                //     const w1 = await adminFs.doc(`${wheelName}/${wheelId1}`).get()
+                //     const w2 = await adminFs.doc(`${wheelName}/${wheelId2}`).get()
+                //     const w3 = await adminFs.doc(`${wheelName}/${wheelId3}`).get()
+
+                //     expect(c.exists).to.be.false
+                //     expect(w1.exists).to.be.false
+                //     expect(w2.exists).to.be.false
+                //     expect(w3.exists).to.be.false
+                // })
+
 
                 it('Retrieve attached blank model of relation', async () => {
 
