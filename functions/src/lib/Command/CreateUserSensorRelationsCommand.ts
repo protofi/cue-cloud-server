@@ -23,6 +23,6 @@ export default class CreateUserSensorRelationsCommand implements IActionableFiel
     
     undo(): Promise<void>
     {
-        throw new Error("Method not implemented.");
+        throw new Error("Method not implemented.")
     }
 }

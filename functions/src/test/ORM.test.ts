@@ -7,18 +7,18 @@ import { FeaturesList } from 'firebase-functions-test/lib/features'
 import * as uniqid from 'uniqid'
 
 import DataORMImpl from "./lib/ORM"
-import { asyncForEach, difference } from './lib/util'
-import User from './lib/ORM/Models/User'
+import { asyncForEach } from './lib/util'
 import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
-import { Car, Driver, ActionableFieldCommandStub, ModelImportStrategyStub } from './stubs'
+import { Car, ActionableFieldCommandStub, ModelImportStrategyStub } from './stubs'
 import { Many2ManyRelation, One2ManyRelation, N2OneRelation, ModelImportStategy } from './lib/ORM/Relation'
 import { Pivot } from './lib/ORM/Relation/Pivot'
 import { Change } from 'firebase-functions'
 import { Relations } from './lib/const'
 import Wheel from './stubs/Wheel'
+import Driver from './stubs/Driver'
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -499,7 +499,7 @@ describe('STAGE', () => {
 
         describe('Relations', () => {
 
-            describe('I2I', async () => {
+            describe('One-to-One', async () => {
                 
                 it('Related models method should return the same relation every time', async () => {
 
@@ -625,7 +625,7 @@ describe('STAGE', () => {
                 })
             })
 
-            describe('I2M', async () => {
+            describe('One-to-many', async () => {
 
                 it('Related models method should return the same relation every time', async () => {
                     
@@ -737,30 +737,9 @@ describe('STAGE', () => {
                 })
 
                 it('When models are attached by id relation to the property model should be made on the owner', async () => {
-                    
-                    class One2ManyRelationStub extends One2ManyRelation {
-                        importStrategy = new ModelImportStrategyStub('./Wheel')
-                    }
-
-                    class CarM extends Car {
-
-                        /**
-                         * Attach one model to many others
-                         */
-                        protected hasMany(property: string): One2ManyRelation
-                        {
-                            if(!this.relations.has(property))
-                            {
-                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
-                                this.relations.set(property, relation)
-                            }
-
-                            return this.relations.get(property) as One2ManyRelation
-                        }
-                    }
-
+          
                     const carId = uniqid()
-                    const car = new CarM(firestoreStub, null, carId)
+                    const car = new Car(firestoreStub, null, carId)
 
                     const wheel = new Wheel(firestoreStub)
 
@@ -776,29 +755,8 @@ describe('STAGE', () => {
                 
                 it('When models are attached by id relation to the owner model should be made on the property model', async () => {
                     
-                    class One2ManyRelationStub extends One2ManyRelation {
-                        importStrategy = new ModelImportStrategyStub('./Wheel')
-                    }
-
-                    class CarM extends Car {
-
-                        /**
-                         * Attach one model to many others
-                         */
-                        protected hasMany(property: string): One2ManyRelation
-                        {
-                            if(!this.relations.has(property))
-                            {
-                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
-                                this.relations.set(property, relation)
-                            }
-
-                            return this.relations.get(property) as One2ManyRelation
-                        }
-                    }
-
                     const carId = uniqid()
-                    const car = new CarM(firestoreStub, null, carId)
+                    const car = new Car(firestoreStub, null, carId)
 
                     const wheel = new Wheel(firestoreStub)
 
@@ -814,29 +772,8 @@ describe('STAGE', () => {
 
                 it('When a write batch are passed to attachbyId the relations should be made when commit on batch is invoked', async () => {
                     
-                    class One2ManyRelationStub extends One2ManyRelation {
-                        importStrategy = new ModelImportStrategyStub('./Wheel')
-                    }
-
-                    class CarM extends Car {
-
-                        /**
-                         * Attach one model to many others
-                         */
-                        protected hasMany(property: string): One2ManyRelation
-                        {
-                            if(!this.relations.has(property))
-                            {
-                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
-                                this.relations.set(property, relation)
-                            }
-
-                            return this.relations.get(property) as One2ManyRelation
-                        }
-                    }
-
                     const carId = uniqid()
-                    const car = new CarM(adminFs, null, carId)
+                    const car = new Car(adminFs, null, carId)
 
                     const wheel = new Wheel(adminFs)
 
@@ -859,29 +796,8 @@ describe('STAGE', () => {
 
                 it('When a write batch are passed to attachById and commit on batch is not invoked the relations should not be made', async () => {
                     
-                    class One2ManyRelationStub extends One2ManyRelation {
-                        importStrategy = new ModelImportStrategyStub('./Wheel')
-                    }
-
-                    class CarM extends Car {
-
-                        /**
-                         * Attach one model to many others
-                         */
-                        protected hasMany(property: string): One2ManyRelation
-                        {
-                            if(!this.relations.has(property))
-                            {
-                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
-                                this.relations.set(property, relation)
-                            }
-
-                            return this.relations.get(property) as One2ManyRelation
-                        }
-                    }
-
                     const carId = uniqid()
-                    const car = new CarM(adminFs, null, carId)
+                    const car = new Car(adminFs, null, carId)
 
                     const wheel = new Wheel(adminFs)
 
@@ -1142,36 +1058,15 @@ describe('STAGE', () => {
                 
                 it('When models are attached in bulk relations to all property models should be made on the owner', async () => {
 
-                    class One2ManyRelationStub extends One2ManyRelation {
-                        importStrategy = new ModelImportStrategyStub('./Wheel')
-                    }
+                    const carId     = uniqid()
 
-                    class CarM extends Car {
-
-                        /**
-                         * Attach one model to many others
-                         */
-                        protected hasMany(property: string): One2ManyRelation
-                        {
-                            if(!this.relations.has(property))
-                            {
-                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
-                                this.relations.set(property, relation)
-                            }
-
-                            return this.relations.get(property) as One2ManyRelation
-                        }
-                    }
-
-                    const carId = uniqid()
-
-                    const wheelId1 = uniqid()
-                    const wheelId2 = uniqid()
-                    const wheelId3 = uniqid()
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
                     
                     const wheelName = 'wheels'
                     
-                    const car = new CarM(firestoreStub, null, carId)
+                    const car = new Car(firestoreStub, null, carId)
 
                     await car.wheels().attachByIdBulk([
                         wheelId1,
@@ -1186,27 +1081,6 @@ describe('STAGE', () => {
 
                 it('When models are attached in bulk relations to the owner model should be made on the properties', async () => {
 
-                    class One2ManyRelationStub extends One2ManyRelation {
-                        importStrategy = new ModelImportStrategyStub('./Wheel')
-                    }
-
-                    class CarM extends Car {
-
-                        /**
-                         * Attach one model to many others
-                         */
-                        protected hasMany(property: string): One2ManyRelation
-                        {
-                            if(!this.relations.has(property))
-                            {
-                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
-                                this.relations.set(property, relation)
-                            }
-
-                            return this.relations.get(property) as One2ManyRelation
-                        }
-                    }
-
                     const carId     = uniqid()
 
                     const wheelId1  = uniqid()
@@ -1215,7 +1089,7 @@ describe('STAGE', () => {
 
                     const wheelName = 'wheels'
 
-                    const car = new CarM(firestoreStub, null, carId)
+                    const car = new Car(firestoreStub, null, carId)
 
                     await car.wheels().attachByIdBulk([
                         wheelId1,
@@ -1230,27 +1104,6 @@ describe('STAGE', () => {
 
                 it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
 
-                    class One2ManyRelationStub extends One2ManyRelation {
-                        importStrategy = new ModelImportStrategyStub('./Wheel')
-                    }
-
-                    class CarM extends Car {
-
-                        /**
-                         * Attach one model to many others
-                         */
-                        protected hasMany(property: string): One2ManyRelation
-                        {
-                            if(!this.relations.has(property))
-                            {
-                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
-                                this.relations.set(property, relation)
-                            }
-
-                            return this.relations.get(property) as One2ManyRelation
-                        }
-                    }
-
                     const batch     = adminFs.batch()
                     const carId     = uniqid()
 
@@ -1260,7 +1113,7 @@ describe('STAGE', () => {
 
                     const wheelName = 'wheels'
 
-                    const car = new CarM(adminFs, null, carId)
+                    const car = new Car(adminFs, null, carId)
 
                     await car.wheels().attachByIdBulk([
                         wheelId1,
@@ -1295,27 +1148,6 @@ describe('STAGE', () => {
 
                 it('When a write batch are passed to attachBulk and commit on batch is not invoked the relations should not be made', async () => {
 
-                    class One2ManyRelationStub extends One2ManyRelation {
-                        importStrategy = new ModelImportStrategyStub('./Wheel')
-                    }
-
-                    class CarM extends Car {
-
-                        /**
-                         * Attach one model to many others
-                         */
-                        protected hasMany(property: string): One2ManyRelation
-                        {
-                            if(!this.relations.has(property))
-                            {
-                                const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
-                                this.relations.set(property, relation)
-                            }
-
-                            return this.relations.get(property) as One2ManyRelation
-                        }
-                    }
-
                     const batch     = adminFs.batch()
                     const carId     = uniqid()
 
@@ -1325,7 +1157,7 @@ describe('STAGE', () => {
 
                     const wheelName = 'wheels'
 
-                    const car = new CarM(adminFs, null, carId)
+                    const car = new Car(adminFs, null, carId)
 
                     await car.wheels().attachByIdBulk([
                         wheelId1,
@@ -1536,36 +1368,108 @@ describe('STAGE', () => {
                 })
             })
 
-            describe('M2M', () => {
+            describe('Many-to-many', () => {
 
                 it('Related models method should return the same relation every time', async () => {
-                    const u = db.user() as User
+                    const car = new Car(firestoreStub)
 
-                    const households1 = u.household()
-                    const households2 = u.household()
-                    
-                    expect(households1).to.equals(households2)
+                    const drivers1 = car.drivers()
+                    const drivers2 = car.drivers()
+
+                    expect(drivers1).to.equals(drivers2)
                 })
 
-                it('Create root documents and relation by attaching two models', async () => {
-                    const user = db.user()
-                    const sensor = db.sensor()
+                it('Attaching a model to another should create an owner collection with a relation to the property', async () => {
 
-                    await user.sensors().attach(sensor)
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
 
-                    const userSensors = await user.getField(sensor.name)
-                    const sensorUsers = await sensor.getField(user.name)
+                    const driverId = uniqid()
+                    const driver = new Driver(firestoreStub, null, driverId)
 
-                    const sensorId = sensor.getId()
-                    const userId = user.getId()
+                    await car.drivers().attach(driver)
+
+                    expect(firestoreMockData[`${car.name}/${carId}`][driver.name][driverId], 'Foreign key on owner').to.be.true
+                })
+                
+                it('Attaching a model to another should create a Property Collection with a relation to the Owner', async () => {
+
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const driverId = uniqid()
+                    const driver = new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attach(driver)
+
+                    expect(firestoreMockData[`${driver.name}/${driverId}`][car.name][carId], 'Foreign key on property').to.be.true
+                })
+
+                it('Attaching a model to another should create a Pivot Collection with a relation to both Owner and Property', async () => {
+
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const driverId = uniqid()
+                    const driver = new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attach(driver)
+
+                    expect(firestoreMockData[`${car.name}_${driver.name}/${carId}_${driverId}`][car.name]['id']).to.be.equals(carId)
+                    expect(firestoreMockData[`${car.name}_${driver.name}/${carId}_${driverId}`][driver.name]['id']).to.be.equals(driverId)
+                })
+
+                it('Attaching two models should work with batch', async () => {
+
+                    const driverId = uniqid()
+                    const driver = new Driver(adminFs, null, driverId)
+
+                    const carId = uniqid()
+                    const car = new Car(adminFs, null, carId)
+
+                    const batch = db.batch()
+
+                    await car.drivers().attach(driver, batch)
+
+                    await batch.commit()
+                    
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+
+                    const d = await adminFs.doc(`${driver.name}/${driverId}`).get()
+
+                    const cd = await adminFs.doc(`${car.name}_${driver.name}/${carId}_${driverId}`).get()
 
                     //clean up
-                    docsToBeDeleted.push(user.getDocRef().path)
-                    docsToBeDeleted.push(sensor.getDocRef().path)
-                    docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
-                    
-                    expect(Object.keys(userSensors), 'Foreign key on user').to.include(sensorId)
-                    expect(Object.keys(sensorUsers), 'Foreign key on sensor').to.include(userId)
+                    docsToBeDeleted.push(c.ref.path)
+                    docsToBeDeleted.push(d.ref.path)
+                    docsToBeDeleted.push(cd.ref.path)
+
+                    expect(c.exists).to.be.true
+                    expect(d.exists).to.be.true
+                    expect(cd.exists).to.be.true
+                })
+
+                it('Attaching two models with Write Batch without commiting should not create any collections', async () => {
+
+                    const driverId = uniqid()
+                    const driver = new Driver(adminFs, null, driverId)
+
+                    const carId = uniqid()
+                    const car = new Car(adminFs, null, carId)
+
+                    const batch = db.batch()
+
+                    await car.drivers().attach(driver, batch)
+
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+
+                    const d = await adminFs.doc(`${driver.name}/${driverId}`).get()
+
+                    const cd = await adminFs.doc(`${car.name}_${driver.name}/${carId}_${driverId}`).get()
+
+                    expect(c.exists).to.be.false
+                    expect(d.exists).to.be.false
+                    expect(cd.exists).to.be.false
                 })
 
                 it('Attach multiple models to one many-to-many related model', async () => {
@@ -1624,124 +1528,410 @@ describe('STAGE', () => {
 
                     const carId     = uniqid()
 
-                    const wheelId1  = uniqid()
-                    const wheelId2  = uniqid()
-                    const wheelId3  = uniqid()
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
 
-                    const wheelName = 'wheels'
+                    const driverName = 'drivers'
 
                     const car = new Car(firestoreStub, null, carId)
 
-                    await car.wheels().attachBulk([
-                        new Wheel(firestoreStub, null, wheelId1),
-                        new Wheel(firestoreStub, null, wheelId2),
-                        new Wheel(firestoreStub, null, wheelId3)
+                    await car.drivers().attachBulk([
+                        new Driver(firestoreStub, null, driverId1),
+                        new Driver(firestoreStub, null, driverId2),
+                        new Driver(firestoreStub, null, driverId3)
                     ])
 
-                    expect(firestoreMockData[`${wheelName}/${wheelId1}`][`${car.name}`]['id']).to.equal(carId)
-                    expect(firestoreMockData[`${wheelName}/${wheelId2}`][`${car.name}`]['id']).to.equal(carId)
-                    expect(firestoreMockData[`${wheelName}/${wheelId3}`][`${car.name}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${driverName}/${driverId1}`][`${car.name}`][carId]).to.be.true
+                    expect(firestoreMockData[`${driverName}/${driverId2}`][`${car.name}`][carId]).to.be.true
+                    expect(firestoreMockData[`${driverName}/${driverId3}`][`${car.name}`][carId]).to.be.true
                 })
 
-                // it('When models are attached in bulk relations to all property models should create pivot collections', async () => {
+                it('When models are attached in bulk relations to all property models should create pivot collections', async () => {
 
-                //     const carId = uniqid()
+                    const carId = uniqid()
 
-                //     const driverId1 = uniqid()
-                //     const driverId2 = uniqid()
-                //     const driverId3 = uniqid()
+                    const driverId1 = uniqid()
+                    const driverId2 = uniqid()
+                    const driverId3 = uniqid()
                     
-                //     const driverName = 'drivers'
+                    const driverName = 'drivers'
                     
-                //     const car = new Car(firestoreStub, null, carId)
+                    const car = new Car(firestoreStub, null, carId)
 
-                //     await car.drivers().attachBulk([
-                //         new Driver(firestoreStub, null, driverId1),
-                //         new Driver(firestoreStub, null, driverId2),
-                //         new Driver(firestoreStub, null, driverId3)
-                //     ])
+                    await car.drivers().attachBulk([
+                        new Driver(firestoreStub, null, driverId1),
+                        new Driver(firestoreStub, null, driverId2),
+                        new Driver(firestoreStub, null, driverId3)
+                    ])
 
-                //     console.log(firestoreMockData)
+                    expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId1}`][driverName]['id']).to.be.equals(driverId1)
+                    expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId2}`][driverName]['id']).to.be.equals(driverId2)
+                    expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId3}`][driverName]['id']).to.be.equals(driverId3)
 
-                //     expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId1}`][driverName]['id'][driverId1]).to.exist
-                //     expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId2}`][driverName]['id'][driverId2]).to.exist
-                //     expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId3}`][driverName]['id'][driverId3]).to.exist
-                // })
+                    expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId1}`][car.name]['id']).to.be.equals(carId)
+                    expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId2}`][car.name]['id']).to.be.equals(carId)
+                    expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId3}`][car.name]['id']).to.be.equals(carId)
+                })
 
-                // it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
+                it('When a Write Batch is passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
 
-                //     const batch     = adminFs.batch()
-                //     const carId     = uniqid()
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
 
-                //     const wheelId1  = uniqid()
-                //     const wheelId2  = uniqid()
-                //     const wheelId3  = uniqid()
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
 
-                //     const wheelName = 'wheels'
+                    const driverName = 'drivers'
 
-                //     const car = new Car(adminFs, null, carId)
+                    const car = new Car(adminFs, null, carId)
 
-                //     await car.wheels().attachBulk([
-                //         new Wheel(adminFs, null, wheelId1),
-                //         new Wheel(adminFs, null, wheelId2),
-                //         new Wheel(adminFs, null, wheelId3)
-                //     ], batch)
+                    await car.drivers().attachBulk([
+                        new Driver(adminFs, null, driverId1),
+                        new Driver(adminFs, null, driverId2),
+                        new Driver(adminFs, null, driverId3)
+                    ], batch)
 
-                //     //clean up
-                //     docsToBeDeleted.push(`${wheelName}/${wheelId1}`)
-                //     docsToBeDeleted.push(`${wheelName}/${wheelId2}`)
-                //     docsToBeDeleted.push(`${wheelName}/${wheelId3}`)
-                //     docsToBeDeleted.push(`${'cars'}/${carId}`)
+                    //clean up
+                    docsToBeDeleted.push(`${driverName}/${driverId1}`)
+                    docsToBeDeleted.push(`${driverName}/${driverId2}`)
+                    docsToBeDeleted.push(`${driverName}/${driverId3}`)
+                    docsToBeDeleted.push(`${car.name}/${carId}`)
 
-                //     await batch.commit()
+                    docsToBeDeleted.push(`${car.name}_${driverName}/${carId}_${driverId1}`)
+                    docsToBeDeleted.push(`${car.name}_${driverName}/${carId}_${driverId2}`)
+                    docsToBeDeleted.push(`${car.name}_${driverName}/${carId}_${driverId3}`)
 
-                //     const c = await adminFs.doc(`${car.name}/${carId}`).get()
-                //     const w1 = await adminFs.doc(`${wheelName}/${wheelId1}`).get()
-                //     const w2 = await adminFs.doc(`${wheelName}/${wheelId2}`).get()
-                //     const w3 = await adminFs.doc(`${wheelName}/${wheelId3}`).get()
+                    await batch.commit()
 
-                //     expect(c.data()).to.deep.include({ [wheelName] : {
-                //             [wheelId1] : true,
-                //             [wheelId2] : true,
-                //             [wheelId3] : true
-                //         }
-                //     })
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
 
-                //     expect(w1.data()).to.deep.equal({ [car.name] : { id : carId }})
-                //     expect(w2.data()).to.deep.equal({ [car.name] : { id : carId }})
-                //     expect(w3.data()).to.deep.equal({ [car.name] : { id : carId }})
-                // })
+                    const d1 = await adminFs.doc(`${driverName}/${driverId1}`).get()
+                    const d2 = await adminFs.doc(`${driverName}/${driverId2}`).get()
+                    const d3 = await adminFs.doc(`${driverName}/${driverId3}`).get()
 
-                // it('When a write batch are passed to attachBulk and commit on batch is not invoked the relations should not be made', async () => {
+                    const cd1 = await adminFs.doc(`${car.name}_${driverName}/${carId}_${driverId1}`).get()
+                    const cd2 = await adminFs.doc(`${car.name}_${driverName}/${carId}_${driverId2}`).get()
+                    const cd3 = await adminFs.doc(`${car.name}_${driverName}/${carId}_${driverId3}`).get()
 
-                //     const batch     = adminFs.batch()
-                //     const carId     = uniqid()
+                    expect(c.data()).to.deep.include({ [driverName] : {
+                            [driverId1] : true,
+                            [driverId2] : true,
+                            [driverId3] : true
+                        }
+                    })
 
-                //     const wheelId1  = uniqid()
-                //     const wheelId2  = uniqid()
-                //     const wheelId3  = uniqid()
+                    expect(d1.data()).to.deep.equal({ [car.name] : { [carId] : true }})
+                    expect(d2.data()).to.deep.equal({ [car.name] : { [carId] : true }})
+                    expect(d3.data()).to.deep.equal({ [car.name] : { [carId] : true }})
 
-                //     const wheelName = 'wheels'
+                    expect(cd1.exists).to.be.true
+                    expect(cd2.exists).to.be.true
+                    expect(cd3.exists).to.be.true
+                })
 
-                //     const car = new Car(adminFs, null, carId)
+                it('When a write batch are passed to attachBulk and commit on batch is not invoked the relations should not be made', async () => {
 
-                //     await car.wheels().attachBulk([
-                //         new Wheel(adminFs, null, wheelId1),
-                //         new Wheel(adminFs, null, wheelId2),
-                //         new Wheel(adminFs, null, wheelId3)
-                //     ], batch)
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
 
-                //     const c = await adminFs.doc(`${car.name}/${carId}`).get()
-                //     const w1 = await adminFs.doc(`${wheelName}/${wheelId1}`).get()
-                //     const w2 = await adminFs.doc(`${wheelName}/${wheelId2}`).get()
-                //     const w3 = await adminFs.doc(`${wheelName}/${wheelId3}`).get()
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
 
-                //     expect(c.exists).to.be.false
-                //     expect(w1.exists).to.be.false
-                //     expect(w2.exists).to.be.false
-                //     expect(w3.exists).to.be.false
-                // })
+                    const driverName = 'drivers'
 
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.drivers().attachBulk([
+                        new Driver(adminFs, null, driverId1),
+                        new Driver(adminFs, null, driverId2),
+                        new Driver(adminFs, null, driverId3)
+                    ], batch)
+
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+
+                    const d1 = await adminFs.doc(`${driverName}/${driverId1}`).get()
+                    const d2 = await adminFs.doc(`${driverName}/${driverId2}`).get()
+                    const d3 = await adminFs.doc(`${driverName}/${driverId3}`).get()
+
+                    const cd1 = await adminFs.doc(`${car.name}_${driverName}/${carId}_${driverId1}`).get()
+                    const cd2 = await adminFs.doc(`${car.name}_${driverName}/${carId}_${driverId2}`).get()
+                    const cd3 = await adminFs.doc(`${car.name}_${driverName}/${carId}_${driverId3}`).get()
+
+                    expect(c.exists).to.be.false
+
+                    expect(d1.exists).to.be.false
+                    expect(d2.exists).to.be.false
+                    expect(d3.exists).to.be.false
+
+                    expect(cd1.exists).to.be.false
+                    expect(cd2.exists).to.be.false
+                    expect(cd3.exists).to.be.false
+                })
+
+                it('Attaching a model to another by id should create an owner collection with a relation to the property', async () => {
+
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const driverId = uniqid()
+                    const driver = new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attachById(driverId)
+
+                    expect(firestoreMockData[`${car.name}/${carId}`][driver.name][driverId], 'Foreign key on owner').to.be.true
+                })
+                
+                it('Attaching a model to another by id should create a Property Collection with a relation to the Owner', async () => {
+
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const driverId = uniqid()
+                    const driver = new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attachById(driverId)
+
+                    expect(firestoreMockData[`${driver.name}/${driverId}`][car.name][carId], 'Foreign key on property').to.be.true
+                })
+
+                it('Attaching a model to another by id should create a Pivot Collection with a relation to both Owner and Property', async () => {
+
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const driverId = uniqid()
+                    const driver = new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attachById(driverId)
+
+                    expect(firestoreMockData[`${car.name}_${driver.name}/${carId}_${driverId}`][car.name]['id']).to.be.equals(carId)
+                    expect(firestoreMockData[`${car.name}_${driver.name}/${carId}_${driverId}`][driver.name]['id']).to.be.equals(driverId)
+                })
+
+                it('Attaching two models by id should work with batch', async () => {
+
+                    const driverId = uniqid()
+                    const driver = new Driver(adminFs, null, driverId)
+
+                    const carId = uniqid()
+                    const car = new Car(adminFs, null, carId)
+
+                    const batch = db.batch()
+
+                    await car.drivers().attachById(driverId, batch)
+
+                    await batch.commit()
+                    
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+                    const d = await adminFs.doc(`${driver.name}/${driverId}`).get()
+                    const cd = await adminFs.doc(`${car.name}_${driver.name}/${carId}_${driverId}`).get()
+
+                    //clean up
+                    docsToBeDeleted.push(c.ref.path)
+                    docsToBeDeleted.push(d.ref.path)
+                    docsToBeDeleted.push(cd.ref.path)
+
+                    expect(c.exists).to.be.true
+                    expect(d.exists).to.be.true
+                    expect(cd.exists).to.be.true
+                })
+
+                it('Attaching two models by id with Write Batch without commiting should not create any collections', async () => {
+
+                    const driverId = uniqid()
+                    const driver = new Driver(adminFs, null, driverId)
+
+                    const carId = uniqid()
+                    const car = new Car(adminFs, null, carId)
+
+                    const batch = db.batch()
+
+                    await car.drivers().attachById(driverId, batch)
+
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+
+                    const d = await adminFs.doc(`${driver.name}/${driverId}`).get()
+
+                    const cd = await adminFs.doc(`${car.name}_${driver.name}/${carId}_${driverId}`).get()
+
+                    expect(c.exists).to.be.false
+                    expect(d.exists).to.be.false
+                    expect(cd.exists).to.be.false
+                })
+
+                
+                it('When models are attached in bulk by id relations to all property models should be made on the owner', async () => {
+
+                    const carId = uniqid()
+
+                    const driverId1: string = uniqid()
+                    const driverId2: string = uniqid()
+                    const driverId3: string = uniqid()
+                    
+                    const driverName = 'drivers'
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ])
+
+                    expect(firestoreMockData[`${car.name}/${carId}`][driverName][driverId1]).to.exist
+                    expect(firestoreMockData[`${car.name}/${carId}`][driverName][driverId2]).to.exist
+                    expect(firestoreMockData[`${car.name}/${carId}`][driverName][driverId3]).to.exist
+                })
+
+                it('When models are attached in bulk by id relations to the owner model should be made on the property models', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1: string = uniqid()
+                    const driverId2: string = uniqid()
+                    const driverId3: string = uniqid()
+
+                    const driverName = 'drivers'
+
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ])
+
+                    expect(firestoreMockData[`${driverName}/${driverId1}`][`${car.name}`][carId]).to.be.true
+                    expect(firestoreMockData[`${driverName}/${driverId2}`][`${car.name}`][carId]).to.be.true
+                    expect(firestoreMockData[`${driverName}/${driverId3}`][`${car.name}`][carId]).to.be.true
+                })
+
+                it('When models are attached in bulk by id relations to all property models should create pivot collections', async () => {
+
+                    const carId = uniqid()
+
+                    const driverId1: string = uniqid()
+                    const driverId2: string = uniqid()
+                    const driverId3: string = uniqid()
+                    
+                    const driverName = 'drivers'
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ])
+
+                    expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId1}`][driverName]['id']).to.be.equals(driverId1)
+                    expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId2}`][driverName]['id']).to.be.equals(driverId2)
+                    expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId3}`][driverName]['id']).to.be.equals(driverId3)
+
+                    expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId1}`][car.name]['id']).to.be.equals(carId)
+                    expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId2}`][car.name]['id']).to.be.equals(carId)
+                    expect(firestoreMockData[`${car.name}_${driverName}/${carId}_${driverId3}`][car.name]['id']).to.be.equals(carId)
+                })
+
+                it('When a Write Batch is passed to attachByIdBulk the colletions should be created when commit on batch is invoked', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const driverId1: string = uniqid()
+                    const driverId2: string = uniqid()
+                    const driverId3: string = uniqid()
+                    
+                    const driverName = 'drivers'
+                    
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ], batch)
+
+                    //clean up
+                    docsToBeDeleted.push(`${driverName}/${driverId1}`)
+                    docsToBeDeleted.push(`${driverName}/${driverId2}`)
+                    docsToBeDeleted.push(`${driverName}/${driverId3}`)
+                    docsToBeDeleted.push(`${car.name}/${carId}`)
+
+                    docsToBeDeleted.push(`${car.name}_${driverName}/${carId}_${driverId1}`)
+                    docsToBeDeleted.push(`${car.name}_${driverName}/${carId}_${driverId2}`)
+                    docsToBeDeleted.push(`${car.name}_${driverName}/${carId}_${driverId3}`)
+
+                    await batch.commit()
+
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+
+                    const d1 = await adminFs.doc(`${driverName}/${driverId1}`).get()
+                    const d2 = await adminFs.doc(`${driverName}/${driverId2}`).get()
+                    const d3 = await adminFs.doc(`${driverName}/${driverId3}`).get()
+
+                    const cd1 = await adminFs.doc(`${car.name}_${driverName}/${carId}_${driverId1}`).get()
+                    const cd2 = await adminFs.doc(`${car.name}_${driverName}/${carId}_${driverId2}`).get()
+                    const cd3 = await adminFs.doc(`${car.name}_${driverName}/${carId}_${driverId3}`).get()
+
+                    expect(c.data()).to.deep.include({ [driverName] : {
+                            [driverId1] : true,
+                            [driverId2] : true,
+                            [driverId3] : true
+                        }
+                    })
+
+                    expect(d1.data()).to.deep.equal({ [car.name] : { [carId] : true }})
+                    expect(d2.data()).to.deep.equal({ [car.name] : { [carId] : true }})
+                    expect(d3.data()).to.deep.equal({ [car.name] : { [carId] : true }})
+
+                    expect(cd1.exists).to.be.true
+                    expect(cd2.exists).to.be.true
+                    expect(cd3.exists).to.be.true
+                })
+
+                it('When a write batch are passed to attachByIdBulk and commit on batch is not invoked the collections should not be created', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const driverId1: string = uniqid()
+                    const driverId2: string = uniqid()
+                    const driverId3: string = uniqid()
+                    
+                    const driverName = 'drivers'
+                    
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ], batch)
+
+                    const c = await adminFs.doc(`${car.name}/${carId}`).get()
+
+                    const d1 = await adminFs.doc(`${driverName}/${driverId1}`).get()
+                    const d2 = await adminFs.doc(`${driverName}/${driverId2}`).get()
+                    const d3 = await adminFs.doc(`${driverName}/${driverId3}`).get()
+
+                    const cd1 = await adminFs.doc(`${car.name}_${driverName}/${carId}_${driverId1}`).get()
+                    const cd2 = await adminFs.doc(`${car.name}_${driverName}/${carId}_${driverId2}`).get()
+                    const cd3 = await adminFs.doc(`${car.name}_${driverName}/${carId}_${driverId3}`).get()
+
+                    expect(c.exists).to.be.false
+
+                    expect(d1.exists).to.be.false
+                    expect(d2.exists).to.be.false
+                    expect(d3.exists).to.be.false
+
+                    expect(cd1.exists).to.be.false
+                    expect(cd2.exists).to.be.false
+                    expect(cd3.exists).to.be.false
+                })
 
                 it('Retrieve attached blank model of relation', async () => {
 

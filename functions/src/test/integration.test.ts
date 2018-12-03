@@ -7,6 +7,7 @@ import * as uniqid from 'uniqid'
 import CreateUserSensorRelationsCommand from './lib/Command/CreateUserSensorRelationsCommand';
 import User from './lib/ORM/Models/User';
 import { Models } from './lib/ORM/Models';
+import * as _ from 'lodash'
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -35,8 +36,16 @@ describe('OFFLINE', () => {
                     doc: (id) => {
                         return {
                             id: (id) ? id : uniqid(),
-                            set: (data) => {
-                                firestoreMockData[`${col}/${id}`] = data
+                            set: (data, {merge}) => {
+
+                                if(merge)
+                                {
+                                    firestoreMockData = _.merge(firestoreMockData, {
+                                        [`${col}/${id}`] : data
+                                    })
+                                }
+                                else firestoreMockData[`${col}/${id}`] = data
+
                                 return null
                             },
                             get: () => {
@@ -50,7 +59,12 @@ describe('OFFLINE', () => {
                                 }
                             },
                             update: (data) => {
-                                firestoreMockData[`${col}/${id}`] = data
+                                if(!firestoreMockData[`${col}/${id}`]) return null
+
+                                firestoreMockData = _.merge(firestoreMockData, {
+                                    [`${col}/${id}`] : data
+                                })
+
                                 return null
                             }
                         }
@@ -66,52 +80,88 @@ describe('OFFLINE', () => {
 
     describe('Integration_Test', async () => {
 
-        // let docsToBeDeleted
-
         beforeEach(() => {
-            // docsToBeDeleted = []
             firestoreMockData = {}
-        })
-
-        afterEach(async () => {
-            // await asyncForEach(docsToBeDeleted, async (path: string ) => {
-            //     await adminFs.doc(path).delete()
-            // })
         })
 
         describe('Actionable Field Commands', async () => {
 
-            // it('Execution of User Sensor Relations Command should ', async () => {
-            //     const command = new CreateUserSensorRelationsCommand()
+            describe('Create-User-Sensor-Relations-Command', () => {
 
-            //     const userId = uniqid()
-            //     const householdId = uniqid()
-            //     const sensorId = uniqid()
+                const userId        = uniqid()
+                const householdId   = uniqid()
+                const sensorId      = uniqid()
+                const command       = new CreateUserSensorRelationsCommand()
+                let user          
 
-            //     firestoreMockData[`${Models.USER}/${userId}`] = {
-            //         [Models.HOUSEHOLD] : {
-            //             id : householdId
-            //         }
-            //     }
+                beforeEach(() => {
 
-            //     firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-            //         [Models.HOUSEHOLD] : {
-            //             id : householdId
-            //         }
-            //     }
+                    user = new User(firestoreStub, null, userId)
 
-            //     firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
-            //         [Models.SENSOR] : {
-            //             [sensorId] : true
-            //         }
-            //     }
+                    firestoreMockData[`${Models.USER}/${userId}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    }
 
-            //     const user = new User(firestoreStub, null, userId)
+                    firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    }
 
-            //     await command.execute(user, 'true')
+                    firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
+                        [Models.SENSOR] : {
+                            [sensorId] : true
+                        }
+                    }
 
-            //     console.log(firestoreMockData)
-            // })
+                })
+
+                it('Execution with a Value of true should create relations on User to all Sensors attached to the Household', async () => {
+
+                    await command.execute(user, 'true')
+
+                    const userDoc = firestoreMockData[`${Models.USER}/${userId}`][Models.SENSOR]
+
+                    const expectedUserDoc = {
+                        [sensorId] : true
+                    }
+
+                    expect(userDoc).to.deep.equals(expectedUserDoc)
+                })
+
+                it('Execution with a Value of true should create relations on all Sensors attached to the Household to the User', async () => {
+
+                    await command.execute(user, 'true')
+
+                    const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`][Models.USER]
+
+                    const expectedSensorDoc = {
+                        [userId] : true
+                    }
+
+                    expect(sensorDoc).to.deep.equals(expectedSensorDoc)
+                })
+
+                it('Execution with a Value of true should create Pivot Collections between all Sensors attached to the Household to the User', async () => {
+
+                    await command.execute(user, 'true')
+
+                    const sensorDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
+
+                    const expectedPivotDoc = {
+                        [Models.USER] : {
+                            id : userId
+                        },
+                        [Models.SENSOR] : {
+                            id : sensorId
+                        }
+                    }
+
+                    expect(sensorDoc).to.deep.equals(expectedPivotDoc)
+                })
+            })
         })
     })
 })

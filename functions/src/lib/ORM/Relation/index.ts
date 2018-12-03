@@ -128,9 +128,18 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         return
     }
 
-    async attachByIdBulk(propertyIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    async attachByIdBulk(propertyModelIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
     {
-        throw Error('NOT IMPLEMENTED')
+        const models = Array<ModelImpl>()
+        
+        await asyncForEach(propertyModelIds, async (id) => {
+            const model = await this.importStrategy.import(this.db, this.propertyModelName, id)
+            models.push(model)
+        })
+
+        await this.attachBulk(models, transaction)
+
+        return
     }
 
      /**
@@ -265,7 +274,7 @@ export class Many2ManyRelation extends N2ManyRelation {
             [this.propertyModelName]    : { id : await newPropModel.getId() }
         }
 
-        await pivotModel.updateOrCreate(pivotData)
+        await pivotModel.updateOrCreate(pivotData, transaction)
 
         await newPropModel.updateOrCreate({
             [this.owner.name] : {[await this.owner.getId()] : true}
@@ -274,12 +283,24 @@ export class Many2ManyRelation extends N2ManyRelation {
         return this
     }
 
-    async attachBulk(propertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    async attachBulk(newPropertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
     {
-        await super.attachBulk(propertyModels)
+        await super.attachBulk(newPropertyModels, transaction)
 
-        await asyncForEach(propertyModels, async (propModel) => {
-            await propModel.updateOrCreate({
+        await asyncForEach(newPropertyModels, async (newPropModel) => {
+
+            const id: string = await this.generatePivotId(await newPropModel.getId())
+
+            const pivotModel: ModelImpl = new ModelImpl(this.name, this.db, null, id)
+            
+            const pivotData = {
+                [this.owner.name]           : { id : await this.owner.getId() },
+                [this.propertyModelName]    : { id : await newPropModel.getId() }
+            }
+
+            await pivotModel.updateOrCreate(pivotData, transaction)
+
+            await newPropModel.updateOrCreate({
                 [this.owner.name] : {[await this.owner.getId()] : true}
             }, transaction)
         })
@@ -287,15 +308,10 @@ export class Many2ManyRelation extends N2ManyRelation {
         return
     }
 
-    async attachById(propertyId: string, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
-    {
-        throw new Error('NOT IMPLEMENTED')
-    }
-
-    async attachByIdBulk(propertyIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
-    {
-        throw Error('MOT IMPLEMENTED')
-    }
+    // async attachByIdBulk(propertyIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    // {
+    //     throw Error('NOT IMPLEMENTED')
+    // }
 
     defineCachableFields(cachedOnToProperty: Array<string>, cachedFromPivot?: Array<string>): Many2ManyRelation
     {
@@ -332,20 +348,6 @@ export class One2ManyRelation extends N2ManyRelation {
                 }
             }, transaction)
         })
-    }
-
-    async attachByIdBulk(propertyModelIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
-    {
-        const models = Array<ModelImpl>()
-        
-        await asyncForEach(propertyModelIds, async (id) => {
-            const model = await this.importStrategy.import(this.db, this.propertyModelName, id)
-            models.push(model)
-        })
-
-        await this.attachBulk(models, transaction)
-
-        return
     }
 
     async updatePivot(id: string, data: object)
