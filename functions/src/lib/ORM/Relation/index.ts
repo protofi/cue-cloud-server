@@ -89,15 +89,17 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         this.properties = new Set<ModelImpl>()
     }
 
-    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<N2ManyRelation>
+    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedData): Promise<N2ManyRelation>
     {
         this.properties.add(newPropModel)
         
         const propertyId: string = await newPropModel.getId()
 
+        const attachedPropertyData = (data.property) ? data.property : true
+
         await this.owner.updateOrCreate({
             [this.propertyModelName] : {
-                [propertyId] : true
+                [propertyId] : attachedPropertyData
             }
         }, transaction)
 
@@ -165,6 +167,10 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         if(!properties) return new Array()
         return Object.keys(properties)
     }
+}
+interface AttachedData {
+    owner?: any
+    property?: any
 }
 
 export class Many2ManyRelation extends N2ManyRelation {
@@ -263,9 +269,9 @@ export class Many2ManyRelation extends N2ManyRelation {
         }
     }
 
-    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<Many2ManyRelation>
+    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedData): Promise<Many2ManyRelation>
     {
-        await super.attach(newPropModel, transaction)
+        await super.attach(newPropModel, transaction, data)
         
         const id: string = await this.generatePivotId(await newPropModel.getId())
 
@@ -278,8 +284,12 @@ export class Many2ManyRelation extends N2ManyRelation {
 
         await pivotModel.updateOrCreate(pivotData, transaction)
 
+        const attachedOwnerData = (data.owner) ? data.owner : true
+
         await newPropModel.updateOrCreate({
-            [this.owner.name] : {[await this.owner.getId()] : true}
+            [this.owner.name] : {
+                [await this.owner.getId()] : attachedOwnerData
+            }
         }, transaction)
 
         return this

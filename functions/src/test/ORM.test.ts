@@ -967,7 +967,6 @@ describe('STAGE', () => {
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
 
-
                     const car = new Car(firestoreStub, null, carId)
 
                     await car.wheels().attachBulk([
@@ -1000,7 +999,6 @@ describe('STAGE', () => {
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
 
-
                     const car = new Car(adminFs, null, carId)
 
                     await car.wheels().attachBulk([
@@ -1042,7 +1040,6 @@ describe('STAGE', () => {
                     const wheelId1  = uniqid()
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
-
 
                     const car = new Car(adminFs, null, carId)
 
@@ -1071,7 +1068,6 @@ describe('STAGE', () => {
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
                     
-                    
                     const car = new Car(firestoreStub, null, carId)
 
                     await car.wheels().attachByIdBulk([
@@ -1092,7 +1088,6 @@ describe('STAGE', () => {
                     const wheelId1  = uniqid()
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
-
 
                     const car = new Car(firestoreStub, null, carId)
 
@@ -1115,7 +1110,6 @@ describe('STAGE', () => {
                     const wheelId1  = uniqid()
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
-
 
                     const car = new Car(adminFs, null, carId)
 
@@ -1158,7 +1152,6 @@ describe('STAGE', () => {
                     const wheelId1  = uniqid()
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
-
 
                     const car = new Car(adminFs, null, carId)
 
@@ -1437,9 +1430,7 @@ describe('STAGE', () => {
                     await batch.commit()
                     
                     const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
-
                     const d = await adminFs.doc(`${Stubs.DRIVER}/${driverId}`).get()
-
                     const cd = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`).get()
 
                     //clean up
@@ -1502,6 +1493,60 @@ describe('STAGE', () => {
                     expect(Object.keys(userSensors), 'Foreign key from sensor2 on user').to.include(sensor2Id)
                     expect(Object.keys(sensor1Users), 'Foreign key on sensor1').to.include(userId)
                     expect(Object.keys(sensor2Users), 'Foreign key on sensor2').to.include(userId)
+                })
+
+                it.only('When attaching model to each other writing data directly to the relation on the Property to the Owner should be possible', async () => {
+
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const driverId = uniqid()
+                    const carName = 'Mustang'
+                    const driver = new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attach(driver, null, {
+                        owner : {
+                            name : carName
+                        }
+                    })
+
+                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const expectedDriverDoc = {
+                        [Stubs.CAR] : {
+                            [carId] : {
+                                name : carName
+                            }
+                        }
+                    }
+
+                    expect(driverDoc).to.deep.equal(expectedDriverDoc)
+                })
+
+                it.only('When attaching model to each other writing data directly to the relation on the Owner to the Property should be possible', async () => {
+
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const driverId = uniqid()
+                    const driverName = 'Bob'
+                    const driver = new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attach(driver, null, {
+                        property : {
+                            name : driverName
+                        }
+                    })
+
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedcarDoc = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : {
+                                name : driverName
+                            }
+                        }
+                    }
+
+                    expect(carDoc).to.deep.equal(expectedcarDoc)
                 })
 
                 it('When models are attached in bulk relations to all property models should be made on the owner', async () => {
@@ -1934,6 +1979,44 @@ describe('STAGE', () => {
                     expect(cd2.exists).to.be.false
                     expect(cd3.exists).to.be.false
                 })
+
+                // it.only('Write data directly to the collections the attaching', async () => {
+
+                //     const batch     = adminFs.batch()
+                //     const carId     = uniqid()
+
+                //     const driverId1: string = uniqid()
+                //     const driverId2: string = uniqid()
+                //     const driverId3: string = uniqid()
+                    
+                //     const car = new Car(adminFs, null, carId)
+
+                //     await car.drivers().attachByIdBulk([
+                //         driverId1,
+                //         driverId2,
+                //         driverId3
+                //     ], batch)
+
+                //     const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+
+                //     const d1 = await adminFs.doc(`${Stubs.DRIVER}/${driverId1}`).get()
+                //     const d2 = await adminFs.doc(`${Stubs.DRIVER}/${driverId2}`).get()
+                //     const d3 = await adminFs.doc(`${Stubs.DRIVER}/${driverId3}`).get()
+
+                //     const cd1 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`).get()
+                //     const cd2 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`).get()
+                //     const cd3 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`).get()
+
+                //     expect(c.exists).to.be.false
+
+                //     expect(d1.exists).to.be.false
+                //     expect(d2.exists).to.be.false
+                //     expect(d3.exists).to.be.false
+
+                //     expect(cd1.exists).to.be.false
+                //     expect(cd2.exists).to.be.false
+                //     expect(cd3.exists).to.be.false
+                // })
 
                 it('Retrieve attached blank model of relation', async () => {
 
