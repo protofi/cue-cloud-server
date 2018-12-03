@@ -24,7 +24,9 @@ describe('OFFLINE', () => {
     let test: FeaturesList
     let firestoreMockData
 
-    const firestoreStub = {
+    let firestoreStub
+
+    firestoreStub = {
         settings: () => { return null },
         collection: (col) => {
             return {
