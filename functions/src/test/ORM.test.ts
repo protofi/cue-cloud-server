@@ -106,7 +106,7 @@ describe('STAGE', () => {
         })
 
         afterEach(async () => {
-            await asyncForEach(docsToBeDeleted, async (path: string ) => {
+            await asyncForEach(docsToBeDeleted, async (path: string) => {
                 await adminFs.doc(path).delete()
             })
         })
@@ -858,6 +858,16 @@ describe('STAGE', () => {
                     expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
                 })
 
+                it('AttachByIdBulk should not update any collection if id array is empty', async () => {
+                    const carId = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.wheels().attachByIdBulk([])
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.not.exist
+                })
+
                 it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
 
                     const batch     = adminFs.batch()
@@ -969,6 +979,16 @@ describe('STAGE', () => {
                     expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
                     expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
                     expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                })
+
+                it('AttachByIdBulk should not update any collection if id array is empty', async () => {
+                    const carId = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.wheels().attachByIdBulk([])
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.not.exist
                 })
 
                 it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
@@ -1534,7 +1554,6 @@ describe('STAGE', () => {
                     const driverId2 = uniqid()
                     const driverId3 = uniqid()
                     
-                    
                     const car = new Car(firestoreStub, null, carId)
 
                     await car.drivers().attachBulk([
@@ -1552,6 +1571,16 @@ describe('STAGE', () => {
                     expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.CAR]['id']).to.be.equals(carId)
                 })
 
+                it('AttachBulk should not update any collection if id array is empty', async () => {
+                    const carId = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachBulk([])
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.not.exist
+                })
+
                 it('When a Write Batch is passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
 
                     const batch     = adminFs.batch()
@@ -1560,7 +1589,6 @@ describe('STAGE', () => {
                     const driverId1  = uniqid()
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
-
 
                     const car = new Car(adminFs, null, carId)
 
@@ -1616,7 +1644,6 @@ describe('STAGE', () => {
                     const driverId1  = uniqid()
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
-
 
                     const car = new Car(adminFs, null, carId)
 
@@ -1737,7 +1764,6 @@ describe('STAGE', () => {
                     expect(d.exists).to.be.false
                     expect(cd.exists).to.be.false
                 })
-
                 
                 it('When models are attached in bulk by id relations to all property models should be made on the owner', async () => {
 
@@ -1746,7 +1772,6 @@ describe('STAGE', () => {
                     const driverId1: string = uniqid()
                     const driverId2: string = uniqid()
                     const driverId3: string = uniqid()
-                    
                     
                     const car = new Car(firestoreStub, null, carId)
 
@@ -1769,7 +1794,6 @@ describe('STAGE', () => {
                     const driverId2: string = uniqid()
                     const driverId3: string = uniqid()
 
-
                     const car = new Car(firestoreStub, null, carId)
 
                     await car.drivers().attachByIdBulk([
@@ -1791,7 +1815,6 @@ describe('STAGE', () => {
                     const driverId2: string = uniqid()
                     const driverId3: string = uniqid()
                     
-                    
                     const car = new Car(firestoreStub, null, carId)
 
                     await car.drivers().attachByIdBulk([
@@ -1809,6 +1832,16 @@ describe('STAGE', () => {
                     expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.CAR]['id']).to.be.equals(carId)
                 })
 
+                it('AttachByIdBulk should not update any collection if id array is empty', async () => {
+                    const carId = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachByIdBulk([])
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.not.exist
+                })
+
                 it('When a Write Batch is passed to attachByIdBulk the colletions should be created when commit on batch is invoked', async () => {
 
                     const batch     = adminFs.batch()
@@ -1817,7 +1850,6 @@ describe('STAGE', () => {
                     const driverId1: string = uniqid()
                     const driverId2: string = uniqid()
                     const driverId3: string = uniqid()
-                    
                     
                     const car = new Car(adminFs, null, carId)
 
@@ -1873,7 +1905,6 @@ describe('STAGE', () => {
                     const driverId1: string = uniqid()
                     const driverId2: string = uniqid()
                     const driverId3: string = uniqid()
-                    
                     
                     const car = new Car(adminFs, null, carId)
 
@@ -2145,7 +2176,6 @@ describe('STAGE', () => {
 
                     const driver = new Driver(firestoreStub)
                     const car = new Car(adminFs)
-                    
                     class Many2ManyRelationStub extends Many2ManyRelation
                     {
                         constructor(owner: ModelImpl, propertyModelName: string, _db)

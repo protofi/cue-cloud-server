@@ -106,6 +106,8 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
 
     async attachBulk(propertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
     {
+        if(propertyModels.length < 1) return
+        
         const propertyRelations: Object = {}
 
         propertyModels.forEach((propertyModel: ModelImpl) => {

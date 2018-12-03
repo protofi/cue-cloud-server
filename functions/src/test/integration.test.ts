@@ -70,7 +70,6 @@ describe('OFFLINE', () => {
         }
     }
 
-
     beforeEach(() => {
         firestoreMockData = {}
         test = functionsTest()
