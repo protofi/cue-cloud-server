@@ -1,7 +1,8 @@
+import * as _ from 'lodash'
 import * as uniqid from 'uniqid'
 import ModelImpl from "../lib/ORM/Models";
-import { Many2ManyRelation, N2OneRelation, One2ManyRelation, ModelImportStategy } from "../lib/ORM/Relation";
 import IActionableFieldCommand from '../lib/Command/Command';
+import { Many2ManyRelation, N2OneRelation, One2ManyRelation, ModelImportStategy } from "../lib/ORM/Relation";
 
 export class Car extends ModelImpl {
 
@@ -123,4 +124,4 @@ export class ModelImportStrategyStub implements ModelImportStategy{
         const property = new model.default(db_, null, id)
         return property
     }
-} 
+}

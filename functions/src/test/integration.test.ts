@@ -22,56 +22,56 @@ const expect = chai.expect
 describe('OFFLINE', () => {
 
     let test: FeaturesList
-    let firestoreStub
     let firestoreMockData
 
-    before(async () => {
+    const firestoreStub = {
+        settings: () => { return null },
+        collection: (col) => {
+            return {
+                doc: (id) => {
+                    return {
+                        id: (id) ? id : uniqid(),
+                        set: (data, {merge}) => {
 
-        test = functionsTest()
-
-        firestoreStub = {
-            settings: () => { return null },
-            collection: (col) => {
-                return {
-                    doc: (id) => {
-                        return {
-                            id: (id) ? id : uniqid(),
-                            set: (data, {merge}) => {
-
-                                if(merge)
-                                {
-                                    firestoreMockData = _.merge(firestoreMockData, {
-                                        [`${col}/${id}`] : data
-                                    })
-                                }
-                                else firestoreMockData[`${col}/${id}`] = data
-
-                                return null
-                            },
-                            get: () => {
-                                return {
-                                    get: (data) => {
-                                        if(data)
-                                            return firestoreMockData[`${col}/${id}`][data]
-                                        else
-                                            return firestoreMockData[`${col}/${id}`]
-                                    }
-                                }
-                            },
-                            update: (data) => {
-                                if(!firestoreMockData[`${col}/${id}`]) return null
-
+                            if(merge)
+                            {
                                 firestoreMockData = _.merge(firestoreMockData, {
                                     [`${col}/${id}`] : data
                                 })
-
-                                return null
                             }
+                            else firestoreMockData[`${col}/${id}`] = data
+
+                            return null
+                        },
+                        get: () => {
+                            return {
+                                get: (data) => {
+                                    if(data)
+                                        return firestoreMockData[`${col}/${id}`][data]
+                                    else
+                                        return firestoreMockData[`${col}/${id}`]
+                                }
+                            }
+                        },
+                        update: (data) => {
+                            if(!firestoreMockData[`${col}/${id}`]) return null
+
+                            firestoreMockData = _.merge(firestoreMockData, {
+                                [`${col}/${id}`] : data
+                            })
+
+                            return null
                         }
                     }
                 }
             }
         }
+    }
+
+
+    beforeEach(() => {
+        firestoreMockData = {}
+        test = functionsTest()
     })
 
     after(async () => {
@@ -79,10 +79,6 @@ describe('OFFLINE', () => {
     })
 
     describe('Integration_Test', async () => {
-
-        beforeEach(() => {
-            firestoreMockData = {}
-        })
 
         describe('Actionable Field Commands', async () => {
 
