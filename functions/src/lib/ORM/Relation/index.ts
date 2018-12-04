@@ -72,11 +72,11 @@ export default class RelationImpl implements Relation{
 export interface N2ManyRelation {
 
     get(): Promise<Array<ModelImpl>>
-    attach(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<N2ManyRelation>
+    attach(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedData): Promise<N2ManyRelation>
     updatePivot(propertyId: string, data: object): Promise<ModelImpl>
-    attachBulk(propertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
-    attachById(propertyId: string, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
-    attachByIdBulk(propertyModelIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    attachBulk(propertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedData): Promise<void>
+    attachById(propertyId: string, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedData): Promise<void>
+    attachByIdBulk(propertyModelIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedData): Promise<void>
 }
 
 export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
@@ -95,7 +95,7 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         
         const propertyId: string = await newPropModel.getId()
 
-        const attachedPropertyData = (data.property) ? data.property : true
+        const attachedPropertyData = (data && data.property) ? data.property : true
 
         await this.owner.updateOrCreate({
             [this.propertyModelName] : {
@@ -106,15 +106,18 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         return this
     }
 
-    async attachBulk(propertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    async attachBulk(propertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedDataBulk): Promise<void>
     {
         if(propertyModels.length < 1) return
         
         const propertyRelations: Object = {}
 
-        propertyModels.forEach((propertyModel: ModelImpl) => {
+        propertyModels.forEach((propertyModel: ModelImpl, i: number) => {
             const propertyId: string = propertyModel.getId()
-            propertyRelations[propertyId] = true
+
+            const attachedPropertyData = (data && data.properties && data.properties[i]) ? data.properties[i] : true
+
+            propertyRelations[propertyId] = attachedPropertyData
         })
 
         await this.owner.updateOrCreate({
@@ -132,7 +135,7 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         return
     }
 
-    async attachByIdBulk(propertyModelIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    async attachByIdBulk(propertyModelIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedDataBulk): Promise<void>
     {
         const models = Array<ModelImpl>()
         
@@ -141,7 +144,7 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
             models.push(model)
         })
 
-        await this.attachBulk(models, transaction)
+        await this.attachBulk(models, transaction, data)
 
         return
     }
@@ -168,10 +171,17 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         return Object.keys(properties)
     }
 }
+
 interface AttachedData {
     owner?: any
     property?: any
 }
+
+interface AttachedDataBulk {
+    owner?: any
+    properties?: Array<any>
+}
+
 
 export class Many2ManyRelation extends N2ManyRelation {
 
@@ -284,7 +294,7 @@ export class Many2ManyRelation extends N2ManyRelation {
 
         await pivotModel.updateOrCreate(pivotData, transaction)
 
-        const attachedOwnerData = (data.owner) ? data.owner : true
+        const attachedOwnerData = (data && data.owner) ? data.owner : true
 
         await newPropModel.updateOrCreate({
             [this.owner.name] : {
@@ -295,9 +305,9 @@ export class Many2ManyRelation extends N2ManyRelation {
         return this
     }
 
-    async attachBulk(newPropertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    async attachBulk(newPropertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedDataBulk): Promise<void>
     {
-        await super.attachBulk(newPropertyModels, transaction)
+        await super.attachBulk(newPropertyModels, transaction, data)
 
         await asyncForEach(newPropertyModels, async (newPropModel) => {
 
@@ -312,18 +322,15 @@ export class Many2ManyRelation extends N2ManyRelation {
 
             await pivotModel.updateOrCreate(pivotData, transaction)
 
+            const attachedOwnerData = (data && data.owner) ? data.owner : true
+
             await newPropModel.updateOrCreate({
-                [this.owner.name] : {[await this.owner.getId()] : true}
+                [this.owner.name] : { [await this.owner.getId()] : attachedOwnerData }
             }, transaction)
         })
         
         return
     }
-
-    // async attachByIdBulk(propertyIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
-    // {
-    //     throw Error('NOT IMPLEMENTED')
-    // }
 
     defineCachableFields(cachedOnToProperty: Array<string>, cachedFromPivot?: Array<string>): Many2ManyRelation
     {

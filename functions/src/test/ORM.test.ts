@@ -1495,7 +1495,7 @@ describe('STAGE', () => {
                     expect(Object.keys(sensor2Users), 'Foreign key on sensor2').to.include(userId)
                 })
 
-                it.only('When attaching model to each other writing data directly to the relation on the Property to the Owner should be possible', async () => {
+                it('When attaching models to each other writing data directly to the relation on the Property to the Owner should be possible', async () => {
 
                     const carId = uniqid()
                     const car = new Car(firestoreStub, null, carId)
@@ -1522,7 +1522,7 @@ describe('STAGE', () => {
                     expect(driverDoc).to.deep.equal(expectedDriverDoc)
                 })
 
-                it.only('When attaching model to each other writing data directly to the relation on the Owner to the Property should be possible', async () => {
+                it('When attaching models to each other writing data directly to the relation on the Owner to the Property should be possible', async () => {
 
                     const carId = uniqid()
                     const car = new Car(firestoreStub, null, carId)
@@ -1719,6 +1719,155 @@ describe('STAGE', () => {
                     expect(cd3.exists).to.be.false
                 })
 
+                it('When attaching models in bulk to another model writing data directly to the relation on the Properties to the Owner should be possible', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+                    const carName = 'Bob'
+
+                    await car.drivers().attachBulk([
+                        new Driver(firestoreStub, null, driverId1),
+                        new Driver(firestoreStub, null, driverId2),
+                        new Driver(firestoreStub, null, driverId3)
+                    ], null, {
+                        owner : {
+                            name : carName
+                        }
+                    })
+
+                    const carRelations1 = firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+
+                    const expectedCarRelation = {
+                        name : carName
+                    }
+
+                    expect(carRelations1).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations2).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations3).to.be.deep.equal(expectedCarRelation)
+                })
+
+                it('When attaching models in bulk to another model writing data directly to the relation on the Owner to the Properties should be possible', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachBulk([
+                        new Driver(firestoreStub, null, driverId1),
+                        new Driver(firestoreStub, null, driverId2),
+                        new Driver(firestoreStub, null, driverId3)
+                    ], null, {
+                        properties : [
+                            {
+                                id : driverId1
+                            },
+                            {
+                                id : driverId2
+                            },
+                            {
+                                id : driverId3
+                            }
+                        ]
+                    })
+
+                    const driverRelations1 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+
+                    const expectedDriverRelation1 = {
+                        id : driverId1
+                    }
+
+                    const expectedDriverRelation2 = {
+                        id : driverId2
+                    }
+
+                    const expectedDriverRelation3 = {
+                        id : driverId3
+                    }
+
+                    expect(driverRelations1).to.be.deep.equal(expectedDriverRelation1)
+                    expect(driverRelations2).to.be.deep.equal(expectedDriverRelation2)
+                    expect(driverRelations3).to.be.deep.equal(expectedDriverRelation3)
+                })
+
+                it('When attaching models in bulk to another model writing data directly to the relations', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+                    const carName = 'Bob'
+
+                    await car.drivers().attachBulk([
+                        new Driver(firestoreStub, null, driverId1),
+                        new Driver(firestoreStub, null, driverId2),
+                        new Driver(firestoreStub, null, driverId3)
+                    ], null, {
+                        owner : {
+                            name : carName
+                        },
+                        properties : [
+                            {
+                                id : driverId1
+                            },
+                            {
+                                id : driverId2
+                            },
+                            {
+                                id : driverId3
+                            }
+                        ]
+
+                    })
+
+                    const carRelations1 = firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+
+                    const expectedCarRelation = {
+                        name : carName
+                    }
+
+                    expect(carRelations1).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations2).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations3).to.be.deep.equal(expectedCarRelation)
+
+                    const driverRelations1 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+
+                    const expectedDriverRelation1 = {
+                        id : driverId1
+                    }
+
+                    const expectedDriverRelation2 = {
+                        id : driverId2
+                    }
+
+                    const expectedDriverRelation3 = {
+                        id : driverId3
+                    }
+
+                    expect(driverRelations1).to.be.deep.equal(expectedDriverRelation1)
+                    expect(driverRelations2).to.be.deep.equal(expectedDriverRelation2)
+                    expect(driverRelations3).to.be.deep.equal(expectedDriverRelation3)
+                })
+
                 it('Attaching a model to another by id should create an owner collection with a relation to the property', async () => {
 
                     const carId = uniqid()
@@ -1887,6 +2036,155 @@ describe('STAGE', () => {
                     expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.not.exist
                 })
 
+                it('When attaching models in bulk by id to another model writing data directly to the relation on the Properties to the Owner should be possible', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+                    const carName = 'Bob'
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ], null, {
+                        owner : {
+                            name : carName
+                        }
+                    })
+
+                    const carRelations1 = firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+
+                    const expectedCarRelation = {
+                        name : carName
+                    }
+
+                    expect(carRelations1).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations2).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations3).to.be.deep.equal(expectedCarRelation)
+                })
+
+                it('When attaching models in bulk by id to another model writing data directly to the relation on the Owner to the Properties should be possible', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ], null, {
+                        properties : [
+                            {
+                                id : driverId1
+                            },
+                            {
+                                id : driverId2
+                            },
+                            {
+                                id : driverId3
+                            }
+                        ]
+                    })
+
+                    const driverRelations1 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+
+                    const expectedDriverRelation1 = {
+                        id : driverId1
+                    }
+
+                    const expectedDriverRelation2 = {
+                        id : driverId2
+                    }
+
+                    const expectedDriverRelation3 = {
+                        id : driverId3
+                    }
+
+                    expect(driverRelations1).to.be.deep.equal(expectedDriverRelation1)
+                    expect(driverRelations2).to.be.deep.equal(expectedDriverRelation2)
+                    expect(driverRelations3).to.be.deep.equal(expectedDriverRelation3)
+                })
+
+                it('When attaching models in bulk by id to another model writing data directly to the relations', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+                    const carName = 'Bob'
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ], null, {
+                        owner : {
+                            name : carName
+                        },
+                        properties : [
+                            {
+                                id : driverId1
+                            },
+                            {
+                                id : driverId2
+                            },
+                            {
+                                id : driverId3
+                            }
+                        ]
+
+                    })
+
+                    const carRelations1 = firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+
+                    const expectedCarRelation = {
+                        name : carName
+                    }
+
+                    expect(carRelations1).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations2).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations3).to.be.deep.equal(expectedCarRelation)
+
+                    const driverRelations1 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+
+                    const expectedDriverRelation1 = {
+                        id : driverId1
+                    }
+
+                    const expectedDriverRelation2 = {
+                        id : driverId2
+                    }
+
+                    const expectedDriverRelation3 = {
+                        id : driverId3
+                    }
+
+                    expect(driverRelations1).to.be.deep.equal(expectedDriverRelation1)
+                    expect(driverRelations2).to.be.deep.equal(expectedDriverRelation2)
+                    expect(driverRelations3).to.be.deep.equal(expectedDriverRelation3)
+                })
+
                 it('When a Write Batch is passed to attachByIdBulk the colletions should be created when commit on batch is invoked', async () => {
 
                     const batch     = adminFs.batch()
@@ -1980,7 +2278,7 @@ describe('STAGE', () => {
                     expect(cd3.exists).to.be.false
                 })
 
-                // it.only('Write data directly to the collections the attaching', async () => {
+                // it('Write data directly to the collections the attaching', async () => {
 
                 //     const batch     = adminFs.batch()
                 //     const carId     = uniqid()

@@ -16,7 +16,11 @@ export default class CreateUserSensorRelationsCommand implements IActionableFiel
 
         const sensorIds = Object.keys(sensors)
 
-        await user.sensors().attachByIdBulk(sensorIds)
+        await user.sensors().attachByIdBulk(sensorIds, null, {
+            owner : {
+                id : user.getId()
+            }
+        })
 
         return
     }

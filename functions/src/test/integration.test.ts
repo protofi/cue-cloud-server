@@ -135,7 +135,9 @@ describe('OFFLINE', () => {
                     const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`][Models.USER]
 
                     const expectedSensorDoc = {
-                        [userId] : true
+                        [userId] : {
+                            id : userId
+                        }
                     }
 
                     expect(sensorDoc).to.deep.equals(expectedSensorDoc)
