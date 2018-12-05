@@ -1,5 +1,6 @@
 import ModelImpl, { Models } from "./";
-import { One2ManyRelation, Many2ManyRelation } from "./../Relation";
+import { One2ManyRelation } from "./../Relation";
+import { CreateUserNewSensorRelationsCommand } from "../../Command/CreateUserNewSensorRelationsCommand";
 
 export default class Household extends ModelImpl {
 
@@ -13,8 +14,9 @@ export default class Household extends ModelImpl {
         return this.hasMany(Models.USER)
     }
 
-    sensors(): Many2ManyRelation
+    sensors(): One2ManyRelation
     {
-        return this.belongsToMany(Models.SENSOR)
+        return this.hasMany(Models.SENSOR)
+            .defineActionOnUpdate(new CreateUserNewSensorRelationsCommand())
     }
 }

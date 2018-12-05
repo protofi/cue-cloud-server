@@ -2,7 +2,7 @@ import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from
 import { Change } from "firebase-functions";
 import * as flatten from 'flat'
 import { difference, asyncForEach } from "../../util";
-import IActionableFieldCommand from "./../../Command/Command";
+import IActionableFieldCommand from "./../../Command";
 
 export enum Models {
     HOUSEHOLD = 'households',

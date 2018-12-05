@@ -4,8 +4,8 @@ import { Relations } from "../../const"
 import { singular } from "pluralize"
 import ModelImpl from "../Models"
 import { Pivot } from "./Pivot"
-import { get, capitalize } from "lodash"
-import IActionableFieldCommand from "./../../Command/Command";
+import { get, capitalize, isEmpty } from "lodash"
+import IActionableFieldCommand from "./../../Command";
 
 export interface ModelImportStategy {
     import(db: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl>
@@ -20,6 +20,20 @@ export class StandardModelImport implements ModelImportStategy{
     }
 }
 
+interface AttachedData {
+    owner?: any
+    property?: any
+}
+
+interface AttachedDataBulk {
+    owner?: any
+    properties?: Array<any>
+}
+
+interface SimpleRelation {
+    id: string
+}
+
 export interface Relation {
     cache(id?: string): Promise<any>
 }
@@ -31,7 +45,7 @@ export default class RelationImpl implements Relation{
     protected propertyModelName: string
 
     protected cacheOnToProperty: Array<string>
-
+    protected actionableFields: Map<string, IActionableFieldCommand> = new Map<string, IActionableFieldCommand>()
     protected importStrategy: ModelImportStategy = new StandardModelImport()
 
     constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
@@ -69,7 +83,7 @@ export default class RelationImpl implements Relation{
     }
 }
 
-export interface N2ManyRelation {
+export interface IN2ManyRelation {
 
     get(): Promise<Array<ModelImpl>>
     attach(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedData): Promise<N2ManyRelation>
@@ -77,9 +91,10 @@ export interface N2ManyRelation {
     attachBulk(propertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedData): Promise<void>
     attachById(propertyId: string, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedData): Promise<void>
     attachByIdBulk(propertyModelIds: Array<string>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedData): Promise<void>
+    takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
 }
 
-export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
+export abstract class N2ManyRelation extends RelationImpl implements IN2ManyRelation {
     
     protected properties: Set<ModelImpl>
 
@@ -112,10 +127,10 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         
         const propertyRelations: Object = {}
 
-        propertyModels.forEach((propertyModel: ModelImpl, i: number) => {
+        propertyModels.forEach((propertyModel: ModelImpl, index: number) => {
             const propertyId: string = propertyModel.getId()
 
-            const attachedPropertyData = (data && data.properties && data.properties[i]) ? data.properties[i] : true
+            const attachedPropertyData = (data && data.properties && data.properties[index]) ? data.properties[index] : true
 
             propertyRelations[propertyId] = attachedPropertyData
         })
@@ -155,9 +170,10 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
     async get(): Promise<Array<ModelImpl>>
     {
         const propertyIds: Array<string> = await this.getIds()
+        const models: Array<ModelImpl> = []
 
-        const models = propertyIds.map((propertyId) => {
-            return new ModelImpl(this.propertyModelName, this.db, null, propertyId)
+        await asyncForEach(propertyIds, async (id: string) => {
+            models.push(await this.importStrategy.import(this.db, this.propertyModelName, id))
         })
 
         return models
@@ -170,21 +186,16 @@ export class N2ManyRelation extends RelationImpl implements N2ManyRelation {
         if(!properties) return new Array()
         return Object.keys(properties)
     }
+
+    abstract updatePivot(propertyId: string, data: object): Promise<ModelImpl>
+    abstract takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
 }
 
-interface AttachedData {
-    owner?: any
-    property?: any
-}
-
-interface AttachedDataBulk {
-    owner?: any
-    properties?: Array<any>
-}
-
-
+/**
+ * Constitudes a Many-to-Many relationship between two models
+ */
 export class Many2ManyRelation extends N2ManyRelation {
-
+    
     protected name: string
 
     protected cachedOnToPivot : Array<string>
@@ -339,9 +350,24 @@ export class Many2ManyRelation extends N2ManyRelation {
 
         return this
     }
+
+    defineActionableField(field: string, command: IActionableFieldCommand): Many2ManyRelation
+    {
+        this.actionableFields.set(field, command)
+        return this
+    }
+
+    async takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
 }
 
+/**
+ * Constitudes a One-to-Many relationship between two models
+ */
 export class One2ManyRelation extends N2ManyRelation {
+
+    protected onUpdateAction: IActionableFieldCommand
 
     async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<One2ManyRelation>
     {
@@ -379,16 +405,36 @@ export class One2ManyRelation extends N2ManyRelation {
             }
         })
     }
+
+    defineActionOnUpdate(command: IActionableFieldCommand): One2ManyRelation
+    {
+        this.onUpdateAction = command
+        return this
+    }
+
+    async takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void> {
+        
+        if(!this.onUpdateAction) return
+
+        const beforeRelLinkData = change.before.get(this.propertyModelName)
+        const afterRelLinkData = change.after.get(this.propertyModelName)
+
+        if(!afterRelLinkData) return
+
+        const relLinkChanges = (beforeRelLinkData) ? difference(beforeRelLinkData, afterRelLinkData) : afterRelLinkData
+
+        if(isEmpty(relLinkChanges)) return
+
+        return this.onUpdateAction.execute(this.owner, relLinkChanges)
+    }
 }
 
-interface SimpleRelation {
-    id: string
-}
-
+/**
+ * Constidues a reverse One-to-Many or a One-to-One relationship between to models 
+ */
 export class N2OneRelation extends RelationImpl {
     
     protected cacheOnToProperty: Array<string> = new Array<string>()
-    protected actionableFields: Map<string, IActionableFieldCommand> = new Map<string, IActionableFieldCommand>()
 
     defineCachableFields(cacheOnToProperty: Array<string>): N2OneRelation
     {
@@ -411,13 +457,13 @@ export class N2OneRelation extends RelationImpl {
         
         if(!afterPivotData) return
         
-        const changes = (beforePivotData) ? difference(beforePivotData, afterPivotData) : afterPivotData
+        const pivotDataChanges = (beforePivotData) ? difference(beforePivotData, afterPivotData) : afterPivotData
 
-        await asyncForEach(Object.keys(changes),
+        await asyncForEach(Object.keys(pivotDataChanges),
             async (field) => {
 
                 const action: IActionableFieldCommand = this.actionableFields.get(field)
-                if(action) await action.execute(this.owner, changes[field])
+                if(action) await action.execute(this.owner, pivotDataChanges[field])
 
                 return
         })
@@ -428,9 +474,18 @@ export class N2OneRelation extends RelationImpl {
      */
     async get(): Promise<ModelImpl>
     {
-        const property: SimpleRelation = await this.owner.getField(this.propertyModelName) as SimpleRelation
+        const property = await this.owner.getField(this.propertyModelName) as SimpleRelation
         if(!property) return null
         return new ModelImpl(this.propertyModelName, this.db, null, property.id)
+    }
+
+    async getPivotField(field: string): Promise<any> 
+    {
+        const pivotFields = await this.owner.getField(this.propertyModelName)
+
+        if(!pivotFields) return null
+
+        return get(pivotFields, `${Relations.PIVOT}.${field}`, null)
     }
 
     async cache(): Promise<any>

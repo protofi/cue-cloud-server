@@ -1,9 +1,7 @@
 import * as express from 'express'
 import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
-import firebase from '@firebase/app';
-
-import * as glob from 'glob'
+import { glob } from 'glob'
 import * as camelCase from 'camelcase'
 
 const app = express()

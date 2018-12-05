@@ -8,6 +8,9 @@ import CreateUserSensorRelationsCommand from './lib/Command/CreateUserSensorRela
 import User from './lib/ORM/Models/User';
 import { Models } from './lib/ORM/Models';
 import * as _ from 'lodash'
+import { CreateUserNewSensorRelationsCommand } from './lib/Command/CreateUserNewSensorRelationsCommand';
+import Household from './lib/ORM/Models/Household';
+import { Relations } from './lib/const';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -48,10 +51,16 @@ describe('OFFLINE', () => {
                         get: () => {
                             return {
                                 get: (data) => {
-                                    if(data)
-                                        return firestoreMockData[`${col}/${id}`][data]
-                                    else
-                                        return firestoreMockData[`${col}/${id}`]
+                                    try{
+                                        if(data)
+                                            return firestoreMockData[`${col}/${id}`][data]
+                                        else
+                                            return firestoreMockData[`${col}/${id}`]
+                                    }
+                                    catch(e)
+                                    {
+                                        throw Error(`Mock data is missing: ${e} [${`${col}/${id}`}]`)
+                                    }
                                 }
                             }
                         },
@@ -89,7 +98,7 @@ describe('OFFLINE', () => {
                 const householdId   = uniqid()
                 const sensorId      = uniqid()
                 const command       = new CreateUserSensorRelationsCommand()
-                let user          
+                let user
 
                 beforeEach(() => {
 
@@ -112,7 +121,6 @@ describe('OFFLINE', () => {
                             [sensorId] : true
                         }
                     }
-
                 })
 
                 it('Execution with a Value of true should create relations on User to all Sensors attached to the Household', async () => {
@@ -147,7 +155,7 @@ describe('OFFLINE', () => {
 
                     await command.execute(user, 'true')
 
-                    const sensorDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
+                    const pivotDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
 
                     const expectedPivotDoc = {
                         [Models.USER] : {
@@ -158,7 +166,88 @@ describe('OFFLINE', () => {
                         }
                     }
 
-                    expect(sensorDoc).to.deep.equals(expectedPivotDoc)
+                    expect(pivotDoc).to.deep.equals(expectedPivotDoc)
+                })
+            })
+
+            describe('Create-User-New-Sensor-Relations-Command', () => {
+                
+                const userId        = uniqid()
+                const householdId   = uniqid()
+                const sensorId      = uniqid()
+                const command       = new CreateUserNewSensorRelationsCommand()
+                let household
+
+                beforeEach(() => {
+
+                    household = new Household(firestoreStub, null, householdId)
+
+                    firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
+                        [Models.USER] : {
+                            [userId] : true
+                        }
+                    }
+
+                    firestoreMockData[`${Models.USER}/${userId}`] = {
+                        [Models.HOUSEHOLD] : {
+                            [Relations.PIVOT] : {
+                                accepted : true
+                            }
+                        }
+                    }
+                })
+
+                it('Execution should add relational links from the User to the Sensors of the Household', async () => {
+
+                    await command.execute(household, {[sensorId] : true})
+
+                    const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                    const expectedUserDoc = {
+                        [Models.HOUSEHOLD] : {
+                            [Relations.PIVOT] : {
+                                accepted : true
+                            }
+                        },
+                        [Models.SENSOR] : {
+                            [sensorId] : true
+                        }
+                    }
+
+                    expect(expectedUserDoc).to.be.deep.equal(userDoc)
+                })
+
+                it('Execution should add relational links from the Sensors to the Users of the Household', async () => {
+
+                    await command.execute(household, {[sensorId] : true})
+
+                    const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
+
+                    const expectedSensorDoc = {
+                        [Models.USER] : {
+                            [userId] : true
+                        }
+                    }
+
+                    expect(expectedSensorDoc).to.be.deep.equal(sensorDoc)
+                })
+
+                it('Execution should create Pivot collections between Sensors and Users of the Household', async () => {
+
+                    await command.execute(household, {[sensorId] : true})
+
+                    const sensorUserDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
+
+                    const expectedSensorUserDoc = {
+                        [Models.USER] : {
+                            id : userId
+                        },
+                        [Models.SENSOR] : {
+                            id : sensorId
+                        }
+                    }
+
+                    expect(expectedSensorUserDoc).to.be.deep.equal(sensorUserDoc)
                 })
             })
         })
