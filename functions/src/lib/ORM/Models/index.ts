@@ -2,7 +2,7 @@ import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from
 import { Change } from "firebase-functions";
 import * as flatten from 'flat'
 import { difference, asyncForEach } from "../../util";
-import IActionableFieldCommand from "./../../Command";
+import { IActionableFieldCommand } from "../../Command";
 
 export enum Models {
     HOUSEHOLD = 'households',
@@ -72,9 +72,13 @@ export default class ModelImpl implements Model {
     
         if(transaction)
         {
-            transaction.set(docRef, data)
+            transaction.set(docRef, data, {
+                merge : false
+            })
         }
-        else await docRef.set(data)
+        else await docRef.set(data, {
+            merge : false
+        })
     
         return this
     }

@@ -12,10 +12,12 @@ import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
-import { ActionableFieldCommandStub, ModelImportStrategyStub, Stubs } from './stubs'
-import { Many2ManyRelation, One2ManyRelation, N2OneRelation, ModelImportStategy } from './lib/ORM/Relation'
+import { ActionableFieldCommandStub, Stubs } from './stubs'
+import { Many2ManyRelation, One2ManyRelation, N2OneRelation } from './lib/ORM/Relation'
 import { Pivot } from './lib/ORM/Relation/Pivot'
 import { Change } from 'firebase-functions'
+import { unflatten } from 'flat'
+import * as _ from 'lodash'
 import { Relations } from './lib/const'
 import Car from './stubs/Car'
 import Wheel from './stubs/Wheel'
@@ -66,8 +68,16 @@ describe('STAGE', () => {
                     doc: (id) => {
                         return {
                             id: (id) ? id : uniqid(),
-                            set: (data) => {
-                                firestoreMockData[`${col}/${id}`] = data
+                            set: (data, {merge}) => {
+
+                                if(merge)
+                                {
+                                    firestoreMockData = _.merge(firestoreMockData, {
+                                        [`${col}/${id}`] : unflatten(data)
+                                    })
+                                }
+                                else firestoreMockData[`${col}/${id}`] = unflatten(data)
+    
                                 return null
                             },
                             get: () => {
@@ -87,7 +97,12 @@ describe('STAGE', () => {
                                 }
                             },
                             update: (data) => {
-                                firestoreMockData[`${col}/${id}`] = data
+                                if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${`${col}/${id}`}]`)
+    
+                                firestoreMockData = _.merge(firestoreMockData, {
+                                    [`${col}/${id}`] : unflatten(data)
+                                })
+    
                                 return null
                             }
                         }
@@ -534,7 +549,7 @@ describe('STAGE', () => {
                     expect(roomId).to.deep.equals(attRoom.id)
                 })
 
-                it('Save model to an other reverse I2M', async () => {
+                it('Save model to an other inverse I2M', async () => {
                     
                     const sensor: Sensor = db.sensor()
                     const room: Room = db.room()
@@ -584,7 +599,7 @@ describe('STAGE', () => {
                     expect(Object.keys(attSensors), 'Foreign key on room').to.include(sensorId)
                 })
 
-                it('Save model to an other reverse I2M BATCH', async () => {
+                it('Save model to an other inverse I2M BATCH', async () => {
                     
                     const sensor: Sensor = db.sensor()
                     const room: Room = db.room()
@@ -609,7 +624,7 @@ describe('STAGE', () => {
                     expect(Object.keys(attSensors), 'Foreign key on room').to.include(sensorId)
                 })
 
-                it('Save model to an other reverse I2M BATCH SHOULD FAIL', async () => {
+                it('Save model to an other inverse I2M BATCH SHOULD FAIL', async () => {
                     const sensor: Sensor = db.sensor()
                     const room: Room = db.room()
 
@@ -674,10 +689,10 @@ describe('STAGE', () => {
                 it('The pivot should be updatable trough the inverse relation', async () => {
                     
                     const carId = uniqid()
-                    const wheelId1 = uniqid()
+                    const wheelId = uniqid()
 
                     const car = new Car(firestoreStub, null, carId)
-                    const wheel = new Wheel(firestoreStub, null, wheelId1)
+                    const wheel = new Wheel(firestoreStub, null, wheelId)
 
                     const dataName = 'Spare'
 
@@ -687,12 +702,17 @@ describe('STAGE', () => {
                         name : dataName
                     })
 
-                    const wheelDoc = firestoreMockData[`${Stubs.WHEEL}/${wheelId1}`]
+                    const wheelDoc = firestoreMockData[`${Stubs.WHEEL}/${wheelId}`]
                     const expectedWheelDoc = {
-                        [`${Stubs.CAR}.${Relations.PIVOT}.name`] : dataName
+                        [Stubs.CAR] : {
+                            id : carId,
+                            [Relations.PIVOT] : {
+                                name : dataName
+                            }
+                        }
                     }
 
-                    expect(wheelDoc).to.deep.equal(expectedWheelDoc)
+                    expect(wheelDoc).to.deep.include(expectedWheelDoc)
                 })
 
                 it('Create root documents and relation by attaching two models', async () => {
@@ -1469,7 +1489,7 @@ describe('STAGE', () => {
                     })
                 })
 
-                describe('Reverse I2M', () => {
+                describe('inverse I2M', () => {
 
                     it('Field on the pivot should be accessable through relation', async () => {
 
@@ -2967,9 +2987,16 @@ describe('STAGE', () => {
 
                     await car.drivers().updateCache(change)
 
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`]).to.deep.equal({
-                        [`${Stubs.CAR}.${carId}.name`] : 'Mustang'
-                    })
+                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const expectedCarDoc = {
+                        [Stubs.CAR] : {
+                            [carId] : {
+                                name : data.name
+                            }
+                        }
+                    }
+
+                    expect(driverDoc).to.deep.equal(expectedCarDoc)
                 })
 
                 it('Fields defined as cachable from the owner to property should not be cached data has not changed', async () => {
@@ -3039,15 +3066,22 @@ describe('STAGE', () => {
 
                     await car.drivers().updateCache(change)
 
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`]).to.deep.equal({
-                            [`${Stubs.CAR}.${carId}.name`] : 'Mustang'
-                    })
+                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const expectedCarDoc = {
+                        [Stubs.CAR] : {
+                            [carId] : {
+                                name : data.name
+                            }
+                        }
+                    }
+
+                    expect(driverDoc).to.deep.equal(expectedCarDoc)
 
                     const change2 = new Change<FirebaseFirestore.DocumentSnapshot>(after, before)
 
                     await car.drivers().updateCache(change2)
 
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][`${Stubs.CAR}.${carId}.name`])
+                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
                         .to.be.null
                 })
 
@@ -3087,9 +3121,18 @@ describe('STAGE', () => {
 
                     await car.drivers().updateCache(change)
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.deep.equal({
-                        [`${Stubs.DRIVER}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
-                    })
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedCarDoc = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : {
+                                [Relations.PIVOT] : {
+                                    [cachedField] : 3
+                                }
+                            }
+                        }
+                    }
+
+                    expect(carDoc).to.deep.equal(expectedCarDoc)
                 })
 
                 it('Fields defined as cachable from the pivot on to the owner should be cached on field update', async () => {
@@ -3131,9 +3174,18 @@ describe('STAGE', () => {
 
                     await car.drivers().updateCache(change)
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.deep.equal({
-                        [`${Stubs.DRIVER}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
-                    })
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedCarDoc = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : {
+                                [Relations.PIVOT] : {
+                                    [cachedField] : 3
+                                }
+                            }
+                        }
+                    }
+
+                    expect(carDoc).to.deep.equal(expectedCarDoc)
                 })
 
                 it('GetName of Pivot model should return a correct formatted name', async () => {
@@ -3305,9 +3357,18 @@ describe('STAGE', () => {
 
                     await pivot.updateCache(change)
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.deep.equal({
-                        [`${Stubs.DRIVER}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
-                    })
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedCarDoc = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : {
+                                [Relations.PIVOT] : {
+                                    [cachedField] : 3
+                                }
+                            }
+                        }
+                    }
+
+                    expect(carDoc).to.deep.equal(expectedCarDoc)
                 })
 
                 it('Cached data from pivot should be updated on both owner models', async () => {
@@ -3363,13 +3424,31 @@ describe('STAGE', () => {
 
                     await pivot.updateCache(change)
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.deep.equal({
-                        [`${Stubs.DRIVER}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
-                    })
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedCarDoc = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : {
+                                [Relations.PIVOT] : {
+                                    [cachedField] : 3
+                                }
+                            }
+                        }
+                    }
 
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`]).to.deep.equal({
-                        [`${Stubs.CAR}.${carId}.${Relations.PIVOT}.${cachedField}`] : 3
-                    })
+                    expect(carDoc).to.deep.equal(expectedCarDoc)
+
+                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const expectedDriverDoc = {
+                        [Stubs.CAR] : {
+                            [carId] : {
+                                [Relations.PIVOT] : {
+                                    [cachedField] : 3
+                                }
+                            }
+                        }
+                    }
+
+                    expect(driverDoc).to.deep.equal(expectedDriverDoc)
                 })
 
                 it('Fields defined as cachable from pivot should be updated on owner model also when cache from owner to property is defined', async () => {
@@ -3417,9 +3496,18 @@ describe('STAGE', () => {
 
                     await pivot.updateCache(change)
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.deep.equal({
-                        [`${Stubs.DRIVER}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
-                    })
+                    const carDoc = firestoreMockData[`${car.name}/${carId}`]
+                    const expectedCarDoc = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : {
+                                [Relations.PIVOT] : {
+                                    [cachedField] : 3
+                                }
+                            }
+                        }
+                    }
+
+                    expect(carDoc).to.deep.equal(expectedCarDoc)
                 })
 
                 it('Fields defined as cachable from the owner to property should be updated on property also when cache from pivot to owner is defined', async () => {
@@ -3458,9 +3546,16 @@ describe('STAGE', () => {
 
                     await car.drivers().updateCache(change)
 
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`]).to.deep.equal({
-                        [`${Stubs.CAR}.${carId}.${cacheField}`] : 'Mustang'
-                    })
+                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const expectedDriverDoc = {
+                        [Stubs.CAR] : {
+                            [carId] : {
+                                [cacheField] : data[cacheField]
+                            }
+                        }
+                    }
+
+                    expect(driverDoc).to.deep.equal(expectedDriverDoc)
                 })
             })
         })

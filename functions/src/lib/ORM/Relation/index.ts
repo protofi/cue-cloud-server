@@ -5,7 +5,7 @@ import { singular } from "pluralize"
 import ModelImpl from "../Models"
 import { Pivot } from "./Pivot"
 import { get, capitalize, isEmpty } from "lodash"
-import IActionableFieldCommand from "./../../Command";
+import { IActionableFieldCommand } from "../../Command";
 
 export interface ModelImportStategy {
     import(db: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl>
@@ -430,7 +430,7 @@ export class One2ManyRelation extends N2ManyRelation {
 }
 
 /**
- * Constidues a reverse One-to-Many or a One-to-One relationship between to models 
+ * Constidues a reverse One-to-Many relationship between to models 
  */
 export class N2OneRelation extends RelationImpl {
     
@@ -518,12 +518,25 @@ export class N2OneRelation extends RelationImpl {
         return this.owner
     }
 
-    async updatePivot(data: any)
+    async updatePivot(data: any): Promise<ModelImpl>
     {
         return this.owner.update({
             [this.propertyModelName] : {
                 [Relations.PIVOT] : data
             }
         })
+    }
+}
+
+export class One2OneRelation extends One2ManyRelation {
+
+    async updatePivot(data: any): Promise<ModelImpl>
+    {
+        throw new Error("Method not implemented.");
+        // return this.owner.update({
+        //     [this.propertyModelName] : {
+        //         [Relations.PIVOT] : data
+        //     }
+        // })
     }
 }

@@ -1,4 +1,4 @@
-import IActionableFieldCommand from "./";
+import { IActionableFieldCommand } from ".";
 import { asyncForEach } from "../util";
 import Household from "../ORM/Models/Household";
 import User from "../ORM/Models/User";

@@ -112,7 +112,7 @@ describe('OFFLINE', () => {
 
                     await wrappedHouseholdsOnCreate(householdSnap)
 
-                    expect(firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]).to.deep.equal({
+                    expect(firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]).to.deep.include({
                         [`${Models.HOUSEHOLD}.${Relations.PIVOT}.role`] : Roles.ADMIN
                     })
                 })

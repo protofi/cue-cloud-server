@@ -1,4 +1,4 @@
-import IActionableFieldCommand from "./";
+import { IActionableFieldCommand } from ".";
 import User from "./../ORM/Models/User";
 import { Models } from "./../ORM/Models";
 

@@ -1,7 +1,7 @@
 import * as _ from 'lodash'
 import * as uniqid from 'uniqid'
 import ModelImpl from "../lib/ORM/Models";
-import IActionableFieldCommand from '../lib/Command/';
+import { IActionableFieldCommand } from '../lib/Command';
 import { ModelImportStategy } from "../lib/ORM/Relation";
 
 export enum Stubs {

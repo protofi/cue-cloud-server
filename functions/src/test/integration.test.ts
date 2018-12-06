@@ -8,9 +8,11 @@ import CreateUserSensorRelationsCommand from './lib/Command/CreateUserSensorRela
 import User from './lib/ORM/Models/User';
 import { Models } from './lib/ORM/Models';
 import * as _ from 'lodash'
+import { unflatten } from 'flat'
 import { CreateUserNewSensorRelationsCommand } from './lib/Command/CreateUserNewSensorRelationsCommand';
 import Household from './lib/ORM/Models/Household';
-import { Relations } from './lib/const';
+import { Relations, Roles, Errors } from './lib/const';
+import { GrandOneUserHouseholdAdminPrivileges } from './lib/Command/GrandOneUserHouseholdAdminPrivileges';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -41,10 +43,10 @@ describe('OFFLINE', () => {
                             if(merge)
                             {
                                 firestoreMockData = _.merge(firestoreMockData, {
-                                    [`${col}/${id}`] : data
+                                    [`${col}/${id}`] : unflatten(data)
                                 })
                             }
-                            else firestoreMockData[`${col}/${id}`] = data
+                            else firestoreMockData[`${col}/${id}`] = unflatten(data)
 
                             return null
                         },
@@ -65,10 +67,10 @@ describe('OFFLINE', () => {
                             }
                         },
                         update: (data) => {
-                            if(!firestoreMockData[`${col}/${id}`]) return null
+                            if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${`${col}/${id}`}]`)
 
                             firestoreMockData = _.merge(firestoreMockData, {
-                                [`${col}/${id}`] : data
+                                [`${col}/${id}`] : unflatten(data)
                             })
 
                             return null
@@ -244,6 +246,109 @@ describe('OFFLINE', () => {
                         },
                         [Models.SENSOR] : {
                             id : sensorId
+                        }
+                    }
+
+                    expect(expectedSensorUserDoc).to.be.deep.equal(sensorUserDoc)
+                })
+            })
+        })
+
+        describe('Model Commands', async () => {
+            
+            describe('Grand-One-User-Household-Admin-Privileges', () => {
+
+                const householdId   = uniqid()
+                const userId        = uniqid()
+                const command       = new GrandOneUserHouseholdAdminPrivileges()
+                let household
+
+                beforeEach(() => {
+
+                    household = new Household(firestoreStub, null, householdId)
+
+                    firestoreMockData[`${Models.USER}/${userId}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    }
+
+                    firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
+                        [Models.USER] : {
+                            [userId] : true
+                        }
+                    }
+                })
+
+                it('Execution should create a Pivot field between the first User and the household', async () => {
+
+                    await command.execute(household)
+
+                    const sensorUserDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                    const expectedSensorUserDoc = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId,
+                            [Relations.PIVOT] : {
+                                role: Roles.ADMIN,
+                                accepted: true
+                            }
+                        }
+                    }
+
+                    expect(expectedSensorUserDoc).to.be.deep.equal(sensorUserDoc)
+                })
+                
+                it('Execution should not create a Pivot field between the first User and the Household if the User is not member of any household', async () => {
+
+                    firestoreMockData[`${Models.USER}/${userId}`] = {}
+
+                    let error
+
+                    try{
+                        await command.execute(household)
+                    }
+                    catch(e)
+                    {
+                        error = e
+                    }
+
+                    expect(error).to.exist
+                    expect(error.message).to.be.equal(Errors.NOT_RELATED)
+
+                    const sensorUserDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                    const expectedSensorUserDoc = {}
+
+                    expect(expectedSensorUserDoc).to.be.deep.equal(sensorUserDoc)
+                })
+
+                it('Execution should not create a Pivot field between the first User and the Household if the User already are member of another household', async () => {
+
+                    const differentHousehold = uniqid()
+                    firestoreMockData[`${Models.USER}/${userId}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : differentHousehold
+                        }
+                    }
+
+                    let error
+
+                    try{
+                        await command.execute(household)
+                    }
+                    catch(e)
+                    {
+                        error = e
+                    }
+
+                    expect(error.message).to.be.equal(Errors.UNAUTHORIZED)
+
+                    const sensorUserDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                    const expectedSensorUserDoc = {
+                        [Models.HOUSEHOLD] : {
+                            id : differentHousehold
                         }
                     }
 

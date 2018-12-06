@@ -7,5 +7,6 @@ export enum Relations {
 }
 
 export enum Errors {
-    UNAUTHORIZED = 'You do not have sufficient privileges.'
+    UNAUTHORIZED = 'You do not have sufficient privileges.',
+    NOT_RELATED = 'No relation found.'
 } 
