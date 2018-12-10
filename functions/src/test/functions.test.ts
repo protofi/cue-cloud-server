@@ -5,18 +5,17 @@ import { singular } from 'pluralize'
 import * as admin from 'firebase-admin'
 import * as uniqid from 'uniqid'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
-import ModelImpl, { Models } from './lib/ORM/Models';
-import { Many2ManyRelation } from './lib/ORM/Relation';
-import { Driver, Car } from './stubs';
-import { Change } from 'firebase-functions';
-import { Relations, Roles } from './lib/const';
-import * as _ from 'lodash';
-import * as flatten from 'flat'
+import { Models } from './lib/ORM/Models'
+import { OfflineDocumentSnapshotStub } from './stubs'
+import { Change } from 'firebase-functions'
+import { unflatten } from 'flat'
+import { Relations, Roles } from './lib/const'
+import * as _ from 'lodash'
 
 const test: FeaturesList = require('firebase-functions-test')()
 
-const assert = chai.assert;
-const expect = chai.expect;
+const assert = chai.assert
+const expect = chai.expect
 
 describe('OFFLINE', () => {
 
@@ -52,23 +51,45 @@ describe('OFFLINE', () => {
                     doc: (id) => {
                         return {
                             id: (id) ? id : uniqid(),
-                            set: (data) => {
-                                firestoreMockData[`${col}/${id}`] = data
+                            set: (data, {merge}) => {
+    
+                                if(merge)
+                                {
+                                    firestoreMockData = _.merge(firestoreMockData, {
+                                        [`${col}/${id}`] : unflatten(data)
+                                    })
+                                }
+                                else firestoreMockData[`${col}/${id}`] = unflatten(data)
+    
                                 return null
                             },
                             get: () => {
                                 return {
                                     get: (data) => {
-                                        
-                                        if(data)
-                                            return firestoreMockData[`${col}/${id}`][data]
-                                        else
-                                            return firestoreMockData[`${col}/${id}`]
+                                        try{
+                                            if(data)
+                                                return firestoreMockData[`${col}/${id}`][data]
+                                            else
+                                                return firestoreMockData[`${col}/${id}`]
+                                        }
+                                        catch(e)
+                                        {
+                                            throw Error(`Mock data is missing: ${e} [${`${col}/${id}`}]`)
+                                        }
                                     }
                                 }
                             },
                             update: (data) => {
-                                firestoreMockData[`${col}/${id}`] = data
+                                if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${`${col}/${id}`}]`)
+    
+                                firestoreMockData = _.merge(firestoreMockData, {
+                                    [`${col}/${id}`] : unflatten(data)
+                                })
+    
+                                return null
+                            },
+                            delete: () => {
+                                delete firestoreMockData[`${col}/${id}`]
                             }
                         }
                     }
@@ -105,36 +126,44 @@ describe('OFFLINE', () => {
                 
                 it('Pivot between user and household should recieve a role property of admin', async () => {
                     
-                    firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {}
+                    const householdId = uniqid()
 
-                    const householdSnap = {
-                        data : () => {
-                            return { [Models.USER] : { [testUserDataOne.uid] : true } }
-                        },
-                        delete : () => {
-                            return
-                        },
-                        get : (field) => {
-
-                            switch(field)
-                            {
-                                case Models.USER : {
-                                    return { [testUserDataOne.uid] : true }
-                                }
-                                default : {
-                                    return undefined
-                                }
-                            }
+                    firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {
+                        id: testUserDataOne.uid,
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
                         }
                     }
+
+                    const householdSnap = new OfflineDocumentSnapshotStub({
+                        data : {
+                            [Models.USER] : {
+                                [testUserDataOne.uid] : true
+                            }
+                        },
+                        ref : {
+                            id : householdId
+                        }
+                    })
 
                     const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
 
                     await wrappedHouseholdsOnCreate(householdSnap)
 
-                    expect(firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]).to.deep.equal({
-                        [`${Models.HOUSEHOLD}.${Relations.PIVOT}.role`] : Roles.ADMIN
-                    })
+                    const userDoc = firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]
+
+                    const expectedUserDoc = {
+                        id: testUserDataOne.uid,
+                        [Models.HOUSEHOLD] : {
+                            id : householdId,
+                            [Relations.PIVOT] : {
+                                role : Roles.ADMIN,
+                                accepted : true
+                            }
+                        }
+                    }
+
+                    expect(userDoc).to.deep.include(expectedUserDoc)
                 })
 
                 it('Role field should not be added to pivot property if user aleady have a property of HOUSEHOLD with a different ID', async () => {
@@ -148,29 +177,15 @@ describe('OFFLINE', () => {
                         }
                     }
 
-                    const householdSnap = {
-                        data : () => {
-                            return { [Models.USER] : { [testUserDataOne.uid] : true } }
-                        },
+                    const householdSnap = new OfflineDocumentSnapshotStub({
+                        data : { [Models.USER] : { [testUserDataOne.uid] : true } },
                         ref: {
                             id : householdIdTwo,
                             delete : () => {
                                 return
-                            },
-                        },
-                        get : (field) => {
-
-                            switch(field)
-                            {
-                                case Models.USER : {
-                                    return { [testUserDataOne.uid] : true }
-                                }
-                                default : {
-                                    return undefined
-                                }
                             }
                         }
-                    }
+                    })
 
                     const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
 
@@ -191,39 +206,41 @@ describe('OFFLINE', () => {
             describe('On Update', () => {
         
                 it('Id should be cached on related sensors', async () => {
-        
+
                     const cacheField = 'id'
-                    const sensorId = uniqid()
+                    const sensorsId = uniqid()
                     const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
                     
-                    const change = {
-                        before : {
-                            data: () => {
-                                return {}
+                    firestoreMockData[`${Models.SENSOR}/${sensorsId}`] = {}
+
+                    const afterDocSnap = new OfflineDocumentSnapshotStub({
+                        data : {
+                            [cacheField] : testUserDataOne.uid,
+                            [Models.SENSOR] : {
+                                [sensorsId] : true
                             }
                         },
-                        after : {
-                            data: () => {
-                                return {
-                                [cacheField] : testUserDataOne.uid
-                                }
-                            },
-                            get : () => {
-                                return {
-                                    [sensorId] : true
-                                }
-                            },
-                            ref : {
+                        ref : {
+                            [cacheField] : testUserDataOne.uid
+                        }
+                    })
+
+                    const change = {
+                        before : new OfflineDocumentSnapshotStub(),
+                        after : afterDocSnap 
+                    }
+        
+                    await wrappedUsersOnUpdate(change)
+
+                    const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorsId}`]
+                    const expectedSensorDoc = {
+                        [Models.USER]: {
+                            [testUserDataOne.uid] : {
                                 [cacheField] : testUserDataOne.uid
                             }
                         }
                     }
-        
-                    await wrappedUsersOnUpdate(change)
-        
-                    expect(firestoreMockData[`${Models.SENSOR}/${sensorId}`]).to.deep.equal({
-                        [`${Models.USER}.${testUserDataOne.uid}.${cacheField}`] : testUserDataOne.uid
-                    })
+                    expect(sensorDoc).to.deep.equal(expectedSensorDoc)
                 })
         
                 it('Name should be cached on related household', async () => {
@@ -231,36 +248,39 @@ describe('OFFLINE', () => {
                     const cacheField = 'name'
                     const householdId = uniqid()
         
-                    const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
-                    
-                    const change = {
-                        before : {
-                            data: () => {
-                                return {}
+                    firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {}
+
+                    const afterDocSnap = new OfflineDocumentSnapshotStub({
+                        data : {
+                            [cacheField] : testUserDataOne.name,
+                            [Models.HOUSEHOLD] : {
+                                id : householdId
                             }
                         },
-                        after : {
-                            data: () => {
-                                return {
+                        ref : {
+                            id : testUserDataOne.uid,
+                        }
+                    })
+
+                    const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+
+                    const change = {
+                        before : new OfflineDocumentSnapshotStub(),
+                        after : afterDocSnap
+                    }
+
+                    await wrappedUsersOnUpdate(change)
+                    
+                    const householdDoc = firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]
+                    const expectedHouseholdDoc = {
+                        [Models.USER]: {
+                            [testUserDataOne.uid] : {
                                 [cacheField] : testUserDataOne.name
-                                }
-                            },
-                            get : () => {
-                                return {
-                                    id : householdId
-                                }
-                            },
-                            ref : {
-                                id : testUserDataOne.uid,
                             }
                         }
                     }
-        
-                    await wrappedUsersOnUpdate(change)
-        
-                    expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.deep.equal({
-                        [`${Models.USER}.${testUserDataOne.uid}.${cacheField}`] : testUserDataOne.name
-                    })
+
+                    expect(householdDoc).to.deep.equal(expectedHouseholdDoc)  
                 })
             })
         })
@@ -269,46 +289,54 @@ describe('OFFLINE', () => {
     
             it('Mute should be cached on related Sensor', async () => {
                 
-                const cacheField = 'muted'
-                const userId = uniqid()
-                const sensorId = uniqid()
-                const pivotId = `${sensorId}_${userId}`
+                const userId        = uniqid()
+                const sensorId      = uniqid()
+                const cacheField    = 'muted'
+                const pivotId       = `${sensorId}_${userId}`
     
                 const wrappedSensorsUsersOnUpdate = test.wrap(myFunctions.ctrlSensorsUsersOnUpdate)
     
-                //mock data
+                // mock data
                 firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
                     [Models.USER] : {
                         [userId] : true
                     }
                 }
-    
-                const change = {
-                    before : {
-                        data: () => {
-                            return {}
+
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [Relations.PIVOT] : {
+                            [cacheField] : true
+                        },
+                        [Models.USER] : {
+                            [userId] : true
                         }
                     },
-                    after : {
-                        data: () => {
-                            return {
-                               [Relations.PIVOT] : {
-                                    [cacheField] : true
-                               },
-                            }
-                        },
-                        ref : {
-                            id : pivotId,
-                            path : `${Models.SENSOR}_${Models.USER}/${pivotId}`,
-                        }
+                    ref : {
+                        id : pivotId,
+                        path : `${Models.SENSOR}_${Models.USER}/${pivotId}`,
                     }
+                })
+
+                const change = {
+                    before : new OfflineDocumentSnapshotStub(),
+                    after : afterDocSnap
                 }
     
                 await wrappedSensorsUsersOnUpdate(change)
-    
-                expect(firestoreMockData[`${Models.SENSOR}/${sensorId}`]).to.deep.equal({
-                    [`${Models.USER}.${userId}.pivot.${cacheField}`] : true
-                })
+                
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
+                const expectedSensorDoc = {
+                    [Models.USER]: {
+                        
+                        [userId] : {
+                            [Relations.PIVOT] : {
+                                [cacheField] : true
+                            }
+                        }
+                    }
+                }
+                expect(sensorDoc).to.deep.equal(expectedSensorDoc)
             })
         })
     })

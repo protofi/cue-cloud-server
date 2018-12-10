@@ -20,6 +20,32 @@ export default class DataORMImpl implements DataORM{
         this.db = db
     }
 
+    user(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): User
+    {
+        const user: User = new User(this.db, snap, id)
+        return user
+    }
+
+    household(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Household
+    {
+        return new Household(this.db, snap, id)
+    }
+
+    sensor(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Sensor
+    {
+        return new Sensor(this.db, snap, id)
+    }
+
+    room(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Room
+    {
+        return new Room(this.db, snap, id)
+    }
+
+    event(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Event
+    {
+        return new Event(this.db, snap, id)
+    }
+
     batch(): FirebaseFirestore.WriteBatch
     {
         return this.db.batch()
@@ -75,30 +101,5 @@ export default class DataORMImpl implements DataORM{
         }
 
         return new Pivot(this.db, pivotId, modelA, modelB)
-    }
-
-    user(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): User
-    {
-        return new User(this.db, snap, id)
-    }
-
-    household(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Household
-    {
-        return new Household(this.db, snap, id)
-    }
-
-    sensor(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Sensor
-    {
-        return new Sensor(this.db, snap, id)
-    }
-
-    room(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Room
-    {
-        return new Room(this.db, snap, id)
-    }
-
-    event(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Event
-    {
-        return new Event(this.db, snap, id)
     }
 }

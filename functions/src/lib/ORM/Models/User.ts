@@ -1,5 +1,6 @@
-import ModelImpl, { Models } from "./";
-import { Many2ManyRelation, N2OneRelation } from "./../Relation";
+import ModelImpl, { Models } from "./"
+import { Many2ManyRelation, N2OneRelation } from "./../Relation"
+import CreateUserSensorRelationsCommand from "./../../Command/CreateUserSensorRelationsCommand";
 
 export default class User extends ModelImpl {
 
@@ -14,7 +15,8 @@ export default class User extends ModelImpl {
             .belongsTo(Models.HOUSEHOLD)
             .defineCachableFields([
                 'name'
-            ])
+            ]).defineActionableField('accepted',
+                    new CreateUserSensorRelationsCommand())
     }
 
     sensors(): Many2ManyRelation

@@ -1,6 +1,6 @@
 import { transform, isEqual, isObject } from 'lodash';
 
-export async function asyncForEach(array, callback: (item: any, index: number, array: Array<any>) => Promise<void>)
+export async function asyncForEach(array: Array<any>, callback: (item: any, index: number, array: Array<any>) => Promise<void>)
 {
     for (let index = 0; index < array.length; index++)
     {
@@ -14,10 +14,10 @@ export async function asyncForEach(array, callback: (item: any, index: number, a
  * @param  {Object} base   Object to compare with
  * @return {Object}        Return a new object who represent the diff
  */
-export function difference(object, base) {
+export function difference(base, object) {
 	return transform(object, (result, value, key) => {
 		if (!isEqual(value, base[key])) {
-			result[key] = isObject(value) && isObject(base[key]) ? difference(value, base[key]) : value;
+			result[key] = isObject(value) && isObject(base[key]) ? difference(base[key], value) : value;
 		}
 	});
 }

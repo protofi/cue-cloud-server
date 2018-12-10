@@ -1,6 +1,7 @@
 {
   "projects": {
     "production": "iot-cloud-216011",
-    "staging": "staging-iot-cloud-server"
+    "staging": "staging-iot-cloud-server",
+    "development": "cue-app-a2c23"
   }
 }

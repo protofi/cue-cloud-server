@@ -1,8 +1,8 @@
-import * as chai from 'chai'
+import * as functionsTest from 'firebase-functions-test'
+import * as admin from 'firebase-admin'
 import * as sinon from 'sinon'
 import * as mocha from 'mocha'
-import * as admin from 'firebase-admin'
-import * as functionsTest from 'firebase-functions-test'
+import * as chai from 'chai'
 
 const assert = chai.assert
 const expect = chai.expect
@@ -13,7 +13,7 @@ describe('OFFLINE', () => {
     let adminInitStub
     let firestoreMockData
     let adminfirestoreStub
-    let myFunctions;
+    let myFunctions
     
     beforeEach(async () => {
 

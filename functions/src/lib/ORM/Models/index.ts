@@ -1,5 +1,8 @@
-import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from "../Relation";
+import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from "../Relation"
+import { Change } from "firebase-functions";
 import * as flatten from 'flat'
+import { difference, asyncForEach } from "../../util";
+import { IActionableFieldCommand, IModelCommand } from "../../Command";
 
 export enum Models {
     HOUSEHOLD = 'households',
@@ -18,16 +21,22 @@ export interface Model{
     getField(key: string): any
     update(data: object): Promise<ModelImpl>
     delete(): Promise<void>
+    defineActionableField(field: string, command: IActionableFieldCommand): void
+    takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
+    addOnCreateAction(command: IModelCommand): void
+    onCreate(): Promise<void>
 }
 
 export default class ModelImpl implements Model {
 
-    readonly name: string
     private ref: FirebaseFirestore.DocumentReference
     private snap: FirebaseFirestore.DocumentSnapshot
-    private db: FirebaseFirestore.Firestore
+    readonly name: string
+    protected db: FirebaseFirestore.Firestore
 
-    private relations: Map<string, RelationImpl>
+    protected onCreateAction: IModelCommand
+    protected actionableFields: Map<string, IActionableFieldCommand> = new Map<string, IActionableFieldCommand>()
+    protected relations: Map<string, RelationImpl>
     
     constructor(name: string, db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
@@ -62,22 +71,25 @@ export default class ModelImpl implements Model {
 
     async create(data: object, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
     {
-        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
+        const docRef: FirebaseFirestore.DocumentReference = this.getDocRef()
     
         if(transaction)
         {
-            transaction.set(docRef, data)
+            transaction.set(docRef, data, {
+                merge : false
+            })
         }
-        else await docRef.set(data)
+        else await docRef.set(data, {
+            merge : false
+        })
     
         return this
     }
 
     async find(id: string): Promise<ModelImpl>
     {
-        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef(id)
+        const docRef: FirebaseFirestore.DocumentReference = this.getDocRef(id)
         this.snap = await docRef.get()
-
         return this
     }
 
@@ -89,17 +101,18 @@ export default class ModelImpl implements Model {
     async getField(key: string): Promise<any>
     {
         if(this.snap) return this.snap.get(key)
-        
-        const id = await this.getId()
+
+        const id = this.getId()
         if(!id) return null
 
         await this.find(id)
+
         return this.getField(key)
     }
 
     async update(data: object, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
     {
-        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
+        const docRef: FirebaseFirestore.DocumentReference = this.getDocRef()
         
         if(transaction)
         {
@@ -116,7 +129,7 @@ export default class ModelImpl implements Model {
 
     async updateOrCreate(data: object, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
     {
-        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
+        const docRef: FirebaseFirestore.DocumentReference = this.getDocRef()
         
         if(transaction)
         {
@@ -139,8 +152,9 @@ export default class ModelImpl implements Model {
 
     async delete(): Promise<void>
     {
-        const docRef: FirebaseFirestore.DocumentReference = await this.getDocRef()
+        const docRef: FirebaseFirestore.DocumentReference = this.getDocRef()
         await docRef.delete()
+        
         this.snap = null
         this.ref = null
     }
@@ -185,5 +199,37 @@ export default class ModelImpl implements Model {
         }
 
         return this.relations.get(property) as N2OneRelation
+    }
+
+    defineActionableField(field: string, command: IActionableFieldCommand): void
+    {
+        this.actionableFields.set(field, command)
+    }
+
+    async takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
+    {
+        const beforeData = change.before.data()
+        const afterData = change.after.data()
+        
+        const changes = (beforeData) ? difference(beforeData, afterData) : afterData
+
+        await asyncForEach(Object.keys(changes),
+            async (field) => {
+                const command = this.actionableFields.get(field)
+                if(command) await command.execute(this, changes[field] as string)
+
+                return
+        })
+    }
+
+    addOnCreateAction(command: IModelCommand): void 
+    {
+        this.onCreateAction = command
+    }
+
+    async onCreate(): Promise<void>
+    {
+        if(!this.onCreateAction) return
+        await this.onCreateAction.execute(this)
     }
 }

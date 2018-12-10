@@ -1,62 +1,76 @@
+import * as _ from 'lodash'
+import * as uniqid from 'uniqid'
 import ModelImpl from "../lib/ORM/Models";
-import { Many2ManyRelation, N2OneRelation, One2ManyRelation } from "../lib/ORM/Relation";
+import { IActionableFieldCommand, IModelCommand } from '../lib/Command';
+import { ModelImportStategy } from "../lib/ORM/Relation";
 
-export class Driver extends ModelImpl {
-    constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
-    {
-        super('drivers', db, snap, id)
-    }
-
-    cars(): Many2ManyRelation
-    {
-        return this.belongsToMany('cars')
-    }
-}
-export class Car extends ModelImpl {
-
-    constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
-    {
-        super('cars', db, snap, id)
-    }
-
-    drivers(): Many2ManyRelation
-    {
-        return this.belongsToMany('drivers')
-    }
-
-    windShield(): N2OneRelation
-    {
-        return this.belongsTo('wind_sheild')
-    }
-
-    wheels(): One2ManyRelation
-    {
-        return this.hasMany('wheels')
-    }
+export enum Stubs {
+    CAR         = 'cars',
+    WHEEL       = 'wheels',
+    DRIVER      = 'drivers',
+    WIND_SHEILD = 'wind_sheild'
 }
 
-export class Wheel extends ModelImpl {
+export interface OfflineDocumentSnapshot {
+    data?: any
+    ref?: any
+    get?: any
+}
 
-    constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
+export class OfflineDocumentSnapshotStub {
+    
+    public ref: Object = {
+        id : uniqid(), 
+        delete : (): void => { return }
+        }
+    private docData: Object = new Object()
+
+    constructor(docSnap?: OfflineDocumentSnapshot)
     {
-        super('wheels', db, snap, id)
+        if(!docSnap) return
+        if(docSnap.data) this.docData = docSnap.data
+        if(docSnap.ref) this.ref = docSnap.ref
     }
 
-    car(): N2OneRelation
+    data(): Object
     {
-        return this.belongsTo('cars')
+        return this.docData
+    }
+
+    async get(field): Promise<Object>
+    {
+        return this.docData[field]
     }
 }
 
-export class WindSheild extends ModelImpl {
-
-    constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
-    {
-        super('wind_sheild', db, snap, id)
+export class ActionableFieldCommandStub implements IActionableFieldCommand {
+    async execute(owner: ModelImpl, field: string): Promise<void> {
+        return
     }
+    async undo(): Promise<void> {
+        return
+    }
+}
 
-    car(): N2OneRelation
+export class ModelCommandStub implements IModelCommand {
+    async execute(owner: ModelImpl): Promise<void> {
+        return
+    }
+    async undo(): Promise<void> {
+        return
+    }
+}
+
+export class ModelImportStrategyStub implements ModelImportStategy{
+    private path: string
+    
+    constructor(modulePath: string)
     {
-        return this.belongsTo('cars')
+        this.path = modulePath
+    }
+    async import(db_: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl> {
+        const model = await import(this.path)
+        const property = new model.default(db_, null, id)
+        return property
     }
 }

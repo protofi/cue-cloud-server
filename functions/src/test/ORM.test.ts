@@ -8,16 +8,20 @@ import * as uniqid from 'uniqid'
 
 import DataORMImpl from "./lib/ORM"
 import { asyncForEach } from './lib/util'
-import User from './lib/ORM/Models/User'
 import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
-import { Car, Wheel, Driver } from './stubs'
-import { Many2ManyRelation } from './lib/ORM/Relation'
+import { ActionableFieldCommandStub, Stubs, ModelCommandStub } from './stubs'
+import { Many2ManyRelation, One2ManyRelation, N2OneRelation } from './lib/ORM/Relation'
 import { Pivot } from './lib/ORM/Relation/Pivot'
-import { Change, firestore } from 'firebase-functions'
+import { Change } from 'firebase-functions'
+import { unflatten } from 'flat'
+import * as _ from 'lodash'
 import { Relations } from './lib/const'
+import Car from './stubs/Car'
+import Wheel from './stubs/Wheel'
+import Driver from './stubs/Driver'
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -64,23 +68,41 @@ describe('STAGE', () => {
                     doc: (id) => {
                         return {
                             id: (id) ? id : uniqid(),
-                            set: (data) => {
-                                firestoreMockData[`${col}/${id}`] = data
+                            set: (data, {merge}) => {
+
+                                if(merge)
+                                {
+                                    firestoreMockData = _.merge(firestoreMockData, {
+                                        [`${col}/${id}`] : unflatten(data)
+                                    })
+                                }
+                                else firestoreMockData[`${col}/${id}`] = unflatten(data)
+    
                                 return null
                             },
                             get: () => {
                                 return {
                                     get: (data) => {
-
-                                        if(data)
-                                            return firestoreMockData[`${col}/${id}`][data]
-                                        else
-                                            return firestoreMockData[`${col}/${id}`]
+                                        try{
+                                            if(data)
+                                                return firestoreMockData[`${col}/${id}`][data]
+                                            else
+                                                return firestoreMockData[`${col}/${id}`]
+                                        }
+                                        catch(e)
+                                        {
+                                            throw Error(`Mock data is missing: ${e} [${`${col}/${id}`}]`)
+                                        }
                                     }
                                 }
                             },
                             update: (data) => {
-                                firestoreMockData[`${col}/${id}`] = data
+                                if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${`${col}/${id}`}]`)
+    
+                                firestoreMockData = _.merge(firestoreMockData, {
+                                    [`${col}/${id}`] : unflatten(data)
+                                })
+    
                                 return null
                             }
                         }
@@ -104,7 +126,7 @@ describe('STAGE', () => {
         })
 
         afterEach(async () => {
-            await asyncForEach(docsToBeDeleted, async (path: string ) => {
+            await asyncForEach(docsToBeDeleted, async (path: string) => {
                 await adminFs.doc(path).delete()
             })
         })
@@ -112,8 +134,8 @@ describe('STAGE', () => {
         describe('CRUD', async () => {
 
             it('Create doc new ref.', async () => {
-                const docRef: FirebaseFirestore.DocumentReference = await db.user().getDocRef()
-                
+                const docRef = db.user().getDocRef()
+
                 expect(docRef).exist
                 expect(docRef.id).exist
                 expect(docRef.path).exist
@@ -122,61 +144,61 @@ describe('STAGE', () => {
             })
 
             it('Create doc new ref with certain id.', async () => {
-                const id: string = '123';
+                const uid: string = uniqid()
 
-                const docRef: FirebaseFirestore.DocumentReference = await db.user().getDocRef(id)
+                const docRef: FirebaseFirestore.DocumentReference = db.user().getDocRef(uid)
                 expect(docRef).exist
-                expect(docRef.id).to.equals(id)
+                expect(docRef.id).to.equals(uid)
                 expect(docRef.path).exist
 
-                expect(docRef.path).to.equals(`${Models.USER}/${id}`)
+                expect(docRef.path).to.equals(`${Models.USER}/${uid}`)
             })
 
             it('Create model based on doc id.', async () => {
-                const id = '1234'
+                const uid = uniqid()
 
-                const car = new Car(adminFs, null, id)
+                const car = new Car(adminFs, null, uid)
 
-                const docRef = await car.getDocRef()
+                const docRef = car.getDocRef()
            
-                expect(id).to.equal(docRef.id)
+                expect(uid).to.equal(docRef.id)
             })
 
             it('Create model based on doc snap.', async () => {
                 const snap = test.firestore.exampleDocumentSnapshot()
            
                 const car = new Car(adminFs, snap)
-                const docRef = await car.getDocRef()
+                const docRef = car.getDocRef()
            
                 expect(snap.ref.id).to.equal(docRef.id)
             })
 
             it('Get ref returns the same ref after initialization.', async () => {
                 const car: ModelImpl = new Car(adminFs)
-                const docRef1: FirebaseFirestore.DocumentReference = await car.getDocRef()
-                const docRef2: FirebaseFirestore.DocumentReference = await car.getDocRef()
+                const docRef1 = car.getDocRef()
+                const docRef2 = car.getDocRef()
 
                 expect(docRef1.id).to.equals(docRef2.id)
             })
 
             it('Get ID of new Model.', async () => {
                 const car: ModelImpl = new Car(adminFs)
-                const id: string = await car.getId()
+                const id: string = car.getId()
 
                 expect(id).exist
             })
 
-            it('Get ID of created docRef.', async () => {
-                const car: ModelImpl = await new Car(adminFs).create({
-                    name : 'Tob'
+            it('Get ID of created docRef', async () => {
+
+                const carId = uniqid()
+
+                const car: ModelImpl = await new Car(firestoreStub, null, carId).create({
+                    name : 'Mustang'
                 })
 
-                const id: string = await car.getId()
+                const carId2: string = car.getId()
                 
-                // Clean up
-                docsToBeDeleted.push((await car.getDocRef()).path)
-                
-                expect(id).exist
+                expect(carId).to.be.equal(carId2)
             })
 
             it('Create.', async () => {
@@ -187,7 +209,7 @@ describe('STAGE', () => {
                 })
 
                 // Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((user.getDocRef()).path)
 
                 const name: string = await user.getField('name')
                 expect(name).to.equals('Bob')
@@ -200,7 +222,7 @@ describe('STAGE', () => {
                 }, batch)
 
                 //Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((user.getDocRef()).path)
 
                 await batch.commit()
                 
@@ -240,7 +262,7 @@ describe('STAGE', () => {
 
                 const age = await user.getField('age')
 
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((user.getDocRef()).path)
 
                 expect(age).to.not.exist
             })
@@ -253,7 +275,7 @@ describe('STAGE', () => {
                 })
 
                 //Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push(user.getDocRef().path)
 
                 await user.update({
                     age: 28
@@ -274,7 +296,7 @@ describe('STAGE', () => {
                 }, batch)
 
                 //Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((user.getDocRef()).path)
 
                 await user.update({
                     age: 28
@@ -282,7 +304,7 @@ describe('STAGE', () => {
 
                 await batch.commit()
 
-                const userId = await user.getId()
+                const userId = user.getId()
 
                 const doc = await adminFs.doc(`${Models.USER}/${userId}`).get()
                 const name = doc.get('name')
@@ -300,13 +322,13 @@ describe('STAGE', () => {
                 }, batch)
 
                 //Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((user.getDocRef()).path)
 
                 await user.update({
                     age: 28
                 }, batch)
 
-                const userId = await user.getId()
+                const userId = user.getId()
 
                 const doc = await adminFs.doc(`${Models.USER}/${userId}`).get()
                 const name = doc.get('name')
@@ -325,17 +347,17 @@ describe('STAGE', () => {
                 })
 
                 //Clean up
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((user.getDocRef()).path)
 
                 await user.update({
                     age: 28
                 })
 
-                const id = await user.getId()
+                const id = user.getId()
                 const name = await user.getField('name')
                 const age = await user.getField('age')
 
-                docsToBeDeleted.push((await user.getDocRef()).path)
+                docsToBeDeleted.push((user.getDocRef()).path)
 
                 expect(name).equals('Bobby')
                 expect(age).equals(28)
@@ -347,11 +369,211 @@ describe('STAGE', () => {
                 
                 expect(age2).to.not.exist
             })
+
+            it('It should be possible to define actions to be executed onCreate', async () => {
+
+                const command = new ModelCommandStub()
+                const commandSpy = sinon.spy(command, 'execute')
+                class ModelStub extends ModelImpl
+                {
+                    getModelAction()
+                    {
+                        return this.onCreateAction
+                    }
+                }
+
+                const model = new ModelStub('', firestoreStub)
+
+                model.addOnCreateAction(command)
+                
+                const modelAction = model.getModelAction()
+                
+                expect(modelAction).to.not.be.null
+                expect(modelAction).equal(command)
+                await modelAction.execute(model)
+                expect(commandSpy.callCount).to.equals(1)
+            })
+
+            it('onCreate actions should be executed when .created on Model is invoked', async () => {
+
+                const command = new ModelCommandStub()
+                const commandSpy = sinon.spy(command, 'execute')
+
+                const model = new ModelImpl('', firestoreStub)
+
+                model.addOnCreateAction(command)
+                
+                model.onCreate()
+                
+                expect(commandSpy.callCount).to.equals(1)
+            })
+
+            it('If no action is defined invokation of .created should be ignored', async () => {
+
+                const model = new ModelImpl('', firestoreStub)
+                let error
+
+                try{
+                    await model.onCreate()
+                }
+                catch(e)
+                {
+                    error = e
+                }
+
+                expect(error).is.undefined
+            })
+
+            describe('Actionable fields', () => {
+
+                it('Actionable fields should be defined on the relation between the owner model and property model', async () => {
+
+                    const actionableField = 'flat'
+
+                    const command = new ActionableFieldCommandStub()
+                    const commandSpy = sinon.spy(command, 'execute')
+
+                    class ModelStub extends ModelImpl
+                    {
+                        getFieldActions()
+                        {
+                            return this.actionableFields
+                        }
+                    }
+
+                    const model = new ModelStub('', firestoreStub)
+
+                    model.defineActionableField(actionableField, command)
+
+                    const fieldActions = model.getFieldActions()
+
+                    expect(fieldActions.get(actionableField)).to.not.be.null
+
+                    await fieldActions.get(actionableField).execute(model, 'true')
+
+                    expect(commandSpy.callCount).to.equals(1)
+                })
+                
+                it('TakeActionOn should be able to react to changes when before snap is empty', async () => {
+
+                    const wheelId1 = uniqid()
+                    const wheel = new Wheel(firestoreStub, null, wheelId1)
+
+                    const actionableField = 'flat'
+
+                    const command = new ActionableFieldCommandStub()
+                    const commandSpy = sinon.spy(command, 'execute')
+
+                    wheel.defineActionableField(actionableField, command)
+                    const data = {
+                        [actionableField] : true
+                    }
+                   
+                    const before = test.firestore.makeDocumentSnapshot({}, '')
+
+                    const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await wheel.takeActionOn(change)
+
+                    expect(commandSpy.callCount).to.equals(1)
+                    expect(typeof commandSpy.firstCall.args[0]).to.equals(typeof wheel)
+                    expect(commandSpy.firstCall.args[1]).to.be.true
+                })
+
+                it('TakeActionOn should be able to handle if no changes has been made to the model data', async () => {
+
+                    const actionableField = 'flat'
+
+                    const model = new Wheel(firestoreStub)
+
+                    const command = new ActionableFieldCommandStub()
+                    const commandSpy = sinon.spy(command, 'execute')
+
+                    model.defineActionableField(actionableField, command)
+
+                    const data = {
+                        [Relations.PIVOT] : {
+                            [Stubs.CAR] : {
+                                [actionableField] : 'bob'
+                            }
+                        }
+                    }
+                   
+                    const before = test.firestore.makeDocumentSnapshot({}, '')
+
+                    const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await model.takeActionOn(change)
+                    
+                    expect(commandSpy.callCount).to.equals(0)
+                })
+
+                it('A defined field action should be executed when changes to the particular field are passed to takeActionOn', async () => {
+
+                    const wheel = new Wheel(firestoreStub)
+                    const actionableField = 'flat'
+
+                    const command = new ActionableFieldCommandStub()
+                    const commandSpy = sinon.spy(command, 'execute')
+
+                    wheel.defineActionableField(actionableField, command)
+
+                    const data = {
+                        name : 'spare'
+                    }
+                   
+                    const before = test.firestore.makeDocumentSnapshot(data, '')
+
+                    data[actionableField] = true
+
+                    const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await wheel.takeActionOn(change)
+                    
+                    expect(commandSpy.callCount).to.equals(1)
+                    expect(typeof commandSpy.firstCall.args[0]).to.equals(typeof wheel)
+                    expect(commandSpy.firstCall.args[1]).to.be.true
+                })
+
+                it('Changes made the fields on the owner model with simular names should not course a action on pivot to execute', async () => {
+
+                    const wheel = new Wheel(firestoreStub)
+
+                    const actionableField = 'flat'
+
+                    const command = new ActionableFieldCommandStub()
+                    const commandSpy = sinon.spy(command, 'execute')
+
+                    wheel.defineActionableField(actionableField, command)
+
+                    const data = {
+                        'name' : 'front-left'
+                    }
+
+                    const before = test.firestore.makeDocumentSnapshot(data, '')
+
+                    data[Relations.PIVOT] = true
+
+                    const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await wheel.takeActionOn(change)
+                    
+                    expect(commandSpy.callCount).to.equals(0)
+                })
+            })
         })
 
-        describe('Relations.', () => {
+        describe('Relations', () => {
 
-            describe('I2I', async () => {
+            describe('One-to-One', async () => {
                 
                 it('Related models method should return the same relation every time', async () => {
 
@@ -365,7 +587,7 @@ describe('STAGE', () => {
 
                 it('Save model to an other', async () => {
                     
-                    const sensor: Sensor = await db.sensor()
+                    const sensor: Sensor = db.sensor()
                     const room: Room = db.room()
 
                     await sensor.room().set(room)
@@ -381,9 +603,9 @@ describe('STAGE', () => {
                     expect(roomId).to.deep.equals(attRoom.id)
                 })
 
-                it('Save model to an other reverse I2M', async () => {
+                it('Save model to an other inverse I2M', async () => {
                     
-                    const sensor: Sensor = await db.sensor()
+                    const sensor: Sensor = db.sensor()
                     const room: Room = db.room()
 
                     await sensor.room().set(room)
@@ -411,9 +633,9 @@ describe('STAGE', () => {
                     await room.sensors().attach(sensor)
 
                     //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
-                    docsToBeDeleted.push((await event.getDocRef()).path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
+                    docsToBeDeleted.push(room.getDocRef().path)
+                    docsToBeDeleted.push(event.getDocRef().path)
                     
                     const attRoom = await sensor.getField(room.name)
                     const attEvents = await sensor.getField(event.name)
@@ -421,9 +643,9 @@ describe('STAGE', () => {
                     const attSensors = await room.getField(sensor.name)
                     const attSensor = await event.getField(sensor.name)
 
-                    const sensorId = await sensor.getId()
-                    const roomId = await room.getId()
-                    const eventId = await event.getId()
+                    const sensorId = sensor.getId()
+                    const roomId = room.getId()
+                    const eventId = event.getId()
 
                     expect(roomId).to.deep.equals(attRoom.id)
                     expect(sensorId).to.deep.equals(attSensor.id)
@@ -431,9 +653,9 @@ describe('STAGE', () => {
                     expect(Object.keys(attSensors), 'Foreign key on room').to.include(sensorId)
                 })
 
-                it('Save model to an other reverse I2M BATCH', async () => {
+                it('Save model to an other inverse I2M BATCH', async () => {
                     
-                    const sensor: Sensor = await db.sensor()
+                    const sensor: Sensor = db.sensor()
                     const room: Room = db.room()
 
                     const batch = db.batch()
@@ -441,13 +663,13 @@ describe('STAGE', () => {
                     await sensor.room().set(room, batch)
 
                     //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
+                    docsToBeDeleted.push(room.getDocRef().path)
                     
                     await batch.commit()
 
-                    const roomId = await room.getId()
-                    const sensorId = await sensor.getId()
+                    const roomId = room.getId()
+                    const sensorId = sensor.getId()
                     
                     const attRoom = await sensor.getField(room.name)
                     const attSensors = await room.getField(sensor.name)
@@ -456,16 +678,16 @@ describe('STAGE', () => {
                     expect(Object.keys(attSensors), 'Foreign key on room').to.include(sensorId)
                 })
 
-                it('Save model to an other reverse I2M BATCH SHOULD FAIL', async () => {
-                    const sensor: Sensor = await db.sensor()
+                it('Save model to an other inverse I2M BATCH SHOULD FAIL', async () => {
+                    const sensor: Sensor = db.sensor()
                     const room: Room = db.room()
 
                     const batch = db.batch()
 
                     await sensor.room().set(room, batch)
 
-                    const roomId = await room.getId()
-                    const sensorId = await sensor.getId()
+                    const roomId = room.getId()
+                    const sensorId = sensor.getId()
                     
                     const sensorDoc = await adminFs.doc(`${Models.SENSOR}/${sensorId}`).get()
                     const roomDoc = await adminFs.doc(`${Models.ROOM}/${roomId}`).get()
@@ -477,7 +699,7 @@ describe('STAGE', () => {
                 })
             })
 
-            describe('I2M', async () => {
+            describe('One-to-many', async () => {
 
                 it('Related models method should return the same relation every time', async () => {
                     
@@ -496,64 +718,72 @@ describe('STAGE', () => {
 
                     await car.wheels().attach(wheel)
 
-                    //clean up
-                    docsToBeDeleted.push((await wheel.getDocRef()).path)
-                    docsToBeDeleted.push((await car.getDocRef()).path)
+                    const dataName = 'Spare'
 
-                    const wheelId = await wheel.getId()
+                    //clean up
+                    docsToBeDeleted.push(wheel.getDocRef().path)
+                    docsToBeDeleted.push(car.getDocRef().path)
+
+                    const wheelId1 = wheel.getId()
                     
-                    await car.wheels().updatePivot(wheelId, {
-                        name : 'Spare',
+                    await car.wheels().updatePivot(wheelId1, {
+                        name : dataName,
                         flat: true
                     })
 
-                    await car.wheels().updatePivot(wheelId, {
+                    await car.wheels().updatePivot(wheelId1, {
                         flat : true
                     })
 
-                    const doc: FirebaseFirestore.DocumentSnapshot = await adminFs.collection(wheel.name).doc(wheelId).get()
+                    const doc: FirebaseFirestore.DocumentSnapshot = await adminFs.collection(Stubs.WHEEL).doc(wheelId1).get()
 
-                    expect(doc.get(`${car.name}.${Relations.PIVOT}.name`)).to.be.equal('Spare')
+                    expect(doc.get(`${Stubs.CAR}.${Relations.PIVOT}.name`)).to.be.equal(dataName)
                 })
 
                 it('The pivot should be updatable trough the inverse relation', async () => {
                     
-                    const car = new Car(adminFs)
-                    const wheel = new Wheel(adminFs)
+                    const carId = uniqid()
+                    const wheelId = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+                    const wheel = new Wheel(firestoreStub, null, wheelId)
+
+                    const dataName = 'Spare'
 
                     await car.wheels().attach(wheel)
 
-                    //clean up
-                    docsToBeDeleted.push((await wheel.getDocRef()).path)
-                    docsToBeDeleted.push((await car.getDocRef()).path)
-
-                    const carId = await car.getId()
-                    const wheelId = await wheel.getId()
-
                     await wheel.car().updatePivot({
-                        name : 'Spare'
+                        name : dataName
                     })
 
-                    const doc: FirebaseFirestore.DocumentSnapshot = await adminFs.collection(wheel.name).doc(wheelId).get()
+                    const wheelDoc = firestoreMockData[`${Stubs.WHEEL}/${wheelId}`]
+                    const expectedWheelDoc = {
+                        [Stubs.CAR] : {
+                            id : carId,
+                            [Relations.PIVOT] : {
+                                name : dataName
+                            }
+                        }
+                    }
 
-                    expect(doc.get(`${car.name}.${Relations.PIVOT}.name`)).to.be.equal('Spare')
+                    expect(wheelDoc).to.deep.include(expectedWheelDoc)
                 })
 
                 it('Create root documents and relation by attaching two models', async () => {
-                    const room: Room = db.room()
-                    const sensor: Sensor = db.sensor()
+                    const room = db.room()
+                    const sensor = db.sensor()
 
                     await room.sensors().attach(sensor)
 
                     //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
+                    docsToBeDeleted.push(room.getDocRef().path)
                     
                     const roomSensors = await room.getField(sensor.name)
                     const sensorRoom = await sensor.getField(room.name)
 
-                    const roomId = await room.getId()
-                    const sensorId = await sensor.getId()
+                    const roomId = room.getId()
+                    const sensorId = sensor.getId()
 
                     expect(Object.keys(roomSensors), 'Foreign key on room').to.include(sensorId)
                     expect(roomId, 'Foreign key on sensor').equals(sensorRoom.id)
@@ -564,29 +794,473 @@ describe('STAGE', () => {
                     const room: Room = db.room()
                     const sensor: Sensor = db.sensor()
 
-                    const roomId = await room.getId()
+                    const roomId = room.getId()
 
                     await room.sensors().attach(sensor)
 
                     //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
+                    docsToBeDeleted.push(room.getDocRef().path)
                     
                     const attRoom = await sensor.room().get()
 
-                    expect(roomId).to.equal(await attRoom.getId())
+                    expect(roomId).to.equal(attRoom.getId())
+                })
+
+                it('If no models are attached retrieving "inverse" should return null', async () => {
+
+                    const sensor: Sensor = db.sensor()
+
+                    const attRoom = await sensor.room().get()
+                    expect(attRoom).to.be.null
+                })
+
+                it('When models are attached by id relation to the property model should be made on the owner', async () => {
+          
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const wheel = new Wheel(firestoreStub)
+
+                    await car.wheels().attachById(wheel.getId())
+                    
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedCarDoc = {
+                        [Stubs.WHEEL] : { [wheel.getId()] : true }
+                    }
+
+                    expect(carDoc).to.deep.equal(expectedCarDoc)
+                })
+                
+                it('When models are attached by id relation to the owner model should be made on the property model', async () => {
+                    
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const wheel = new Wheel(firestoreStub)
+
+                    await car.wheels().attachById(wheel.getId())
+                    
+                    const wheelDoc = firestoreMockData[`${Stubs.WHEEL}/${wheel.getId()}`]
+                    const expectedWheelDoc = {
+                        [Stubs.CAR] : { id : carId }
+                    }
+
+                    expect(wheelDoc).to.deep.equal(expectedWheelDoc)
+                })
+
+                it('When a write batch are passed to attachbyId the relations should be made when commit on batch is invoked', async () => {
+                    
+                    const carId = uniqid()
+                    const car = new Car(adminFs, null, carId)
+
+                    const wheel = new Wheel(adminFs)
+
+                    //clean up
+                    docsToBeDeleted.push(car.getDocRef().path)
+                    docsToBeDeleted.push(wheel.getDocRef().path)
+
+                    const batch = adminFs.batch()
+
+                    await car.wheels().attachById(wheel.getId(), batch)
+                    
+                    await batch.commit()
+
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+                    const w = await adminFs.doc(`${Stubs.WHEEL}/${wheel.getId()}`).get()
+
+                    expect(c.data()).to.deep.equal({ [Stubs.WHEEL] : { [wheel.getId()] : true }})
+                    expect(w.data()).to.deep.equal({ [Stubs.CAR] : { id : carId }})
+                })
+
+                it('When a write batch are passed to attachById and commit on batch is not invoked the relations should not be made', async () => {
+                    
+                    const carId = uniqid()
+                    const car = new Car(adminFs, null, carId)
+
+                    const wheel = new Wheel(adminFs)
+
+                    //clean up
+                    docsToBeDeleted.push(car.getDocRef().path)
+                    docsToBeDeleted.push(wheel.getDocRef().path)
+
+                    const batch = adminFs.batch()
+
+                    await car.wheels().attachById(wheel.getId(), batch)
+                    
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+                    const w = await adminFs.doc(`${Stubs.WHEEL}/${wheel.getId()}`).get()
+
+                    expect(c.exists).to.be.false
+                    expect(w.exists).to.be.false
+                })
+
+                it('When models are attached in bulk relations to all property models should be made on the owner', async () => {
+
+                    const carId = uniqid()
+
+                    const wheelId1 = uniqid()
+                    const wheelId2 = uniqid()
+                    const wheelId3 = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(firestoreStub, null, wheelId1),
+                        new Wheel(firestoreStub, null, wheelId2),
+                        new Wheel(firestoreStub, null, wheelId3)
+                    ])
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
+                })
+
+                it('When models are attached in bulk relations to the owner model should be made on the properties', async () => {
+
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(firestoreStub, null, wheelId1),
+                        new Wheel(firestoreStub, null, wheelId2),
+                        new Wheel(firestoreStub, null, wheelId3)
+                    ])
+
+                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                })
+
+                it('AttachByIdBulk should not update any collection if id array is empty', async () => {
+                    const carId = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.wheels().attachByIdBulk([])
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.not.exist
+                })
+
+                it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(adminFs, null, wheelId1),
+                        new Wheel(adminFs, null, wheelId2),
+                        new Wheel(adminFs, null, wheelId3)
+                    ], batch)
+
+                    //clean up
+                    docsToBeDeleted.push(`${Stubs.WHEEL}/${wheelId1}`)
+                    docsToBeDeleted.push(`${Stubs.WHEEL}/${wheelId2}`)
+                    docsToBeDeleted.push(`${Stubs.WHEEL}/${wheelId3}`)
+                    docsToBeDeleted.push(`${Stubs.CAR}/${carId}`)
+
+                    await batch.commit()
+
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+                    const w1 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId1}`).get()
+                    const w2 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId2}`).get()
+                    const w3 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId3}`).get()
+
+                    expect(c.data()).to.deep.include({ [Stubs.WHEEL] : {
+                            [wheelId1] : true,
+                            [wheelId2] : true,
+                            [wheelId3] : true
+                        }
+                    })
+
+                    expect(w1.data()).to.deep.equal({ [Stubs.CAR] : { id : carId }})
+                    expect(w2.data()).to.deep.equal({ [Stubs.CAR] : { id : carId }})
+                    expect(w3.data()).to.deep.equal({ [Stubs.CAR] : { id : carId }})
+                })
+
+                it('When a write batch are passed to attachBulk and commit on batch is not invoked the relations should not be made', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(adminFs, null, wheelId1),
+                        new Wheel(adminFs, null, wheelId2),
+                        new Wheel(adminFs, null, wheelId3)
+                    ], batch)
+
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+                    const w1 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId1}`).get()
+                    const w2 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId2}`).get()
+                    const w3 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId3}`).get()
+
+                    expect(c.exists).to.be.false
+                    expect(w1.exists).to.be.false
+                    expect(w2.exists).to.be.false
+                    expect(w3.exists).to.be.false
+                })
+
+                it('When models are attached in bulk relations to all property models should be made on the owner', async () => {
+
+                    const carId = uniqid()
+
+                    const wheelId1 = uniqid()
+                    const wheelId2 = uniqid()
+                    const wheelId3 = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(firestoreStub, null, wheelId1),
+                        new Wheel(firestoreStub, null, wheelId2),
+                        new Wheel(firestoreStub, null, wheelId3)
+                    ])
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
+                })
+
+                it('When models are attached in bulk relations to the owner model should be made on the properties', async () => {
+
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(firestoreStub, null, wheelId1),
+                        new Wheel(firestoreStub, null, wheelId2),
+                        new Wheel(firestoreStub, null, wheelId3)
+                    ])
+
+                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                })
+
+                it('AttachByIdBulk should not update any collection if id array is empty', async () => {
+                    const carId = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.wheels().attachByIdBulk([])
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.not.exist
+                })
+
+                it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(adminFs, null, wheelId1),
+                        new Wheel(adminFs, null, wheelId2),
+                        new Wheel(adminFs, null, wheelId3)
+                    ], batch)
+
+                    //clean up
+                    docsToBeDeleted.push(`${Stubs.WHEEL}/${wheelId1}`)
+                    docsToBeDeleted.push(`${Stubs.WHEEL}/${wheelId2}`)
+                    docsToBeDeleted.push(`${Stubs.WHEEL}/${wheelId3}`)
+                    docsToBeDeleted.push(`${Stubs.CAR}/${carId}`)
+
+                    await batch.commit()
+
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+                    const w1 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId1}`).get()
+                    const w2 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId2}`).get()
+                    const w3 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId3}`).get()
+
+                    expect(c.data()).to.deep.include({ [Stubs.WHEEL] : {
+                            [wheelId1] : true,
+                            [wheelId2] : true,
+                            [wheelId3] : true
+                        }
+                    })
+
+                    expect(w1.data()).to.deep.equal({ [Stubs.CAR] : { id : carId }})
+                    expect(w2.data()).to.deep.equal({ [Stubs.CAR] : { id : carId }})
+                    expect(w3.data()).to.deep.equal({ [Stubs.CAR] : { id : carId }})
+                })
+
+                it('When a write batch are passed to attachBulk and commit on batch is not invoked the relations should not be made', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.wheels().attachBulk([
+                        new Wheel(adminFs, null, wheelId1),
+                        new Wheel(adminFs, null, wheelId2),
+                        new Wheel(adminFs, null, wheelId3)
+                    ], batch)
+
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+                    const w1 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId1}`).get()
+                    const w2 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId2}`).get()
+                    const w3 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId3}`).get()
+
+                    expect(c.exists).to.be.false
+                    expect(w1.exists).to.be.false
+                    expect(w2.exists).to.be.false
+                    expect(w3.exists).to.be.false
+                })
+
+                it('When models are attached in bulk relations to all property models should be made on the owner', async () => {
+
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.wheels().attachByIdBulk([
+                        wheelId1,
+                        wheelId2,
+                        wheelId3
+                    ])
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
+                })
+
+                it('When models are attached in bulk relations to the owner model should be made on the properties', async () => {
+
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.wheels().attachByIdBulk([
+                        wheelId1,
+                        wheelId2,
+                        wheelId3
+                    ])
+
+                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                })
+
+                it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.wheels().attachByIdBulk([
+                        wheelId1,
+                        wheelId2,
+                        wheelId3
+                    ], batch)
+
+                    //clean up
+                    docsToBeDeleted.push(`${Stubs.WHEEL}/${wheelId1}`)
+                    docsToBeDeleted.push(`${Stubs.WHEEL}/${wheelId2}`)
+                    docsToBeDeleted.push(`${Stubs.WHEEL}/${wheelId3}`)
+                    docsToBeDeleted.push(`${Stubs.CAR}/${carId}`)
+
+                    await batch.commit()
+
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+                    const w1 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId1}`).get()
+                    const w2 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId2}`).get()
+                    const w3 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId3}`).get()
+
+                    expect(c.data()).to.deep.include({ [Stubs.WHEEL] : {
+                            [wheelId1] : true,
+                            [wheelId2] : true,
+                            [wheelId3] : true
+                        }
+                    })
+
+                    expect(w1.data()).to.deep.equal({ [Stubs.CAR] : { id : carId }})
+                    expect(w2.data()).to.deep.equal({ [Stubs.CAR] : { id : carId }})
+                    expect(w3.data()).to.deep.equal({ [Stubs.CAR] : { id : carId }})
+                })
+
+                it('When a write batch are passed to attachBulk and commit on batch is not invoked the relations should not be made', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const wheelId1  = uniqid()
+                    const wheelId2  = uniqid()
+                    const wheelId3  = uniqid()
+
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.wheels().attachByIdBulk([
+                        wheelId1,
+                        wheelId2,
+                        wheelId3
+                    ], batch)
+
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+                    const w1 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId1}`).get()
+                    const w2 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId2}`).get()
+                    const w3 = await adminFs.doc(`${Stubs.WHEEL}/${wheelId3}`).get()
+
+                    expect(c.exists).to.be.false
+                    expect(w1.exists).to.be.false
+                    expect(w2.exists).to.be.false
+                    expect(w3.exists).to.be.false
                 })
 
                 it('Retrieve cached relational data', async () => {
                     const sensor = db.sensor()
                     const room = db.room()
-                    const sensorId = await sensor.getId();
+                    const sensorId = sensor.getId();
 
                     await room.sensors().attach(sensor)
                     
                     //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
+                    docsToBeDeleted.push(room.getDocRef().path)
                     
                     const sensorData = {[sensorId] : {
                         name: 'Doorbell'
@@ -607,46 +1281,588 @@ describe('STAGE', () => {
                     const cache2 = await room.sensors().cache(sensorId)
 
                     expect(cache1).to.deep.include(sensorData)
-                    expect(cache2).to.deep.equal(sensorData[sensorId])              
+                    expect(cache2).to.deep.equal(sensorData[sensorId])
+                })
+
+                describe('Actionable fields', () => {
+
+                    it('Action should be defined on the relation between the owner model and property model', async () => {
+
+                        const car = new Car(firestoreStub)
+
+                        const command = new ActionableFieldCommandStub()
+                        const commandSpy = sinon.spy(command, 'execute')
+                        class One2ManyRelationStub extends One2ManyRelation
+                        {
+                            getOnUpdateActions()
+                            {
+                                return this.onUpdateAction
+                            }
+                        }
+
+                        const rel = new One2ManyRelationStub(car, Stubs.WHEEL, firestoreStub)
+
+                        rel.defineActionOnUpdate(command)
+
+                        const fieldActions = rel.getOnUpdateActions()
+
+                        expect(fieldActions).to.not.be.null
+
+                        await fieldActions.execute(car, {})
+
+                        expect(commandSpy.callCount).to.equals(1)
+                    })
+                    
+                    it('TakeActionOn should be able to react to changes when before snap is empty', async () => {
+
+                        const car = new Car(firestoreStub)
+
+                        const wheelId1 = uniqid()
+
+                        const command = new ActionableFieldCommandStub()
+                        const commandSpy = sinon.spy(command, 'execute')
+
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, firestoreStub)
+
+                        rel.defineActionOnUpdate(command)
+
+                        const data = {
+                            [Stubs.WHEEL] : {
+                                [wheelId1] :  true
+                            }
+                        }
+                       
+                        const before = test.firestore.makeDocumentSnapshot({}, '')
+
+                        const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                        await rel.takeActionOn(change)
+                        
+                        expect(commandSpy.callCount).to.equals(1)
+                        expect(typeof commandSpy.firstCall.args[0]).to.equals(typeof car)
+                        expect(commandSpy.firstCall.args[1]).to.be.deep.equal(data[Stubs.WHEEL])
+                    })
+
+                    it('TakeActionOn should be able to handle if no changes has been made to the relational data', async () => {
+
+                        const rel = new One2ManyRelation(new Car(firestoreStub), Stubs.WHEEL, firestoreStub)
+
+                        const command = new ActionableFieldCommandStub()
+                        const commandSpy = sinon.spy(command, 'execute')
+
+                        rel.defineActionOnUpdate(command)
+
+                        const data = {
+                            name : 'Mustang'
+                        }
+                       
+                        const before = test.firestore.makeDocumentSnapshot({}, '')
+                        const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                        await rel.takeActionOn(change)
+                        
+                        expect(commandSpy.callCount).to.equals(0)
+                    })
+
+                    it('A defined onUpdate action should be executed when changes to the relation link field are passed to takeActionOn', async () => {
+
+                        const car = new Car(firestoreStub)
+
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, firestoreStub)
+
+                        const command = new ActionableFieldCommandStub()
+                        const commandSpy = sinon.spy(command, 'execute')
+
+                        rel.defineActionOnUpdate(command)
+
+                        const data = {
+                            name : 'spare'
+                        }
+                       
+                        const before = test.firestore.makeDocumentSnapshot(data, '')
+
+                        data[Stubs.WHEEL] = {
+                            [Relations.PIVOT] : true
+                        }
+
+                        const after = test.firestore.makeDocumentSnapshot(data, '')
+    
+                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                        await rel.takeActionOn(change)
+                        
+                        expect(commandSpy.callCount).to.equals(1)
+                        expect(typeof commandSpy.firstCall.args[0]).to.equals(typeof car)
+                        expect(commandSpy.firstCall.args[1]).to.be.deep.equal(data[Stubs.WHEEL])
+                    })
+
+                    it('Changes made to the fields on the owner model should not course the onUpdate action to execute', async () => {
+
+                        const car = new Car(firestoreStub)
+
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, firestoreStub)
+
+                        const command = new ActionableFieldCommandStub()
+                        const commandSpy = sinon.spy(command, 'execute')
+
+                        rel.defineActionOnUpdate(command)
+
+                        const data = {
+                            'name' : 'front-left'
+                        }
+
+                        const before = test.firestore.makeDocumentSnapshot(data, '')
+
+                        data[Relations.PIVOT] = true
+
+                        const after = test.firestore.makeDocumentSnapshot(data, '')
+    
+                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                        await rel.takeActionOn(change)
+                        
+                        expect(commandSpy.callCount).to.equals(0)
+                    })
+
+                    it('If no changes are made to the relation link it should not course onUpdate action to execute', async () => {
+
+                        const car = new Car(firestoreStub)
+                        const wheelId1 = uniqid()
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, firestoreStub)
+
+                        const command = new ActionableFieldCommandStub()
+                        const commandSpy = sinon.spy(command, 'execute')
+
+                        rel.defineActionOnUpdate(command)
+
+                        const data = {
+                            name : 'spare',
+                            [Stubs.WHEEL] : {
+                                [wheelId1] : true
+                            }
+                        }
+                       
+                        const before = test.firestore.makeDocumentSnapshot(data, '')
+
+                        const after = test.firestore.makeDocumentSnapshot(data, '')
+    
+                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                        await rel.takeActionOn(change)
+                        
+                        expect(commandSpy.callCount).to.equals(0)
+                    })
+
+                    it('If new relational links are added those should be passes to the action', async () => {
+
+                        const car = new Car(firestoreStub)
+                        const wheelId1 = uniqid()
+                        const wheelId2 = uniqid()
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, firestoreStub)
+
+                        const command = new ActionableFieldCommandStub()
+                        const commandSpy = sinon.spy(command, 'execute')
+
+                        rel.defineActionOnUpdate(command)
+
+                        const data = {
+                            name : 'spare',
+                            [Stubs.WHEEL] : {
+                                [wheelId1] : true
+                            }
+                        }
+
+                        const before = test.firestore.makeDocumentSnapshot(data, '')
+
+                        data[Stubs.WHEEL][wheelId2] = true
+
+                        const after = test.firestore.makeDocumentSnapshot(data, '')
+    
+                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                        await rel.takeActionOn(change)
+                        
+                        const passedChange = commandSpy.firstCall.args[1]
+                        const expectedChange = {
+                            [wheelId2] : true
+                        }
+
+                        expect(commandSpy.callCount).to.equals(1)
+                        expect(typeof commandSpy.firstCall.args[0]).to.equals(typeof car)
+                        expect(passedChange).to.be.deep.equal(expectedChange)
+                    })
+
+                    it('If relational links are changed those should be passes to the action', async () => {
+
+                        const car = new Car(firestoreStub)
+                        const wheelId1 = uniqid()
+                        const wheelId2 = uniqid()
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, firestoreStub)
+
+                        const command = new ActionableFieldCommandStub()
+                        const commandSpy = sinon.spy(command, 'execute')
+
+                        rel.defineActionOnUpdate(command)
+
+                        const data = {
+                            name : 'spare',
+                            [Stubs.WHEEL] : {
+                                [wheelId1] : true,
+                                [wheelId2] : {
+                                    flat : false
+                                }
+                            }
+                        }
+
+                        const before = test.firestore.makeDocumentSnapshot(data, '')
+
+                        data[Stubs.WHEEL][wheelId2] = {
+                            flat : true
+                        }
+
+                        const after = test.firestore.makeDocumentSnapshot(data, '')
+    
+                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                        await rel.takeActionOn(change)
+                        
+                        const passedChange = commandSpy.firstCall.args[1]
+                        const expectedChange = {
+                            [wheelId2] : {
+                                flat : true
+                            }
+                        }
+
+                        expect(commandSpy.callCount).to.equals(1)
+                        expect(typeof commandSpy.firstCall.args[0]).to.equals(typeof car)
+                        expect(passedChange).to.be.deep.equal(expectedChange)
+                    })
+                })
+
+                describe('Inverse One-to-Many', () => {
+
+                    it('Field on the pivot should be accessable through relation', async () => {
+
+                        const wheelId = uniqid()
+                        const wheel = new Wheel(firestoreStub, null, wheelId)
+
+                        const pivotField = 'flat'
+                        
+                        firestoreMockData[`${wheel.name}/${wheelId}`] = {
+                            [Stubs.CAR] : {
+                                [Relations.PIVOT] : {
+                                    [pivotField] : true
+                                }
+                            }
+                        }
+
+                        const fieldValue = await wheel.car().getPivotField(pivotField)
+
+                        expect(fieldValue).to.be.true
+                    })
+
+                    it('If field on pivot does not exist getPivotField should return null', async () => {
+
+                        const wheelId = uniqid()
+                        const wheel = new Wheel(firestoreStub, null, wheelId)
+
+                        const pivotField = 'flat'
+                        
+                        firestoreMockData[`${wheel.name}/${wheelId}`] = {
+                            [Stubs.CAR] : {
+                                [Relations.PIVOT] : {
+                                    id : uniqid()
+                                }
+                            }
+                        }
+
+                        const fieldValue = await wheel.car().getPivotField(pivotField)
+
+                        expect(fieldValue).to.be.null
+                    })
+
+                    it('If relation link does not exist getPivotField should return null', async () => {
+
+                        const wheelId = uniqid()
+                        const wheel = new Wheel(firestoreStub, null, wheelId)
+
+                        firestoreMockData[`${wheel.name}/${wheelId}`] = {}
+
+                        const fieldValue = await wheel.car().getPivotField('flat')
+
+                        expect(fieldValue).to.be.null
+                    })
+
+                    describe('Actionable fields', () => {
+
+                        it('Actionable fields should be defined on the relation between the owner model and property model', async () => {
+
+                            const wheel = new Wheel(firestoreStub)
+
+                            const actionableField = 'flat'
+
+                            const command = new ActionableFieldCommandStub()
+                            const commandSpy = sinon.spy(command, 'execute')
+
+                            class N2OneRelationStub extends N2OneRelation
+                            {
+                                getFieldActions()
+                                {
+                                    return this.actionableFields
+                                }
+                            }
+
+                            const rel = new N2OneRelationStub(wheel, Stubs.CAR, firestoreStub)
+
+                            rel.defineActionableField(actionableField, command)
+
+                            const fieldActions = rel.getFieldActions()
+
+                            expect(fieldActions.get(actionableField)).to.not.be.null
+
+                            await fieldActions.get(actionableField).execute(wheel, 'true')
+
+                            expect(commandSpy.callCount).to.equals(1)
+                        })
+                        
+                        it('TakeActionOn should be able to react to changes when before snap is empty', async () => {
+
+                            const wheel = new Wheel(firestoreStub)
+
+                            const actionableField = 'flat'
+
+                            const command = new ActionableFieldCommandStub()
+                            const commandSpy = sinon.spy(command, 'execute')
+
+                            const rel = new N2OneRelation(wheel, Stubs.CAR, firestoreStub)
+
+                            rel.defineActionableField(actionableField, command)
+
+                            const data = {
+                                [Stubs.CAR] : {
+                                    [Relations.PIVOT] : {
+                                        [actionableField] : true
+                                    }
+                                }
+                            }
+                        
+                            const before = test.firestore.makeDocumentSnapshot({}, '')
+
+                            const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+        
+                            await rel.takeActionOn(change)
+                            
+                            expect(commandSpy.callCount).to.equals(1)
+                            expect(typeof commandSpy.firstCall.args[0]).to.equals(typeof wheel)
+                            expect(commandSpy.firstCall.args[1]).to.be.true
+                        })
+
+                        it('TakeActionOn should be able to handle if no changes has been made to the pivot data', async () => {
+
+                            const actionableField = 'flat'
+
+                            const rel = new N2OneRelation(new Wheel(firestoreStub), Stubs.CAR, firestoreStub)
+
+                            const command = new ActionableFieldCommandStub()
+                            const commandSpy = sinon.spy(command, 'execute')
+
+                            rel.defineActionableField(actionableField, command)
+
+                            const data = {
+                                name : 'bob'
+                            }
+                        
+                            const before = test.firestore.makeDocumentSnapshot({}, '')
+
+                            const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+        
+                            await rel.takeActionOn(change)
+                            
+                            expect(commandSpy.callCount).to.equals(0)
+                        })
+
+                        it('A defined field action should be executed when changes to the particular field are passed to takeActionOn', async () => {
+
+                            const wheel = new Wheel(firestoreStub)
+                            const actionableField = 'flat'
+
+                            const rel = new N2OneRelation(wheel, Stubs.CAR, firestoreStub)
+
+                            const command = new ActionableFieldCommandStub()
+                            const commandSpy = sinon.spy(command, 'execute')
+
+                            rel.defineActionableField(actionableField, command)
+
+                            const data = {
+                                name : 'spare'
+                            }
+                        
+                            const before = test.firestore.makeDocumentSnapshot(data, '')
+
+                            data[Stubs.CAR] = {
+                                [Relations.PIVOT] : {
+                                    [actionableField] : true
+                                }
+                            }
+
+                            const after = test.firestore.makeDocumentSnapshot(data, '')
+        
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+        
+                            await rel.takeActionOn(change)
+                            
+                            expect(commandSpy.callCount).to.equals(1)
+                            expect(typeof commandSpy.firstCall.args[0]).to.equals(typeof wheel)
+                            expect(commandSpy.firstCall.args[1]).to.be.true
+                        })
+
+                        it('Changes made the fields on the owner model with simular names should not course a action on pivot to execute', async () => {
+
+                            const wheel = new Wheel(firestoreStub)
+
+                            const actionableField = 'flat'
+
+                            const rel = new N2OneRelation(wheel, Stubs.CAR, firestoreStub)
+
+                            const command = new ActionableFieldCommandStub()
+                            const commandSpy = sinon.spy(command, 'execute')
+
+                            rel.defineActionableField(actionableField, command)
+
+                            const data = {
+                                'name' : 'front-left'
+                            }
+
+                            const before = test.firestore.makeDocumentSnapshot(data, '')
+
+                            data[Relations.PIVOT] = true
+
+                            const after = test.firestore.makeDocumentSnapshot(data, '')
+        
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+        
+                            await rel.takeActionOn(change)
+                            
+                            expect(commandSpy.callCount).to.equals(0)
+                        })
+                    })
                 })
             })
 
-            describe('M2M', () => {
+            describe('Many-to-many', () => {
 
                 it('Related models method should return the same relation every time', async () => {
-                    const u = db.user() as User
+                    const car = new Car(firestoreStub)
 
-                    const households1 = u.household()
-                    const households2 = u.household()
-                    
-                    expect(households1).to.equals(households2)
+                    const drivers1 = car.drivers()
+                    const drivers2 = car.drivers()
+
+                    expect(drivers1).to.equals(drivers2)
                 })
 
-                it('Create root documents and relation by attaching two models', async () => {
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
+                it('Attaching a model to another should create an owner collection with a relation to the property', async () => {
 
-                    await user.sensors().attach(sensor)
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
 
-                    const userSensors = await user.getField(sensor.name)
-                    const sensorUsers = await sensor.getField(user.name)
+                    const driverId = uniqid()
+                    const driver = new Driver(firestoreStub, null, driverId)
 
-                    const sensorId = await sensor.getId()
-                    const userId = await user.getId()
+                    await car.drivers().attach(driver)
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId], 'Foreign key on owner').to.be.true
+                })
+                
+                it('Attaching a model to another should create a Property Collection with a relation to the Owner', async () => {
+
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const driverId = uniqid()
+                    const driver = new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attach(driver)
+
+                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId], 'Foreign key on property').to.be.true
+                })
+
+                it('Attaching a model to another should create a Pivot Collection with a relation to both Owner and Property', async () => {
+
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const driverId = uniqid()
+                    const driver = new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attach(driver)
+
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.DRIVER]['id']).to.be.equals(driverId)
+                })
+
+                it('Attaching two models should work with batch', async () => {
+
+                    const driverId = uniqid()
+                    const driver = new Driver(adminFs, null, driverId)
+
+                    const carId = uniqid()
+                    const car = new Car(adminFs, null, carId)
+
+                    const batch = db.batch()
+
+                    await car.drivers().attach(driver, batch)
+
+                    await batch.commit()
+                    
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+                    const d = await adminFs.doc(`${Stubs.DRIVER}/${driverId}`).get()
+                    const cd = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`).get()
 
                     //clean up
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
-                    
-                    expect(Object.keys(userSensors), 'Foreign key on user').to.include(sensorId)
-                    expect(Object.keys(sensorUsers), 'Foreign key on sensor').to.include(userId)
+                    docsToBeDeleted.push(c.ref.path)
+                    docsToBeDeleted.push(d.ref.path)
+                    docsToBeDeleted.push(cd.ref.path)
+
+                    expect(c.exists).to.be.true
+                    expect(d.exists).to.be.true
+                    expect(cd.exists).to.be.true
+                })
+
+                it('Attaching two models with Write Batch without commiting should not create any collections', async () => {
+
+                    const driverId = uniqid()
+                    const driver = new Driver(adminFs, null, driverId)
+
+                    const carId = uniqid()
+                    const car = new Car(adminFs, null, carId)
+
+                    const batch = db.batch()
+
+                    await car.drivers().attach(driver, batch)
+
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+
+                    const d = await adminFs.doc(`${Stubs.DRIVER}/${driverId}`).get()
+
+                    const cd = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`).get()
+
+                    expect(c.exists).to.be.false
+                    expect(d.exists).to.be.false
+                    expect(cd.exists).to.be.false
                 })
 
                 it('Attach multiple models to one many-to-many related model', async () => {
-                    const user = db.user() as User
-                    const sensor1 = db.sensor() as Sensor
-                    const sensor2 = db.sensor() as Sensor
+                    const user = db.user()
+                    const sensor1 = db.sensor()
+                    const sensor2 = db.sensor()
 
                     await user.sensors().attach(sensor1)
                     await user.sensors().attach(sensor2)
@@ -655,14 +1871,14 @@ describe('STAGE', () => {
                     const sensor1Users = await sensor1.getField(user.name)
                     const sensor2Users = await sensor2.getField(user.name)
 
-                    const userId: string = await user.getId()
-                    const sensor1Id: string = await sensor1.getId()
-                    const sensor2Id: string = await sensor2.getId()
+                    const userId: string = user.getId()
+                    const sensor1Id: string = sensor1.getId()
+                    const sensor2Id: string = sensor2.getId()
 
                     //clean up
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor1.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor2.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor1.getDocRef().path)
+                    docsToBeDeleted.push(sensor2.getDocRef().path)
                     docsToBeDeleted.push(`${sensor1.name}_${user.name}/${sensor1Id}_${userId}`)
                     docsToBeDeleted.push(`${sensor2.name}_${user.name}/${sensor2Id}_${userId}`)
 
@@ -672,32 +1888,853 @@ describe('STAGE', () => {
                     expect(Object.keys(sensor2Users), 'Foreign key on sensor2').to.include(userId)
                 })
 
+                it('When attaching models to each other writing data directly to the relation on the Property to the Owner should be possible', async () => {
+
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const driverId = uniqid()
+                    const carName = 'Mustang'
+                    const driver = new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attach(driver, null, {
+                        owner : {
+                            name : carName
+                        }
+                    })
+
+                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const expectedDriverDoc = {
+                        [Stubs.CAR] : {
+                            [carId] : {
+                                name : carName
+                            }
+                        }
+                    }
+
+                    expect(driverDoc).to.deep.equal(expectedDriverDoc)
+                })
+
+                it('When attaching models to each other writing data directly to the relation on the Owner to the Property should be possible', async () => {
+
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const driverId = uniqid()
+                    const driverName = 'Bob'
+                    const driver = new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attach(driver, null, {
+                        property : {
+                            name : driverName
+                        }
+                    })
+
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedcarDoc = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : {
+                                name : driverName
+                            }
+                        }
+                    }
+
+                    expect(carDoc).to.deep.equal(expectedcarDoc)
+                })
+
+                it('When models are attached in bulk relations to all property models should be made on the owner', async () => {
+
+                    const carId = uniqid()
+
+                    const driverId1 = uniqid()
+                    const driverId2 = uniqid()
+                    const driverId3 = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachBulk([
+                        new Driver(firestoreStub, null, driverId1),
+                        new Driver(firestoreStub, null, driverId2),
+                        new Driver(firestoreStub, null, driverId3)
+                    ])
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]).to.exist
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]).to.exist
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]).to.exist
+                })
+
+                it('When models are attached in bulk relations to the owner model should be made on the property models', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachBulk([
+                        new Driver(firestoreStub, null, driverId1),
+                        new Driver(firestoreStub, null, driverId2),
+                        new Driver(firestoreStub, null, driverId3)
+                    ])
+
+                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]).to.be.true
+                })
+
+                it('When models are attached in bulk relations to all property models should create pivot collections', async () => {
+
+                    const carId = uniqid()
+
+                    const driverId1 = uniqid()
+                    const driverId2 = uniqid()
+                    const driverId3 = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachBulk([
+                        new Driver(firestoreStub, null, driverId1),
+                        new Driver(firestoreStub, null, driverId2),
+                        new Driver(firestoreStub, null, driverId3)
+                    ])
+
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.DRIVER]['id']).to.be.equals(driverId1)
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.DRIVER]['id']).to.be.equals(driverId2)
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.DRIVER]['id']).to.be.equals(driverId3)
+
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.CAR]['id']).to.be.equals(carId)
+                })
+
+                it('AttachBulk should not update any collection if id array is empty', async () => {
+                    const carId = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachBulk([])
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.not.exist
+                })
+
+                it('When a Write Batch is passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.drivers().attachBulk([
+                        new Driver(adminFs, null, driverId1),
+                        new Driver(adminFs, null, driverId2),
+                        new Driver(adminFs, null, driverId3)
+                    ], batch)
+
+                    //clean up
+                    docsToBeDeleted.push(`${Stubs.DRIVER}/${driverId1}`)
+                    docsToBeDeleted.push(`${Stubs.DRIVER}/${driverId2}`)
+                    docsToBeDeleted.push(`${Stubs.DRIVER}/${driverId3}`)
+                    docsToBeDeleted.push(`${Stubs.CAR}/${carId}`)
+
+                    docsToBeDeleted.push(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`)
+                    docsToBeDeleted.push(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`)
+                    docsToBeDeleted.push(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`)
+
+                    await batch.commit()
+
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+
+                    const d1 = await adminFs.doc(`${Stubs.DRIVER}/${driverId1}`).get()
+                    const d2 = await adminFs.doc(`${Stubs.DRIVER}/${driverId2}`).get()
+                    const d3 = await adminFs.doc(`${Stubs.DRIVER}/${driverId3}`).get()
+
+                    const cd1 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`).get()
+                    const cd2 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`).get()
+                    const cd3 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`).get()
+
+                    expect(c.data()).to.deep.include({ [Stubs.DRIVER] : {
+                            [driverId1] : true,
+                            [driverId2] : true,
+                            [driverId3] : true
+                        }
+                    })
+
+                    expect(d1.data()).to.deep.equal({ [Stubs.CAR] : { [carId] : true }})
+                    expect(d2.data()).to.deep.equal({ [Stubs.CAR] : { [carId] : true }})
+                    expect(d3.data()).to.deep.equal({ [Stubs.CAR] : { [carId] : true }})
+
+                    expect(cd1.exists).to.be.true
+                    expect(cd2.exists).to.be.true
+                    expect(cd3.exists).to.be.true
+                })
+
+                it('When a write batch are passed to attachBulk and commit on batch is not invoked the relations should not be made', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.drivers().attachBulk([
+                        new Driver(adminFs, null, driverId1),
+                        new Driver(adminFs, null, driverId2),
+                        new Driver(adminFs, null, driverId3)
+                    ], batch)
+
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+
+                    const d1 = await adminFs.doc(`${Stubs.DRIVER}/${driverId1}`).get()
+                    const d2 = await adminFs.doc(`${Stubs.DRIVER}/${driverId2}`).get()
+                    const d3 = await adminFs.doc(`${Stubs.DRIVER}/${driverId3}`).get()
+
+                    const cd1 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`).get()
+                    const cd2 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`).get()
+                    const cd3 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`).get()
+
+                    expect(c.exists).to.be.false
+
+                    expect(d1.exists).to.be.false
+                    expect(d2.exists).to.be.false
+                    expect(d3.exists).to.be.false
+
+                    expect(cd1.exists).to.be.false
+                    expect(cd2.exists).to.be.false
+                    expect(cd3.exists).to.be.false
+                })
+
+                it('When attaching models in bulk to another model writing data directly to the relation on the Properties to the Owner should be possible', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+                    const carName = 'Bob'
+
+                    await car.drivers().attachBulk([
+                        new Driver(firestoreStub, null, driverId1),
+                        new Driver(firestoreStub, null, driverId2),
+                        new Driver(firestoreStub, null, driverId3)
+                    ], null, {
+                        owner : {
+                            name : carName
+                        }
+                    })
+
+                    const carRelations1 = firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+
+                    const expectedCarRelation = {
+                        name : carName
+                    }
+
+                    expect(carRelations1).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations2).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations3).to.be.deep.equal(expectedCarRelation)
+                })
+
+                it('When attaching models in bulk to another model writing data directly to the relation on the Owner to the Properties should be possible', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachBulk([
+                        new Driver(firestoreStub, null, driverId1),
+                        new Driver(firestoreStub, null, driverId2),
+                        new Driver(firestoreStub, null, driverId3)
+                    ], null, {
+                        properties : [
+                            {
+                                id : driverId1
+                            },
+                            {
+                                id : driverId2
+                            },
+                            {
+                                id : driverId3
+                            }
+                        ]
+                    })
+
+                    const driverRelations1 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+
+                    const expectedDriverRelation1 = {
+                        id : driverId1
+                    }
+
+                    const expectedDriverRelation2 = {
+                        id : driverId2
+                    }
+
+                    const expectedDriverRelation3 = {
+                        id : driverId3
+                    }
+
+                    expect(driverRelations1).to.be.deep.equal(expectedDriverRelation1)
+                    expect(driverRelations2).to.be.deep.equal(expectedDriverRelation2)
+                    expect(driverRelations3).to.be.deep.equal(expectedDriverRelation3)
+                })
+
+                it('When attaching models in bulk to another model writing data directly to the relations', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+                    const carName = 'Bob'
+
+                    await car.drivers().attachBulk([
+                        new Driver(firestoreStub, null, driverId1),
+                        new Driver(firestoreStub, null, driverId2),
+                        new Driver(firestoreStub, null, driverId3)
+                    ], null, {
+                        owner : {
+                            name : carName
+                        },
+                        properties : [
+                            {
+                                id : driverId1
+                            },
+                            {
+                                id : driverId2
+                            },
+                            {
+                                id : driverId3
+                            }
+                        ]
+
+                    })
+
+                    const carRelations1 = firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+
+                    const expectedCarRelation = {
+                        name : carName
+                    }
+
+                    expect(carRelations1).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations2).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations3).to.be.deep.equal(expectedCarRelation)
+
+                    const driverRelations1 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+
+                    const expectedDriverRelation1 = {
+                        id : driverId1
+                    }
+
+                    const expectedDriverRelation2 = {
+                        id : driverId2
+                    }
+
+                    const expectedDriverRelation3 = {
+                        id : driverId3
+                    }
+
+                    expect(driverRelations1).to.be.deep.equal(expectedDriverRelation1)
+                    expect(driverRelations2).to.be.deep.equal(expectedDriverRelation2)
+                    expect(driverRelations3).to.be.deep.equal(expectedDriverRelation3)
+                })
+
+                it('Attaching a model to another by id should create an owner collection with a relation to the property', async () => {
+
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const driverId = uniqid()
+                    const driver = new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attachById(driverId)
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId], 'Foreign key on owner').to.be.true
+                })
+                
+                it('Attaching a model to another by id should create a Property Collection with a relation to the Owner', async () => {
+
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const driverId = uniqid()
+                    const driver = new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attachById(driverId)
+
+                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId], 'Foreign key on property').to.be.true
+                })
+
+                it('Attaching a model to another by id should create a Pivot Collection with a relation to both Owner and Property', async () => {
+
+                    const carId = uniqid()
+                    const car = new Car(firestoreStub, null, carId)
+
+                    const driverId = uniqid()
+                    const driver = new Driver(firestoreStub, null, driverId)
+
+                    await car.drivers().attachById(driverId)
+
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.DRIVER]['id']).to.be.equals(driverId)
+                })
+
+                it('Attaching two models by id should work with batch', async () => {
+
+                    const driverId = uniqid()
+                    const driver = new Driver(adminFs, null, driverId)
+
+                    const carId = uniqid()
+                    const car = new Car(adminFs, null, carId)
+
+                    const batch = db.batch()
+
+                    await car.drivers().attachById(driverId, batch)
+
+                    await batch.commit()
+                    
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+                    const d = await adminFs.doc(`${Stubs.DRIVER}/${driverId}`).get()
+                    const cd = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`).get()
+
+                    //clean up
+                    docsToBeDeleted.push(c.ref.path)
+                    docsToBeDeleted.push(d.ref.path)
+                    docsToBeDeleted.push(cd.ref.path)
+
+                    expect(c.exists).to.be.true
+                    expect(d.exists).to.be.true
+                    expect(cd.exists).to.be.true
+                })
+
+                it('Attaching two models by id with Write Batch without commiting should not create any collections', async () => {
+
+                    const driverId = uniqid()
+                    const driver = new Driver(adminFs, null, driverId)
+
+                    const carId = uniqid()
+                    const car = new Car(adminFs, null, carId)
+
+                    const batch = db.batch()
+
+                    await car.drivers().attachById(driverId, batch)
+
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+
+                    const d = await adminFs.doc(`${Stubs.DRIVER}/${driverId}`).get()
+
+                    const cd = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`).get()
+
+                    expect(c.exists).to.be.false
+                    expect(d.exists).to.be.false
+                    expect(cd.exists).to.be.false
+                })
+                
+                it('When models are attached in bulk by id relations to all property models should be made on the owner', async () => {
+
+                    const carId = uniqid()
+
+                    const driverId1: string = uniqid()
+                    const driverId2: string = uniqid()
+                    const driverId3: string = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ])
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]).to.exist
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]).to.exist
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]).to.exist
+                })
+
+                it('When models are attached in bulk by id relations to the owner model should be made on the property models', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1: string = uniqid()
+                    const driverId2: string = uniqid()
+                    const driverId3: string = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ])
+
+                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]).to.be.true
+                })
+
+                it('When models are attached in bulk by id relations to all property models should create pivot collections', async () => {
+
+                    const carId = uniqid()
+
+                    const driverId1: string = uniqid()
+                    const driverId2: string = uniqid()
+                    const driverId3: string = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ])
+
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.DRIVER]['id']).to.be.equals(driverId1)
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.DRIVER]['id']).to.be.equals(driverId2)
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.DRIVER]['id']).to.be.equals(driverId3)
+
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.CAR]['id']).to.be.equals(carId)
+                })
+
+                it('AttachByIdBulk should not update any collection if id array is empty', async () => {
+                    const carId = uniqid()
+                    
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachByIdBulk([])
+
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.not.exist
+                })
+
+                it('When attaching models in bulk by id to another model writing data directly to the relation on the Properties to the Owner should be possible', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+                    const carName = 'Bob'
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ], null, {
+                        owner : {
+                            name : carName
+                        }
+                    })
+
+                    const carRelations1 = firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+
+                    const expectedCarRelation = {
+                        name : carName
+                    }
+
+                    expect(carRelations1).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations2).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations3).to.be.deep.equal(expectedCarRelation)
+                })
+
+                it('When attaching models in bulk by id to another model writing data directly to the relation on the Owner to the Properties should be possible', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ], null, {
+                        properties : [
+                            {
+                                id : driverId1
+                            },
+                            {
+                                id : driverId2
+                            },
+                            {
+                                id : driverId3
+                            }
+                        ]
+                    })
+
+                    const driverRelations1 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+
+                    const expectedDriverRelation1 = {
+                        id : driverId1
+                    }
+
+                    const expectedDriverRelation2 = {
+                        id : driverId2
+                    }
+
+                    const expectedDriverRelation3 = {
+                        id : driverId3
+                    }
+
+                    expect(driverRelations1).to.be.deep.equal(expectedDriverRelation1)
+                    expect(driverRelations2).to.be.deep.equal(expectedDriverRelation2)
+                    expect(driverRelations3).to.be.deep.equal(expectedDriverRelation3)
+                })
+
+                it('When attaching models in bulk by id to another model writing data directly to the relations', async () => {
+
+                    const carId     = uniqid()
+
+                    const driverId1  = uniqid()
+                    const driverId2  = uniqid()
+                    const driverId3  = uniqid()
+
+                    const car = new Car(firestoreStub, null, carId)
+                    const carName = 'Bob'
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ], null, {
+                        owner : {
+                            name : carName
+                        },
+                        properties : [
+                            {
+                                id : driverId1
+                            },
+                            {
+                                id : driverId2
+                            },
+                            {
+                                id : driverId3
+                            }
+                        ]
+
+                    })
+
+                    const carRelations1 = firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+
+                    const expectedCarRelation = {
+                        name : carName
+                    }
+
+                    expect(carRelations1).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations2).to.be.deep.equal(expectedCarRelation)
+                    expect(carRelations3).to.be.deep.equal(expectedCarRelation)
+
+                    const driverRelations1 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+
+                    const expectedDriverRelation1 = {
+                        id : driverId1
+                    }
+
+                    const expectedDriverRelation2 = {
+                        id : driverId2
+                    }
+
+                    const expectedDriverRelation3 = {
+                        id : driverId3
+                    }
+
+                    expect(driverRelations1).to.be.deep.equal(expectedDriverRelation1)
+                    expect(driverRelations2).to.be.deep.equal(expectedDriverRelation2)
+                    expect(driverRelations3).to.be.deep.equal(expectedDriverRelation3)
+                })
+
+                it('When a Write Batch is passed to attachByIdBulk the colletions should be created when commit on batch is invoked', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const driverId1: string = uniqid()
+                    const driverId2: string = uniqid()
+                    const driverId3: string = uniqid()
+                    
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ], batch)
+
+                    //clean up
+                    docsToBeDeleted.push(`${Stubs.DRIVER}/${driverId1}`)
+                    docsToBeDeleted.push(`${Stubs.DRIVER}/${driverId2}`)
+                    docsToBeDeleted.push(`${Stubs.DRIVER}/${driverId3}`)
+                    docsToBeDeleted.push(`${Stubs.CAR}/${carId}`)
+
+                    docsToBeDeleted.push(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`)
+                    docsToBeDeleted.push(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`)
+                    docsToBeDeleted.push(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`)
+
+                    await batch.commit()
+
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+
+                    const d1 = await adminFs.doc(`${Stubs.DRIVER}/${driverId1}`).get()
+                    const d2 = await adminFs.doc(`${Stubs.DRIVER}/${driverId2}`).get()
+                    const d3 = await adminFs.doc(`${Stubs.DRIVER}/${driverId3}`).get()
+
+                    const cd1 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`).get()
+                    const cd2 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`).get()
+                    const cd3 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`).get()
+
+                    expect(c.data()).to.deep.include({ [Stubs.DRIVER] : {
+                            [driverId1] : true,
+                            [driverId2] : true,
+                            [driverId3] : true
+                        }
+                    })
+
+                    expect(d1.data()).to.deep.equal({ [Stubs.CAR] : { [carId] : true }})
+                    expect(d2.data()).to.deep.equal({ [Stubs.CAR] : { [carId] : true }})
+                    expect(d3.data()).to.deep.equal({ [Stubs.CAR] : { [carId] : true }})
+
+                    expect(cd1.exists).to.be.true
+                    expect(cd2.exists).to.be.true
+                    expect(cd3.exists).to.be.true
+                })
+
+                it('When a write batch are passed to attachByIdBulk and commit on batch is not invoked the collections should not be created', async () => {
+
+                    const batch     = adminFs.batch()
+                    const carId     = uniqid()
+
+                    const driverId1: string = uniqid()
+                    const driverId2: string = uniqid()
+                    const driverId3: string = uniqid()
+                    
+                    const car = new Car(adminFs, null, carId)
+
+                    await car.drivers().attachByIdBulk([
+                        driverId1,
+                        driverId2,
+                        driverId3
+                    ], batch)
+
+                    const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+
+                    const d1 = await adminFs.doc(`${Stubs.DRIVER}/${driverId1}`).get()
+                    const d2 = await adminFs.doc(`${Stubs.DRIVER}/${driverId2}`).get()
+                    const d3 = await adminFs.doc(`${Stubs.DRIVER}/${driverId3}`).get()
+
+                    const cd1 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`).get()
+                    const cd2 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`).get()
+                    const cd3 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`).get()
+
+                    expect(c.exists).to.be.false
+
+                    expect(d1.exists).to.be.false
+                    expect(d2.exists).to.be.false
+                    expect(d3.exists).to.be.false
+
+                    expect(cd1.exists).to.be.false
+                    expect(cd2.exists).to.be.false
+                    expect(cd3.exists).to.be.false
+                })
+
+                // it('Write data directly to the collections the attaching', async () => {
+
+                //     const batch     = adminFs.batch()
+                //     const carId     = uniqid()
+
+                //     const driverId1: string = uniqid()
+                //     const driverId2: string = uniqid()
+                //     const driverId3: string = uniqid()
+                    
+                //     const car = new Car(adminFs, null, carId)
+
+                //     await car.drivers().attachByIdBulk([
+                //         driverId1,
+                //         driverId2,
+                //         driverId3
+                //     ], batch)
+
+                //     const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
+
+                //     const d1 = await adminFs.doc(`${Stubs.DRIVER}/${driverId1}`).get()
+                //     const d2 = await adminFs.doc(`${Stubs.DRIVER}/${driverId2}`).get()
+                //     const d3 = await adminFs.doc(`${Stubs.DRIVER}/${driverId3}`).get()
+
+                //     const cd1 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`).get()
+                //     const cd2 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`).get()
+                //     const cd3 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`).get()
+
+                //     expect(c.exists).to.be.false
+
+                //     expect(d1.exists).to.be.false
+                //     expect(d2.exists).to.be.false
+                //     expect(d3.exists).to.be.false
+
+                //     expect(cd1.exists).to.be.false
+                //     expect(cd2.exists).to.be.false
+                //     expect(cd3.exists).to.be.false
+                // })
+
                 it('Retrieve attached blank model of relation', async () => {
 
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
+                    const user = db.user()
+                    const sensor = db.sensor()
 
                     await user.sensors().attach(sensor)
 
                     const sensors: Array<ModelImpl> = await user.sensors().get()
 
-                    const attachedSensorId = await sensors[0].getId()
-                    const sensorId = await sensor.getId()
+                    const attachedSensorId = sensors[0].getId()
+                    const sensorId = sensor.getId()
 
                     expect(sensorId).to.equal(attachedSensorId)
 
-                    const userId: string = await user.getId()
+                    const userId: string = user.getId()
 
                     //clean up
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
 
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
                 it('Retrieve attached model with data of relation', async () => {
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
+                    const user = db.user()
+                    const sensor = db.sensor()
 
                     const location: string = 'Office'
 
@@ -708,25 +2745,25 @@ describe('STAGE', () => {
                     await user.sensors().attach(sensor)
 
                     const sensors: Array<ModelImpl> = await user.sensors().get()
-                    const attachedSensor = await sensors[0]
+                    const attachedSensor = sensors[0]
                     const attLocation: string = await attachedSensor.getField('location')
 
                     expect(attLocation).to.equal(location)
 
                     //clean up
-                    const senorId = await sensor.getId()
-                    const userId: string = await user.getId()
+                    const senorId = sensor.getId()
+                    const userId: string = user.getId()
 
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
 
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${senorId}_${userId}`)
                 })
 
                 it('Retrieve cached relational data', async () => {
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
-                    const sensorId = await sensor.getId();
+                    const user = db.user()
+                    const sensor = db.sensor()
+                    const sensorId = sensor.getId()
 
                     await user.sensors().attach(sensor)
                     
@@ -752,19 +2789,19 @@ describe('STAGE', () => {
                     expect(cache2).to.deep.equal(sensorData[sensorId])
 
                     //clean up
-                    const userId: string = await user.getId()
+                    const userId: string = user.getId()
 
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
 
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
                 it('Attach pivot data to many-to-many relation', async () => {
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
-                    const userId = await user.getId()
-                    const sensorId = await sensor.getId()
+                    const user = db.user()
+                    const sensor = db.sensor()
+                    const userId = user.getId()
+                    const sensorId = sensor.getId()
 
                     await user.sensors().attach(sensor)
 
@@ -772,62 +2809,62 @@ describe('STAGE', () => {
                         settings: true
                     })
 
-                    const pivotData = await adminFs.collection(`${Models.SENSOR}_${Models.USER}`).doc(`${sensorId}_${userId}`).get()
+                    const pivotData = await adminFs.doc(`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`).get()
 
                     expect(pivotData.get(`${Relations.PIVOT}.settings`)).to.be.true
 
                     //clean up
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await pivot.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
+                    docsToBeDeleted.push(pivot.getDocRef().path)
                 })
 
                 it('Returned Pivot of a relation should have a correct name of the to owner models', async () => {
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
-                    const sensorId = await sensor.getId()
-                    const userId = await user.getId()
+                    const user = db.user()
+                    const sensor = db.sensor()
+                    const sensorId = sensor.getId()
+                    const userId = user.getId()
                     
                     await user.sensors().attach(sensor)
                     await sensor.users().attach(user)
 
                     const pivot: Pivot = await user.sensors().pivot(sensorId)
 
-                    expect(await pivot.getName()).to.equal(`${sensor.name}_${user.name}`)
+                    expect(pivot.getName()).to.equal(`${sensor.name}_${user.name}`)
 
                     //clean up
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
 
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
                 it('Returned Pivot of a relation should have a correct name of the to owner models', async () => {
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
-                    const sensorId = await sensor.getId()
-                    const userId = await user.getId()
+                    const user = db.user()
+                    const sensor = db.sensor()
+                    const sensorId = sensor.getId()
+                    const userId = user.getId()
                     
                     await user.sensors().attach(sensor)
                     await sensor.users().attach(user)
 
                     const pivot: Pivot = await user.sensors().pivot(sensorId)
 
-                    expect(await pivot.getId()).to.equal(`${sensorId}_${userId}`)
+                    expect(pivot.getId()).to.equal(`${sensorId}_${userId}`)
 
                     //clean up
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
 
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
                 it('Make sure models can be attached in "inverse"', async () => {
 
-                    const user = db.user() as User
-                    const sensor = db.sensor() as Sensor
-                    const sensorId = await sensor.getId()
-                    const userId = await user.getId()
+                    const user = db.user()
+                    const sensor = db.sensor()
+                    const sensorId = sensor.getId()
+                    const userId = user.getId()
 
                     await user.sensors().attach(sensor)
                     await sensor.users().attach(user)
@@ -835,11 +2872,11 @@ describe('STAGE', () => {
                     const pivot1: Pivot = await user.sensors().pivot(sensorId)
                     const pivot2: Pivot = await sensor.users().pivot(userId)
 
-                    expect(await pivot1.getId()).to.equal(await pivot2.getId())
+                    expect(pivot1.getId()).to.equal(pivot2.getId())
 
                     //clean up
-                    docsToBeDeleted.push((await user.getDocRef()).path)
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
+                    docsToBeDeleted.push(user.getDocRef().path)
+                    docsToBeDeleted.push(sensor.getDocRef().path)
 
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
@@ -862,7 +2899,7 @@ describe('STAGE', () => {
                 //         }
                 //     }
 
-                //     const rel = new Many2ManyRelationStub(car, driver.name, firestoreStub)
+                //     const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, firestoreStub)
 
                 //     const cachedOnPivot = [
                 //         'brand',
@@ -894,7 +2931,7 @@ describe('STAGE', () => {
                         }
                     }
 
-                    const rel = new Many2ManyRelationStub(car, driver.name, firestoreStub)
+                    const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, firestoreStub)
 
                     const cachedFromPivot = [
                         'brand',
@@ -913,7 +2950,6 @@ describe('STAGE', () => {
 
                     const driver = new Driver(firestoreStub)
                     const car = new Car(adminFs)
-                    
                     class Many2ManyRelationStub extends Many2ManyRelation
                     {
                         constructor(owner: ModelImpl, propertyModelName: string, _db)
@@ -927,7 +2963,7 @@ describe('STAGE', () => {
                         }
                     }
 
-                    const rel = new Many2ManyRelationStub(car, driver.name, firestoreStub)
+                    const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, firestoreStub)
 
                     const cachedFromPivot = [
                         'brand',
@@ -959,7 +2995,7 @@ describe('STAGE', () => {
                         }
                     }
 
-                    const rel = new Many2ManyRelationStub(car, driver.name, firestoreStub)
+                    const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, firestoreStub)
 
                     const cachedToProperty = [
                         'brand',
@@ -988,8 +3024,8 @@ describe('STAGE', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const car = await new CarM(firestoreStub, null, carId)
-                    const driver = await new Driver(firestoreStub, null, driverId)
+                    const car = new CarM(firestoreStub, null, carId)
+                    const driver = new Driver(firestoreStub, null, driverId)
 
                     await car.drivers().attach(driver)
 
@@ -1005,9 +3041,16 @@ describe('STAGE', () => {
 
                     await car.drivers().updateCache(change)
 
-                    expect(firestoreMockData[`${driver.name}/${driverId}`]).to.deep.equal({
-                        [`${car.name}.${carId}.name`] : 'Mustang'
-                    })
+                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const expectedCarDoc = {
+                        [Stubs.CAR] : {
+                            [carId] : {
+                                name : data.name
+                            }
+                        }
+                    }
+
+                    expect(driverDoc).to.deep.equal(expectedCarDoc)
                 })
 
                 it('Fields defined as cachable from the owner to property should not be cached data has not changed', async () => {
@@ -1025,8 +3068,8 @@ describe('STAGE', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const car = await new CarM(firestoreStub, null, carId)
-                    const driver = await new Driver(firestoreStub, null, driverId)
+                    const car = new CarM(firestoreStub, null, carId)
+                    const driver = new Driver(firestoreStub, null, driverId)
 
                     await car.drivers().attach(driver)
 
@@ -1042,7 +3085,7 @@ describe('STAGE', () => {
 
                     await car.drivers().updateCache(change)
 
-                    expect(firestoreMockData[`${driver.name}/${driverId}`][`${car.name}.${carId}.name`]).to.be.undefined
+                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][`${Stubs.CAR}.${carId}.name`]).to.be.undefined
                 })
 
                 it('Fields defined as cachable from the owner to property should not be cached as null when deleted', async () => {
@@ -1060,8 +3103,8 @@ describe('STAGE', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const car = await new CarM(firestoreStub, null, carId)
-                    const driver = await new Driver(firestoreStub, null, driverId)
+                    const car = new CarM(firestoreStub, null, carId)
+                    const driver = new Driver(firestoreStub, null, driverId)
 
                     await car.drivers().attach(driver)
 
@@ -1077,15 +3120,22 @@ describe('STAGE', () => {
 
                     await car.drivers().updateCache(change)
 
-                    expect(firestoreMockData[`${driver.name}/${driverId}`]).to.deep.equal({
-                            [`${car.name}.${carId}.name`] : 'Mustang'
-                    })
+                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const expectedCarDoc = {
+                        [Stubs.CAR] : {
+                            [carId] : {
+                                name : data.name
+                            }
+                        }
+                    }
+
+                    expect(driverDoc).to.deep.equal(expectedCarDoc)
 
                     const change2 = new Change<FirebaseFirestore.DocumentSnapshot>(after, before)
 
                     await car.drivers().updateCache(change2)
 
-                    expect(firestoreMockData[`${driver.name}/${driverId}`][`${car.name}.${carId}.name`])
+                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
                         .to.be.null
                 })
 
@@ -1099,7 +3149,7 @@ describe('STAGE', () => {
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
                         {
-                            return this.belongsToMany(driver.name)
+                            return this.belongsToMany(Stubs.DRIVER)
                                     .defineCachableFields(null, [
                                         cachedField
                                     ])
@@ -1107,7 +3157,7 @@ describe('STAGE', () => {
                     }
 
                     const carId = uniqid()
-                    const car = await new CarM(firestoreStub, null, carId)
+                    const car = new CarM(firestoreStub, null, carId)
 
                     await car.drivers().attach(driver)
 
@@ -1125,9 +3175,18 @@ describe('STAGE', () => {
 
                     await car.drivers().updateCache(change)
 
-                    expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
-                        [`${driver.name}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
-                    })
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedCarDoc = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : {
+                                [Relations.PIVOT] : {
+                                    [cachedField] : 3
+                                }
+                            }
+                        }
+                    }
+
+                    expect(carDoc).to.deep.equal(expectedCarDoc)
                 })
 
                 it('Fields defined as cachable from the pivot on to the owner should be cached on field update', async () => {
@@ -1142,7 +3201,7 @@ describe('STAGE', () => {
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
                         {
-                            return this.belongsToMany(driver.name)
+                            return this.belongsToMany(Stubs.DRIVER)
                                     .defineCachableFields(null, [
                                         cachedField
                                     ])
@@ -1169,9 +3228,18 @@ describe('STAGE', () => {
 
                     await car.drivers().updateCache(change)
 
-                    expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
-                        [`${driver.name}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
-                    })
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedCarDoc = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : {
+                                [Relations.PIVOT] : {
+                                    [cachedField] : 3
+                                }
+                            }
+                        }
+                    }
+
+                    expect(carDoc).to.deep.equal(expectedCarDoc)
                 })
 
                 it('GetName of Pivot model should return a correct formatted name', async () => {
@@ -1179,11 +3247,11 @@ describe('STAGE', () => {
                     const driver = new Driver(firestoreStub)
                     const car = new Car(firestoreStub)
                     
-                    const pivotId = `${await car.getId()}_${await driver.getId()}`
+                    const pivotId = `${car.getId()}_${driver.getId()}`
 
                     const pivot = new Pivot(firestoreStub, pivotId, car, driver)
     
-                    expect(pivot.getName()).to.be.equal(`${car.name}_${driver.name}`)
+                    expect(pivot.getName()).to.be.equal(`${Stubs.CAR}_${Stubs.DRIVER}`)
                 })
                
                 it('GetId of pivot model should return a correct formatted id', async () => {
@@ -1191,11 +3259,11 @@ describe('STAGE', () => {
                     const driver = new Driver(firestoreStub)
                     const car = new Car(firestoreStub)
     
-                    const pivotId = `${await car.getId()}_${await driver.getId()}`
+                    const pivotId = `${car.getId()}_${driver.getId()}`
 
                     const pivot = new Pivot(firestoreStub, pivotId, car, driver)
     
-                    expect(await pivot.getId()).to.equal(pivotId)
+                    expect(pivot.getId()).to.equal(pivotId)
                 })
 
                 it('Pivot should be initialiazable though ORM by a path', async () => {
@@ -1210,7 +3278,7 @@ describe('STAGE', () => {
                     const pivot: Pivot = db.pivot(path)
 
                     expect(pivot.getName()).to.be.equals(pivotName)
-                    expect(await pivot.getId()).to.be.equals(pivotId)
+                    expect(pivot.getId()).to.be.equals(pivotId)
                 })
                 
                 it('Pivot should be initialiazable though ORM by a path should fail if path contains name of pivot collection', async () => {
@@ -1307,19 +3375,19 @@ describe('STAGE', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const driver = await new Driver(firestoreStub, null, driverId)
+                    const driver = new Driver(firestoreStub, null, driverId)
                     
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
                         {
-                            return this.belongsToMany(driver.name)
+                            return this.belongsToMany(Stubs.DRIVER)
                                     .defineCachableFields(null, [
                                         cachedField
                                     ])
                         }
                     }
 
-                    const car = await new CarM(firestoreStub, null, carId)
+                    const car = new CarM(firestoreStub, null, carId)
 
                     await car.drivers().attach(driver)
 
@@ -1343,9 +3411,18 @@ describe('STAGE', () => {
 
                     await pivot.updateCache(change)
 
-                    expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
-                        [`${driver.name}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
-                    })
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedCarDoc = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : {
+                                [Relations.PIVOT] : {
+                                    [cachedField] : 3
+                                }
+                            }
+                        }
+                    }
+
+                    expect(carDoc).to.deep.equal(expectedCarDoc)
                 })
 
                 it('Cached data from pivot should be updated on both owner models', async () => {
@@ -1355,7 +3432,7 @@ describe('STAGE', () => {
                     class DriverM extends Driver {
                         cars(): Many2ManyRelation
                         {
-                            return this.belongsToMany(car.name)
+                            return this.belongsToMany(Stubs.CAR)
                                     .defineCachableFields(null, [
                                         cachedField
                                     ])
@@ -1363,12 +3440,12 @@ describe('STAGE', () => {
                     }
 
                     const driverId = uniqid()
-                    const driver = await new DriverM(firestoreStub, null, driverId)
+                    const driver = new DriverM(firestoreStub, null, driverId)
                     
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
                         {
-                            return this.belongsToMany(driver.name)
+                            return this.belongsToMany(Stubs.DRIVER)
                                     .defineCachableFields(null, [
                                         cachedField
                                     ])
@@ -1376,7 +3453,7 @@ describe('STAGE', () => {
                     }
 
                     const carId = uniqid()
-                    const car = await new CarM(firestoreStub, null, carId)
+                    const car = new CarM(firestoreStub, null, carId)
 
                     await car.drivers().attach(driver)
                     await driver.cars().attach(car)
@@ -1401,13 +3478,31 @@ describe('STAGE', () => {
 
                     await pivot.updateCache(change)
 
-                    expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
-                        [`${driver.name}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
-                    })
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedCarDoc = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : {
+                                [Relations.PIVOT] : {
+                                    [cachedField] : 3
+                                }
+                            }
+                        }
+                    }
 
-                    expect(firestoreMockData[`${driver.name}/${driverId}`]).to.deep.equal({
-                        [`${car.name}.${carId}.${Relations.PIVOT}.${cachedField}`] : 3
-                    })
+                    expect(carDoc).to.deep.equal(expectedCarDoc)
+
+                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const expectedDriverDoc = {
+                        [Stubs.CAR] : {
+                            [carId] : {
+                                [Relations.PIVOT] : {
+                                    [cachedField] : 3
+                                }
+                            }
+                        }
+                    }
+
+                    expect(driverDoc).to.deep.equal(expectedDriverDoc)
                 })
 
                 it('Fields defined as cachable from pivot should be updated on owner model also when cache from owner to property is defined', async () => {
@@ -1417,12 +3512,12 @@ describe('STAGE', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const driver = await new Driver(firestoreStub, null, driverId)
+                    const driver = new Driver(firestoreStub, null, driverId)
                     
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
                         {
-                            return this.belongsToMany(driver.name)
+                            return this.belongsToMany(Stubs.DRIVER)
                                     .defineCachableFields([
                                         'model'
                                     ], [
@@ -1431,7 +3526,7 @@ describe('STAGE', () => {
                         }
                     }
 
-                    const car = await new CarM(firestoreStub, null, carId)
+                    const car = new CarM(firestoreStub, null, carId)
 
                     await car.drivers().attach(driver)
 
@@ -1455,9 +3550,18 @@ describe('STAGE', () => {
 
                     await pivot.updateCache(change)
 
-                    expect(firestoreMockData[`${car.name}/${carId}`]).to.deep.equal({
-                        [`${driver.name}.${driverId}.${Relations.PIVOT}.${cachedField}`] : 3
-                    })
+                    const carDoc = firestoreMockData[`${car.name}/${carId}`]
+                    const expectedCarDoc = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : {
+                                [Relations.PIVOT] : {
+                                    [cachedField] : 3
+                                }
+                            }
+                        }
+                    }
+
+                    expect(carDoc).to.deep.equal(expectedCarDoc)
                 })
 
                 it('Fields defined as cachable from the owner to property should be updated on property also when cache from pivot to owner is defined', async () => {
@@ -1479,8 +3583,8 @@ describe('STAGE', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const car = await new CarM(firestoreStub, null, carId)
-                    const driver = await new Driver(firestoreStub, null, driverId)
+                    const car = new CarM(firestoreStub, null, carId)
+                    const driver = new Driver(firestoreStub, null, driverId)
 
                     await car.drivers().attach(driver)
 
@@ -1496,9 +3600,16 @@ describe('STAGE', () => {
 
                     await car.drivers().updateCache(change)
 
-                    expect(firestoreMockData[`${driver.name}/${driverId}`]).to.deep.equal({
-                        [`${car.name}.${carId}.${cacheField}`] : 'Mustang'
-                    })
+                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const expectedDriverDoc = {
+                        [Stubs.CAR] : {
+                            [carId] : {
+                                [cacheField] : data[cacheField]
+                            }
+                        }
+                    }
+
+                    expect(driverDoc).to.deep.equal(expectedDriverDoc)
                 })
             })
         })

@@ -23,7 +23,7 @@ export class Pivot {
         this.model = new ModelImpl(pivotName, db, null, id)
     }
 
-    async getId(): Promise<string>
+    getId(): string
     {
         return this.model.getId()
     }

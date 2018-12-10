@@ -1,26 +1,24 @@
 import * as express from 'express'
 import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
-import firebase from '@firebase/app';
-
-import * as glob from 'glob'
+import { glob } from 'glob'
 import * as camelCase from 'camelcase'
 
 const app = express()
 app.set('view engine', 'pug')
 
 try {
-    admin.initializeApp();
+    admin.initializeApp()
   } catch (e) {}
 
-firebase.initializeApp({
-    apiKey: "AIzaSyAjjVn6bfI66Xarf3TvC81WIs8JMlTtO-E",
-    authDomain: "staging-iot-cloud-server.firebaseapp.com",
-    databaseURL: "https://staging-iot-cloud-server.firebaseio.com",
-    projectId: "staging-iot-cloud-server",
-    storageBucket: "staging-iot-cloud-server.appspot.com",
-    messagingSenderId: "876174399478"
-});
+// firebase.initializeApp({
+//     apiKey: "AIzaSyAjjVn6bfI66Xarf3TvC81WIs8JMlTtO-E",
+//     authDomain: "staging-iot-cloud-server.firebaseapp.com",
+//     databaseURL: "https://staging-iot-cloud-server.firebaseio.com",
+//     projectId: "staging-iot-cloud-server",
+//     storageBucket: "staging-iot-cloud-server.appspot.com",
+//     messagingSenderId: "876174399478"
+// })
 
 const settings = { timestampsInSnapshots: true }
 
@@ -28,7 +26,8 @@ const adminFs = admin.firestore()
 adminFs.settings(settings)
 
 //functions autoloader
-const files = glob.sync('./**/*.f.js', { cwd: __dirname, ignore: './node_modules/**'});
+const files = glob.sync('./**/*.f.js', { cwd: __dirname, ignore: './node_modules/**'})
+
 for(let f=0,fl=files.length; f<fl; f++)
 {
     const file = files[f];
