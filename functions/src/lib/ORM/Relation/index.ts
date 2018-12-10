@@ -452,8 +452,8 @@ export class N2OneRelation extends RelationImpl {
     {
         const pivotPath = `${this.propertyModelName}.${Relations.PIVOT}`
 
-        const beforePivotData = change.before.get(pivotPath)
-        const afterPivotData = change.after.get(pivotPath)
+        const beforePivotData   = change.before.get(pivotPath)
+        const afterPivotData    = change.after.get(pivotPath)
         
         if(!afterPivotData) return
         
@@ -533,10 +533,5 @@ export class One2OneRelation extends One2ManyRelation {
     async updatePivot(data: any): Promise<ModelImpl>
     {
         throw new Error("Method not implemented.");
-        // return this.owner.update({
-        //     [this.propertyModelName] : {
-        //         [Relations.PIVOT] : data
-        //     }
-        // })
     }
 }

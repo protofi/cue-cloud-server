@@ -2,7 +2,7 @@ import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from
 import { Change } from "firebase-functions";
 import * as flatten from 'flat'
 import { difference, asyncForEach } from "../../util";
-import { IActionableFieldCommand } from "../../Command";
+import { IActionableFieldCommand, IModelCommand } from "../../Command";
 
 export enum Models {
     HOUSEHOLD = 'households',
@@ -20,9 +20,11 @@ export interface Model{
     where(fieldPath: string, operator: FirebaseFirestore.WhereFilterOp, value: string): FirebaseFirestore.Query
     getField(key: string): any
     update(data: object): Promise<ModelImpl>
-    takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
-    defineActionableField(field: string, command: IActionableFieldCommand): void
     delete(): Promise<void>
+    defineActionableField(field: string, command: IActionableFieldCommand): void
+    takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
+    addOnCreateAction(command: IModelCommand): void
+    onCreate(): Promise<void>
 }
 
 export default class ModelImpl implements Model {
@@ -32,6 +34,7 @@ export default class ModelImpl implements Model {
     readonly name: string
     protected db: FirebaseFirestore.Firestore
 
+    protected onCreateAction: IModelCommand
     protected actionableFields: Map<string, IActionableFieldCommand> = new Map<string, IActionableFieldCommand>()
     protected relations: Map<string, RelationImpl>
     
@@ -217,5 +220,16 @@ export default class ModelImpl implements Model {
 
                 return
         })
+    }
+
+    addOnCreateAction(command: IModelCommand): void 
+    {
+        this.onCreateAction = command
+    }
+
+    async onCreate(): Promise<void>
+    {
+        if(!this.onCreateAction) return
+        await this.onCreateAction.execute(this)
     }
 }

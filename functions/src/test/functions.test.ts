@@ -8,6 +8,7 @@ import { FeaturesList } from 'firebase-functions-test/lib/features'
 import { Models } from './lib/ORM/Models'
 import { OfflineDocumentSnapshotStub } from './stubs'
 import { Change } from 'firebase-functions'
+import { unflatten } from 'flat'
 import { Relations, Roles } from './lib/const'
 import * as _ from 'lodash'
 
@@ -50,22 +51,45 @@ describe('OFFLINE', () => {
                     doc: (id) => {
                         return {
                             id: (id) ? id : uniqid(),
-                            set: (data) => {
-                                firestoreMockData[`${col}/${id}`] = data
+                            set: (data, {merge}) => {
+    
+                                if(merge)
+                                {
+                                    firestoreMockData = _.merge(firestoreMockData, {
+                                        [`${col}/${id}`] : unflatten(data)
+                                    })
+                                }
+                                else firestoreMockData[`${col}/${id}`] = unflatten(data)
+    
                                 return null
                             },
                             get: () => {
                                 return {
                                     get: (data) => {
-                                        if(data)
-                                            return firestoreMockData[`${col}/${id}`][data]
-                                        else
-                                            return firestoreMockData[`${col}/${id}`]
+                                        try{
+                                            if(data)
+                                                return firestoreMockData[`${col}/${id}`][data]
+                                            else
+                                                return firestoreMockData[`${col}/${id}`]
+                                        }
+                                        catch(e)
+                                        {
+                                            throw Error(`Mock data is missing: ${e} [${`${col}/${id}`}]`)
+                                        }
                                     }
                                 }
                             },
                             update: (data) => {
-                                firestoreMockData[`${col}/${id}`] = data
+                                if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${`${col}/${id}`}]`)
+    
+                                firestoreMockData = _.merge(firestoreMockData, {
+                                    [`${col}/${id}`] : unflatten(data)
+                                })
+    
+                                return null
+                            },
+                            delete: () => {
+                                delete firestoreMockData[`${col}/${id}`]
                             }
                         }
                     }
@@ -102,19 +126,44 @@ describe('OFFLINE', () => {
                 
                 it('Pivot between user and household should recieve a role property of admin', async () => {
                     
-                    firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {}
+                    const householdId = uniqid()
+
+                    firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {
+                        id: testUserDataOne.uid,
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    }
 
                     const householdSnap = new OfflineDocumentSnapshotStub({
-                        data : { [Models.USER] : { [testUserDataOne.uid] : true } }
+                        data : {
+                            [Models.USER] : {
+                                [testUserDataOne.uid] : true
+                            }
+                        },
+                        ref : {
+                            id : householdId
+                        }
                     })
 
                     const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
 
                     await wrappedHouseholdsOnCreate(householdSnap)
 
-                    expect(firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]).to.deep.include({
-                        [`${Models.HOUSEHOLD}.${Relations.PIVOT}.role`] : Roles.ADMIN
-                    })
+                    const userDoc = firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]
+
+                    const expectedUserDoc = {
+                        id: testUserDataOne.uid,
+                        [Models.HOUSEHOLD] : {
+                            id : householdId,
+                            [Relations.PIVOT] : {
+                                role : Roles.ADMIN,
+                                accepted : true
+                            }
+                        }
+                    }
+
+                    expect(userDoc).to.deep.include(expectedUserDoc)
                 })
 
                 it('Role field should not be added to pivot property if user aleady have a property of HOUSEHOLD with a different ID', async () => {
@@ -157,11 +206,13 @@ describe('OFFLINE', () => {
             describe('On Update', () => {
         
                 it('Id should be cached on related sensors', async () => {
-        
+
                     const cacheField = 'id'
                     const sensorsId = uniqid()
                     const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
                     
+                    firestoreMockData[`${Models.SENSOR}/${sensorsId}`] = {}
+
                     const afterDocSnap = new OfflineDocumentSnapshotStub({
                         data : {
                             [cacheField] : testUserDataOne.uid,
@@ -180,10 +231,16 @@ describe('OFFLINE', () => {
                     }
         
                     await wrappedUsersOnUpdate(change)
-        
-                    expect(firestoreMockData[`${Models.SENSOR}/${sensorsId}`]).to.deep.equal({
-                        [`${Models.USER}.${testUserDataOne.uid}.${cacheField}`] : testUserDataOne.uid
-                    })
+
+                    const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorsId}`]
+                    const expectedSensorDoc = {
+                        [Models.USER]: {
+                            [testUserDataOne.uid] : {
+                                [cacheField] : testUserDataOne.uid
+                            }
+                        }
+                    }
+                    expect(sensorDoc).to.deep.equal(expectedSensorDoc)
                 })
         
                 it('Name should be cached on related household', async () => {
@@ -191,6 +248,8 @@ describe('OFFLINE', () => {
                     const cacheField = 'name'
                     const householdId = uniqid()
         
+                    firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {}
+
                     const afterDocSnap = new OfflineDocumentSnapshotStub({
                         data : {
                             [cacheField] : testUserDataOne.name,
@@ -209,12 +268,19 @@ describe('OFFLINE', () => {
                         before : new OfflineDocumentSnapshotStub(),
                         after : afterDocSnap
                     }
-        
+
                     await wrappedUsersOnUpdate(change)
                     
-                    expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.deep.equal({
-                        [`${Models.USER}.${testUserDataOne.uid}.${cacheField}`] : testUserDataOne.name
-                    })
+                    const householdDoc = firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]
+                    const expectedHouseholdDoc = {
+                        [Models.USER]: {
+                            [testUserDataOne.uid] : {
+                                [cacheField] : testUserDataOne.name
+                            }
+                        }
+                    }
+
+                    expect(householdDoc).to.deep.equal(expectedHouseholdDoc)  
                 })
             })
         })
@@ -223,10 +289,10 @@ describe('OFFLINE', () => {
     
             it('Mute should be cached on related Sensor', async () => {
                 
-                const cacheField = 'muted'
-                const userId = uniqid()
-                const sensorId = uniqid()
-                const pivotId = `${sensorId}_${userId}`
+                const userId        = uniqid()
+                const sensorId      = uniqid()
+                const cacheField    = 'muted'
+                const pivotId       = `${sensorId}_${userId}`
     
                 const wrappedSensorsUsersOnUpdate = test.wrap(myFunctions.ctrlSensorsUsersOnUpdate)
     
@@ -258,10 +324,19 @@ describe('OFFLINE', () => {
                 }
     
                 await wrappedSensorsUsersOnUpdate(change)
-    
-                expect(firestoreMockData[`${Models.SENSOR}/${sensorId}`]).to.deep.equal({
-                    [`${Models.USER}.${userId}.pivot.${cacheField}`] : true
-                })
+                
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
+                const expectedSensorDoc = {
+                    [Models.USER]: {
+                        
+                        [userId] : {
+                            [Relations.PIVOT] : {
+                                [cacheField] : true
+                            }
+                        }
+                    }
+                }
+                expect(sensorDoc).to.deep.equal(expectedSensorDoc)
             })
         })
     })

@@ -1,7 +1,7 @@
 import * as _ from 'lodash'
 import * as uniqid from 'uniqid'
 import ModelImpl from "../lib/ORM/Models";
-import { IActionableFieldCommand } from '../lib/Command';
+import { IActionableFieldCommand, IModelCommand } from '../lib/Command';
 import { ModelImportStategy } from "../lib/ORM/Relation";
 
 export enum Stubs {
@@ -19,7 +19,10 @@ export interface OfflineDocumentSnapshot {
 
 export class OfflineDocumentSnapshotStub {
     
-    public ref: Object = { id : uniqid() }
+    public ref: Object = {
+        id : uniqid(), 
+        delete : (): void => { return }
+        }
     private docData: Object = new Object()
 
     constructor(docSnap?: OfflineDocumentSnapshot)
@@ -42,6 +45,15 @@ export class OfflineDocumentSnapshotStub {
 
 export class ActionableFieldCommandStub implements IActionableFieldCommand {
     async execute(owner: ModelImpl, field: string): Promise<void> {
+        return
+    }
+    async undo(): Promise<void> {
+        return
+    }
+}
+
+export class ModelCommandStub implements IModelCommand {
+    async execute(owner: ModelImpl): Promise<void> {
         return
     }
     async undo(): Promise<void> {

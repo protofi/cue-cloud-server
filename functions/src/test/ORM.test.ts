@@ -12,7 +12,7 @@ import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import Event from './lib/ORM/Models/Event'
-import { ActionableFieldCommandStub, Stubs } from './stubs'
+import { ActionableFieldCommandStub, Stubs, ModelCommandStub } from './stubs'
 import { Many2ManyRelation, One2ManyRelation, N2OneRelation } from './lib/ORM/Relation'
 import { Pivot } from './lib/ORM/Relation/Pivot'
 import { Change } from 'firebase-functions'
@@ -368,6 +368,60 @@ describe('STAGE', () => {
                 const age2 = await user.getField('age')
                 
                 expect(age2).to.not.exist
+            })
+
+            it('It should be possible to define actions to be executed onCreate', async () => {
+
+                const command = new ModelCommandStub()
+                const commandSpy = sinon.spy(command, 'execute')
+                class ModelStub extends ModelImpl
+                {
+                    getModelAction()
+                    {
+                        return this.onCreateAction
+                    }
+                }
+
+                const model = new ModelStub('', firestoreStub)
+
+                model.addOnCreateAction(command)
+                
+                const modelAction = model.getModelAction()
+                
+                expect(modelAction).to.not.be.null
+                expect(modelAction).equal(command)
+                await modelAction.execute(model)
+                expect(commandSpy.callCount).to.equals(1)
+            })
+
+            it('onCreate actions should be executed when .created on Model is invoked', async () => {
+
+                const command = new ModelCommandStub()
+                const commandSpy = sinon.spy(command, 'execute')
+
+                const model = new ModelImpl('', firestoreStub)
+
+                model.addOnCreateAction(command)
+                
+                model.onCreate()
+                
+                expect(commandSpy.callCount).to.equals(1)
+            })
+
+            it('If no action is defined invokation of .created should be ignored', async () => {
+
+                const model = new ModelImpl('', firestoreStub)
+                let error
+
+                try{
+                    await model.onCreate()
+                }
+                catch(e)
+                {
+                    error = e
+                }
+
+                expect(error).is.undefined
             })
 
             describe('Actionable fields', () => {
@@ -1489,7 +1543,7 @@ describe('STAGE', () => {
                     })
                 })
 
-                describe('inverse I2M', () => {
+                describe('Inverse One-to-Many', () => {
 
                     it('Field on the pivot should be accessable through relation', async () => {
 

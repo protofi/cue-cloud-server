@@ -74,6 +74,9 @@ describe('OFFLINE', () => {
                             })
 
                             return null
+                        },
+                        delete: () => {
+                            delete firestoreMockData[`${col}/${id}`]
                         }
                     }
                 }
@@ -267,12 +270,6 @@ describe('OFFLINE', () => {
 
                     household = new Household(firestoreStub, null, householdId)
 
-                    firestoreMockData[`${Models.USER}/${userId}`] = {
-                        [Models.HOUSEHOLD] : {
-                            id : householdId
-                        }
-                    }
-
                     firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
                         [Models.USER] : {
                             [userId] : true
@@ -282,11 +279,17 @@ describe('OFFLINE', () => {
 
                 it('Execution should create a Pivot field between the first User and the household', async () => {
 
+                    firestoreMockData[`${Models.USER}/${userId}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    }
+
                     await command.execute(household)
 
-                    const sensorUserDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                    const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
 
-                    const expectedSensorUserDoc = {
+                    const expectedUserDoc = {
                         [Models.HOUSEHOLD] : {
                             id : householdId,
                             [Relations.PIVOT] : {
@@ -296,7 +299,7 @@ describe('OFFLINE', () => {
                         }
                     }
 
-                    expect(expectedSensorUserDoc).to.be.deep.equal(sensorUserDoc)
+                    expect(expectedUserDoc).to.be.deep.equal(userDoc)
                 })
                 
                 it('Execution should not create a Pivot field between the first User and the Household if the User is not member of any household', async () => {
@@ -316,16 +319,39 @@ describe('OFFLINE', () => {
                     expect(error).to.exist
                     expect(error.message).to.be.equal(Errors.NOT_RELATED)
 
-                    const sensorUserDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                    const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
 
-                    const expectedSensorUserDoc = {}
+                    const expectedUserDoc = {}
 
-                    expect(expectedSensorUserDoc).to.be.deep.equal(sensorUserDoc)
+                    expect(expectedUserDoc).to.be.deep.equal(userDoc)
+                })
+
+                it('Execution should delete the newly created Household if the User is not member of any household', async () => {
+
+                    firestoreMockData[`${Models.USER}/${userId}`] = {}
+
+                    let error
+
+                    try{
+                        await command.execute(household)
+                    }
+                    catch(e)
+                    {
+                        error = e
+                    }
+
+                    expect(error).to.exist
+                    expect(error.message).to.be.equal(Errors.NOT_RELATED)
+
+                    const householdDoc = firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]
+
+                    expect(householdDoc).to.not.exist
                 })
 
                 it('Execution should not create a Pivot field between the first User and the Household if the User already are member of another household', async () => {
 
                     const differentHousehold = uniqid()
+                    
                     firestoreMockData[`${Models.USER}/${userId}`] = {
                         [Models.HOUSEHOLD] : {
                             id : differentHousehold
