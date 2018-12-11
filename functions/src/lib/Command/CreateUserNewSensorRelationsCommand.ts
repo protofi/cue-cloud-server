@@ -18,7 +18,7 @@ export class CreateUserNewSensorRelationsCommand implements IActionableFieldComm
         return
     }
     
-    undo(): Promise<void> {
+    undo(household: Household): Promise<void> {
         throw new Error("Method not implemented.");
     }
 }

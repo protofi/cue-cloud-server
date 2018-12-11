@@ -50,7 +50,26 @@ export default class Car extends ModelImpl {
         }
 
         return this.relations.get(property) as One2ManyRelation
-    }    
+    }
+
+    /**
+     * Attach one or more models to one other
+     */
+    protected belongsTo(property: string): N2OneRelation
+    {
+        if(!this.relations.has(property))
+        {
+            const relation: N2OneRelation = new N2OneRelationStub(this, property, this.db)
+            this.relations.set(property, relation)
+        }
+
+        return this.relations.get(property) as N2OneRelation
+    }
+}
+
+
+class N2OneRelationStub extends N2OneRelation {
+    importStrategy = new ModelImportStrategyStub('./WindShield')
 }
 
 class One2ManyRelationStub extends One2ManyRelation {

@@ -33,6 +33,11 @@ export class Pivot {
         return this.model.name
     }
 
+    async exists(): Promise<boolean>
+    {
+        return this.model.exists()
+    }
+
     async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
     {
         const relationA = this.ownerA[plural(this.ownerB.name)]() as Many2ManyRelation

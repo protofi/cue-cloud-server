@@ -16,7 +16,7 @@ import { ActionableFieldCommandStub, Stubs, ModelCommandStub } from './stubs'
 import { Many2ManyRelation, One2ManyRelation, N2OneRelation } from './lib/ORM/Relation'
 import { Pivot } from './lib/ORM/Relation/Pivot'
 import { Change } from 'firebase-functions'
-import { unflatten } from 'flat'
+import { unflatten, flatten } from 'flat'
 import * as _ from 'lodash'
 import { Relations } from './lib/const'
 import Car from './stubs/Car'
@@ -93,17 +93,60 @@ describe('STAGE', () => {
                                         {
                                             throw Error(`Mock data is missing: ${e} [${`${col}/${id}`}]`)
                                         }
-                                    }
+                                    },
+                                    exists : (!_.isEmpty(firestoreMockData[`${col}/${id}`]))
                                 }
                             },
                             update: (data) => {
+                                
                                 if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${`${col}/${id}`}]`)
-    
+
+                                //Handle field deletion
+                                const flattenData = flatten(data)
+                                
+                                _.forOwn(flattenData, (value, key) => {
+                                    if(value !== admin.firestore.FieldValue.delete()) return
+                                    
+                                    _.unset(data, key)
+                                    _.unset(firestoreMockData[`${col}/${id}`], key)
+                                })
+
                                 firestoreMockData = _.merge(firestoreMockData, {
                                     [`${col}/${id}`] : unflatten(data)
                                 })
     
                                 return null
+                            },
+
+                            delete: () => {
+                                _.unset(firestoreMockData, `${col}/${id}`)
+                            }
+                        }
+                    },
+                    where: (field: string, operator: string, value: string) => {
+                        return {
+                            get: () => {
+
+                                const docs: Array<Object> = new Array<Object>()
+
+                                _.forOwn(firestoreMockData, (collection, path) => {
+
+                                    if(!path.includes(col)) return
+
+                                    if(!_.has(collection, field)) return
+                                    
+                                    if(_.get(collection, field) !== value) return
+
+                                    docs.push(_.merge(firestoreMockData[path], {
+                                        delete: () => {
+                                            _.unset(firestoreMockData, path)
+                                        }
+                                    }))
+                                })
+
+                                return {
+                                    docs : docs 
+                                }
                             }
                         }
                     }
@@ -701,14 +744,38 @@ describe('STAGE', () => {
 
             describe('One-to-many', async () => {
 
-                it('Related models method should return the same relation every time', async () => {
+                it('Retrieving a relation on a Model should return the same Relation every time', async () => {
                     
-                    const room: Room = db.room()
+                    const car: Car = new Car(firestoreStub)
 
-                    const sensors1 = room.sensors()
-                    const sensors2 = room.sensors()
+                    const rel1 = car.wheels()
+                    const rel2 = car.wheels()
                     
-                    expect(sensors1).to.equals(sensors2)
+                    expect(rel1).to.equals(rel2)
+                })
+
+                it('Retrieving properties from a relation should return and array of Models of the correct type', async () => {
+
+                    const wheelId = uniqid()
+                    const carId = uniqid()
+
+                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                        [Stubs.WHEEL] : {
+                            [wheelId] : true
+                        }
+                    }
+                    
+                    firestoreMockData[`${Stubs.WHEEL}/${wheelId}`] = {
+                        [Stubs.CAR] : {
+                            id : wheelId
+                        }
+                    }
+
+                    const car = new Car(firestoreStub, null, carId)
+                    const wheels = await car.wheels().get() as Array<Wheel>
+
+                    expect(wheels[0].car).to.exist
+                    expect(typeof wheels[0].car).to.be.equal(typeof Function)
                 })
 
                 it('The pivot should be updatable trough the relation', async () => {
@@ -1284,6 +1351,65 @@ describe('STAGE', () => {
                     expect(cache2).to.deep.equal(sensorData[sensorId])
                 })
 
+                it('When properties are detached from the owner, the relations link on the owner should be deleteted', async () => {
+                    const wheelId = uniqid()
+                    const carId = uniqid()
+
+                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                        [Stubs.WHEEL] : {
+                            [wheelId] : true
+                        }
+                    }
+                    
+                    firestoreMockData[`${Stubs.WHEEL}/${wheelId}`] = {
+                        [Stubs.CAR] : {
+                            id : wheelId
+                        }
+                    }
+
+                    const car = new Car(firestoreStub, null, carId)
+                    
+                    const wheels: Array<Wheel> = await car.wheels().get() as Array<Wheel>
+
+                    expect(wheels[0].getId()).to.be.equal(wheelId)
+
+                    await car.wheels().detach()
+
+                    const wheels2 = await car.wheels().get()
+                    expect(wheels2[0]).to.not.exist
+
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    expect(carDoc).to.be.empty
+                })
+
+                it('When properties are detached from the owner, the relations link on the properties should be deleteted', async () => {
+                    const wheelId = uniqid()
+                    const carId = uniqid()
+
+                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                        [Stubs.WHEEL] : {
+                            [wheelId] : true
+                        }
+                    }
+                    
+                    firestoreMockData[`${Stubs.WHEEL}/${wheelId}`] = {
+                        [Stubs.CAR] : {
+                            id : carId
+                        }
+                    }
+
+                    const wheel = new Wheel(firestoreStub, null, wheelId)
+                    
+                    const car: Car = await wheel.car().get() as Car
+
+                    expect(car.getId()).to.be.equal(carId)
+
+                    await car.wheels().detach()
+
+                    const car2: Car = await wheel.car().get() as Car
+                    expect(car2).to.not.exist
+                })
+
                 describe('Actionable fields', () => {
 
                     it('Action should be defined on the relation between the owner model and property model', async () => {
@@ -1545,6 +1671,47 @@ describe('STAGE', () => {
 
                 describe('Inverse One-to-Many', () => {
 
+                    it('Retrieving a relation on a Model should return the same Relation every time', async () => {
+                    
+                        const wheel: Wheel = new Wheel(firestoreStub)
+    
+                        const rel1 = wheel.car()
+                        const rel2 = wheel.car()
+                        
+                        expect(rel1).to.equals(rel2)
+                    })
+    
+                    it('Retrieving properties from a relation should return and array of Models of the correct type', async () => {
+    
+                        const wheelId = uniqid()
+                        const carId = uniqid()
+    
+                        firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                            [Stubs.WHEEL] : {
+                                [wheelId] : true
+                            }
+                        }
+                        
+                        firestoreMockData[`${Stubs.WHEEL}/${wheelId}`] = {
+                            [Stubs.CAR] : {
+                                id : wheelId
+                            }
+                        }
+
+                        class WheelM extends Wheel {
+                            car(): N2OneRelation
+                            {
+                                return this.belongsTo(Stubs.CAR)
+                            }
+                        }
+    
+                        const wheel = new Wheel(firestoreStub, null, wheelId)
+                        const car = await wheel.car().get() as Car
+    
+                        expect(car.wheels).to.exist
+                        expect(typeof car.wheels).to.be.equal(typeof Function)
+                    })
+
                     it('Field on the pivot should be accessable through relation', async () => {
 
                         const wheelId = uniqid()
@@ -1595,6 +1762,66 @@ describe('STAGE', () => {
                         const fieldValue = await wheel.car().getPivotField('flat')
 
                         expect(fieldValue).to.be.null
+                    })
+
+                    it('When properties are detached from the owner, the relations link on the owner should be deleteted', async () => {
+                        const wheelId = uniqid()
+                        const carId = uniqid()
+    
+                        firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                            [Stubs.WHEEL] : {
+                                [wheelId] : true
+                            }
+                        }
+                        
+                        firestoreMockData[`${Stubs.WHEEL}/${wheelId}`] = {
+                            [Stubs.CAR] : {
+                                id : carId
+                            }
+                        }
+    
+                        const wheel = new Wheel(firestoreStub, null, wheelId)
+                        
+                        const car = await wheel.car().get() as Car
+    
+                        expect(car.getId()).to.be.equal(carId)
+    
+                        await wheel.car().unset()
+    
+                        const attachedCar = await wheel.car().get()
+                        expect(attachedCar).to.not.exist
+    
+                        const carDoc = firestoreMockData[`${Stubs.WHEEL}/${wheelId}`]
+                        expect(carDoc).to.be.empty
+                    })
+    
+                    it('When properties are detached from the owner, the relations link on the properties should be deleteted', async () => {
+                        const wheelId = uniqid()
+                        const carId = uniqid()
+    
+                        firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                            [Stubs.WHEEL] : {
+                                [wheelId] : true
+                            }
+                        }
+                        
+                        firestoreMockData[`${Stubs.WHEEL}/${wheelId}`] = {
+                            [Stubs.CAR] : {
+                                id : carId
+                            }
+                        }
+    
+                        const wheel = new Wheel(firestoreStub, null, wheelId)
+                        
+                        const car = await wheel.car().get() as Car
+    
+                        expect(car.getId()).to.be.equal(carId)
+    
+                        await wheel.car().unset()
+
+                        const car2 = await wheel.car().get() as Car
+
+                        expect(car2).to.not.exist
                     })
 
                     describe('Actionable fields', () => {
@@ -2215,17 +2442,10 @@ describe('STAGE', () => {
                             name : carName
                         },
                         properties : [
-                            {
-                                id : driverId1
-                            },
-                            {
-                                id : driverId2
-                            },
-                            {
-                                id : driverId3
-                            }
+                            { id : driverId1 },
+                            { id : driverId2 },
+                            { id : driverId3 }
                         ]
-
                     })
 
                     const carRelations1 = firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
@@ -2267,7 +2487,7 @@ describe('STAGE', () => {
                     const car = new Car(firestoreStub, null, carId)
 
                     const driverId = uniqid()
-                    const driver = new Driver(firestoreStub, null, driverId)
+                    // const driver = new Driver(firestoreStub, null, driverId)
 
                     await car.drivers().attachById(driverId)
 
@@ -2479,15 +2699,9 @@ describe('STAGE', () => {
                         driverId3
                     ], null, {
                         properties : [
-                            {
-                                id : driverId1
-                            },
-                            {
-                                id : driverId2
-                            },
-                            {
-                                id : driverId3
-                            }
+                            { id : driverId1 },
+                            { id : driverId2 },
+                            { id : driverId3 }
                         ]
                     })
 
@@ -2532,15 +2746,9 @@ describe('STAGE', () => {
                             name : carName
                         },
                         properties : [
-                            {
-                                id : driverId1
-                            },
-                            {
-                                id : driverId2
-                            },
-                            {
-                                id : driverId3
-                            }
+                            { id : driverId1 },
+                            { id : driverId2 },
+                            { id : driverId3 }
                         ]
 
                     })
@@ -3610,6 +3818,108 @@ describe('STAGE', () => {
                     }
 
                     expect(driverDoc).to.deep.equal(expectedDriverDoc)
+                })
+
+                it('When properties are detached from the owner, the relations link on the owner should be deleteted', async () => {
+                    const driverId = uniqid()
+                    const carId = uniqid()
+
+                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : true
+                        }
+                    }
+                    
+                    firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                        [Stubs.CAR] : {
+                            [carId] : true
+                        }
+                    }
+
+                    const car = new Car(firestoreStub, null, carId)
+                    const drivers = await car.drivers().get() as Array<Driver>
+                    
+                    expect(drivers[0].getId()).to.be.equal(driverId)
+
+                    await car.drivers().detach()
+
+                    const drivers2 = await car.drivers().get() as Array<Driver>
+                    
+                    expect(drivers2[0]).to.not.exist
+                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.be.empty
+                })
+
+                it('When properties are detached from the owner, the relations link on the properties should be deleteted', async () => {
+                    const driverId = uniqid()
+                    const carId = uniqid()
+
+                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : true
+                        }
+                    }
+                    
+                    firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                        [Stubs.CAR] : {
+                            [carId] : true
+                        }
+                    }
+
+                    const car = new Car(firestoreStub, null, carId)
+                    const drivers = await car.drivers().get() as Array<Driver>
+                    
+                    const cars = await drivers[0].cars().get() as Array<Car>
+                    
+                    expect(cars[0].getId()).to.be.equal(carId)
+
+                    await car.drivers().detach()
+
+                    const cars2 = await drivers[0].cars().get() as Array<Car>
+
+                    expect(cars2[0]).to.not.exist
+
+                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`]).to.be.empty
+                })
+
+                it('When properties are detached from the owner, the pivot collection should be deleteted', async () => {
+                    const driverId = uniqid()
+                    const carId = uniqid()
+
+                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : true
+                        }
+                    }
+
+                    firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`] = {
+                        [Stubs.DRIVER] : {
+                            id : driverId
+                        },
+                        [Stubs.CAR] : {
+                            id : carId
+                        }
+                    }
+                    
+                    firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                        [Stubs.CAR] : {
+                            [carId] : true
+                        }
+                    }
+
+                    const car = new Car(firestoreStub, null, carId)
+                    
+                    const pivot = await car.drivers().pivot(driverId)
+
+                    expect(pivot.getId()).to.be.equal(`${carId}_${driverId}`)
+
+                    await car.drivers().detach()
+
+                    const pivot2 = await car.drivers().pivot(driverId)
+
+                    const pivotDoc = firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`]
+
+                    expect(pivot2).to.not.exist
+                    expect(pivotDoc).to.not.exist
                 })
             })
         })

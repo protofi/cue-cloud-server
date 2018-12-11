@@ -13,6 +13,7 @@ export enum Models {
 }
 
 export interface Model{
+    exists(): Promise<boolean>
     getDocRef(id?: string): FirebaseFirestore.DocumentReference
     getId(): string
     create(data: object): Promise<ModelImpl>
@@ -52,6 +53,12 @@ export default class ModelImpl implements Model {
         else if(id) this.getDocRef(id)
     }
 
+    async exists(): Promise<boolean>
+    {
+        await this.getSnap()
+        return this.snap.exists
+    }
+
     protected getColRef(): FirebaseFirestore.CollectionReference
     {
         return this.db.collection(this.name)
@@ -62,6 +69,14 @@ export default class ModelImpl implements Model {
         if(id) this.ref = this.getColRef().doc(id)
         if(!this.ref) this.ref = this.getColRef().doc()
         return this.ref
+    }
+
+    private async getSnap(): Promise<FirebaseFirestore.DocumentSnapshot>
+    {
+        if(this.snap) return this.snap
+
+        this.snap = await this.getDocRef(this.getId()).get()
+        return this.snap
     }
 
     getId(): string
