@@ -3,8 +3,6 @@ import { firestore } from 'firebase-admin'
 import { Models } from '../lib/ORM/Models';
 import { asyncForEach } from '../lib/util';
 import DataORMImpl from '../lib/ORM';
-import * as uniqid from 'uniqid'
-
 import Household from '../lib/ORM/Models/Household';
 
 export default (app: Application) => {

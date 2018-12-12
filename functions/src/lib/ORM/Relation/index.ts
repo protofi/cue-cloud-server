@@ -1,7 +1,7 @@
 import { Change } from "firebase-functions"
 import { asyncForEach, difference } from "../../util"
 import { Relations } from "../../const"
-import { singular, plural } from "pluralize"
+import { singular } from "pluralize"
 import ModelImpl from "../Models"
 import { Pivot } from "./Pivot"
 import { get, capitalize, isEmpty } from "lodash"
