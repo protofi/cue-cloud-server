@@ -171,14 +171,6 @@ export abstract class N2ManyRelation extends RelationImpl implements IN2ManyRela
      */
     async detach(): Promise<void>
     {
-        const properties: Array<ModelImpl> = await this.get()
-
-        await asyncForEach(properties, async (property: ModelImpl) => {
-            await property.update({
-                [this.owner.name] : firestore.FieldValue.delete()
-            })
-        })
-
         await this.owner.update({
             [this.propertyModelName] : firestore.FieldValue.delete()
         })
@@ -371,15 +363,31 @@ export class Many2ManyRelation extends N2ManyRelation {
      */
     async detach(): Promise<void>
     {
-        await super.detach()
+        const properties: Array<ModelImpl> = await this.get()
+
+        await asyncForEach(properties, async (property: ModelImpl) => {
+            await property.update({
+                [this.owner.name] : {
+                    [this.owner.getId()] : firestore.FieldValue.delete()
+                }
+            })
+        })
 
         const pivotName = [this.owner.name, this.propertyModelName].sort().join('_')
 
-        const snaps: FirebaseFirestore.QuerySnapshot = await this.db.collection(pivotName).where(`${this.owner.name}.id`, '==', this.owner.getId()).get()
+        const querySnap: FirebaseFirestore.QuerySnapshot = await this.db.collection(pivotName).where(`${this.owner.name}.id`, '==', this.owner.getId()).get()
 
-        await asyncForEach(snaps.docs, async (doc: FirebaseFirestore.DocumentReference) => {
-            await doc.delete()
+        const docs = new Array<FirebaseFirestore.QueryDocumentSnapshot>()
+
+        querySnap.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+            docs.push(doc)
         })
+
+        await asyncForEach(docs, async (doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+            await doc.ref.delete()
+        })
+
+        await super.detach()
     }
 
     defineCachableFields(cachedOnToProperty: Array<string>, cachedFromPivot?: Array<string>): Many2ManyRelation
@@ -432,6 +440,22 @@ export class One2ManyRelation extends N2ManyRelation {
                 }
             }, transaction)
         })
+    }
+
+    /**
+     * Detaches all property models from owner
+     */
+    async detach(): Promise<void>
+    {
+        const properties: Array<ModelImpl> = await this.get()
+
+        await asyncForEach(properties, async (property: ModelImpl) => {
+            await property.update({
+                [this.owner.name] : firestore.FieldValue.delete()
+            })
+        })
+
+        await super.detach()
     }
 
     async updatePivot(id: string, data: object)
@@ -559,6 +583,13 @@ export class N2OneRelation extends RelationImpl {
 
     async unset(): Promise<void>
     {
+        const property = await this.get()
+
+        await property.update({
+            [this.owner.name] : {
+                [this.owner.getId()] : firestore.FieldValue.delete()
+            }
+        })
 
         await this.owner.update({
             [this.propertyModelName] : firestore.FieldValue.delete()

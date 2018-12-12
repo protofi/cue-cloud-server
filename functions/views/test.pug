@@ -1,0 +1,24 @@
+doctype html
+html
+    head
+        title=title
+        link(rel="stylesheet" type="text/css" href="../css/style.css")
+        
+        script(src="https://unpkg.com/axios/dist/axios.min.js")
+        script(src="/__/firebase/5.5.1/firebase.js")
+        script(src="/__/firebase/init.js")
+
+    body
+        h1 Test
+
+        form(id="delete-sensors")
+            button(type="submit") Delete sensors all sensors
+
+        br
+
+        form(id="add-sensors")
+            input(type="number" value="3")
+            button(type="submit") Add sensors to all households
+
+
+    script(type="text/javascript" src="../js/test.js")

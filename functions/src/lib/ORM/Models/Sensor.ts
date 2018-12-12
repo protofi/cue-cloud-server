@@ -26,4 +26,9 @@ export default class Sensor extends ModelImpl {
                 'muted'
             ])
     }
+
+    household(): N2OneRelation
+    {
+        return this.belongsTo(Models.HOUSEHOLD)
+    }
 }

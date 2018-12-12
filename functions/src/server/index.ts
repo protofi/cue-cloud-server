@@ -2,10 +2,18 @@ import * as express from 'express'
 import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
 import { glob } from 'glob'
+import * as cors from 'cors'
 import * as camelCase from 'camelcase'
 
 const app = express()
 app.set('view engine', 'pug')
+app.use(cors({ origin: true }))
+
+import apiRoutes from './routes/api'
+import webRoutes from './routes/web'
+
+apiRoutes(app)
+webRoutes(app)
 
 try {
     admin.initializeApp()
@@ -38,26 +46,6 @@ for(let f=0,fl=files.length; f<fl; f++)
         exports[functionName] = require(file)
     }
 }
-
-app.get('/admin', (req: express.Request, res: express.Response) => {
-    
-    const data = {
-        title: 'Admin'
-    }
-
-    res.status(200).render('admin', data)
-})
-
-app.get('/api', (req: express.Request, res: express.Response) => {
-    res.status(200).json({
-        success : true,
-        data : [
-            'one',
-            'two',
-            'three'
-        ]
-    })
-})
 
 // const config = {
 //     dev: false,

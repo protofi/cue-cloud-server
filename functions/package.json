@@ -27,7 +27,9 @@
   "dependencies": {
     "@firebase/app": "^0.3.4",
     "@firebase/firestore": "^0.8.2",
+    "axios": "^0.18.0",
     "camelcase": "^5.0.0",
+    "cors": "^2.8.5",
     "express": "^4.16.3",
     "firebase": "^5.5.2",
     "firebase-admin": "^6.0.0",
