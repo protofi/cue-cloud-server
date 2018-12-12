@@ -29,6 +29,4 @@ document.getElementById('add-sensors').addEventListener('submit', (event) => {
     }).catch((error) => {
         console.log(error.responseText)
     })
-
-    console.log('ADD SENSORS', amount)
 })

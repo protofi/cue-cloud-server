@@ -13,7 +13,7 @@ export default (app: Application) => {
     app.get('/admin/test', (req: Request, res: Response) => {
         
         const data = {
-            title: 'Admin Test'
+            title: 'Test Dashboard'
         }
     
         res.status(200).render('test', data)

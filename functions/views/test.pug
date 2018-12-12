@@ -2,6 +2,8 @@ doctype html
 html
     head
         title=title
+        link(rel="stylesheet" type="text/css" href="../css/normalize.css")
+        link(rel="stylesheet" type="text/css" href="../css/skeleton.css")
         link(rel="stylesheet" type="text/css" href="../css/style.css")
         
         script(src="https://unpkg.com/axios/dist/axios.min.js")
@@ -9,17 +11,16 @@ html
         script(src="/__/firebase/init.js")
 
     body
-        h1 Test
+        div(class="container")
+            h1 Test Dashboard
 
-        form(id="delete-sensors")
-            button(type="submit") Delete sensors all sensors
+            h2 Sensors
+            form(id="delete-sensors")
+                button(type="submit" class="button-primary") Delete all
 
-        br
-
-        form(id="add-sensors")
-            input(type="number" value="3" id="add-sensors-amount")
-            <br>
-            button(type="submit") Add sensors to all households
+            form(id="add-sensors")
+                input(type="number" value="3" id="add-sensors-amount")
+                button(type="submit" class="button-primary") Add to all households
 
 
     script(type="text/javascript" src="../js/test.js")
