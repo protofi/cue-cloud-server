@@ -1,7 +1,11 @@
 import { Application, Request, Response } from 'express'
-// import Sensor from '../lib/ORM/Models/Sensor';
-// import { firestore } from 'firebase-admin'
-// import { Models } from '../lib/ORM/Models';
+import { firestore } from 'firebase-admin'
+import { Models } from '../lib/ORM/Models';
+import { asyncForEach } from '../lib/util';
+import DataORMImpl from '../lib/ORM';
+import * as uniqid from 'uniqid'
+
+import Household from '../lib/ORM/Models/Household';
 
 export default (app: Application) => {
 
@@ -18,14 +22,71 @@ export default (app: Application) => {
     
     app.delete('/api/sensors', async (req: Request, res: Response) => {
     
-        // const fs = firestore()
+        const fs = firestore()
 
-        // const sensors = await fs.collection(Models.SENSOR).doc().get()
-
+        const sensorQuerySnaps: firestore.QuerySnapshot = await fs.collection(Models.SENSOR).get()
         
+        const sensors = new Array<firestore.DocumentReference>()
+
+        sensorQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+            sensors.push(doc.ref)
+        })
+        
+        const ids = sensors.map((sensor) => {
+            return sensor.id
+        })
+
+        await asyncForEach(sensors, async (sensor) => {
+            await sensor.delete()
+        })
 
         res.status(200).json({
-            success : true
+            success : true,
+            deleted : ids
+        })
+    })
+
+    app.put('/api/sensors', async (req: Request, res: Response) => {
+        
+        const amount = req.body.amount
+
+        try{
+            const fs = firestore()
+            const db = new DataORMImpl(fs)
+
+            const householdQuerySnaps: firestore.QuerySnapshot = await fs.collection(Models.HOUSEHOLD).get()
+            
+            const households = new Array<Household>()
+
+            householdQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+                households.push(db.household(doc))
+            })
+
+            await asyncForEach(households, async (household: Household) => {
+
+                const sensors = []
+
+                for (let index = 0; index < amount; index++)
+                {
+                    sensors.push(db.sensor())    
+                }
+
+                await household.sensors().attachBulk(sensors)
+            })
+        }
+        catch(e)
+        {
+            res.status(500).json({
+                success : false,
+                error : e.message
+            })
+
+            return
+        }
+
+        res.status(200).json({
+            success : true,
+            amount : amount
         })
     })
 }

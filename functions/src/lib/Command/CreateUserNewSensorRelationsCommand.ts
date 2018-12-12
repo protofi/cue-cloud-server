@@ -12,7 +12,14 @@ export class CreateUserNewSensorRelationsCommand implements IActionableFieldComm
 
         await asyncForEach(users, async (user: User) => {
             const accepted = await user.household().getPivotField('accepted')
-            if(accepted) await user.sensors().attachByIdBulk(newSensorIds)
+            if(!accepted) return
+            
+            await user.sensors()
+                .attachByIdBulk(newSensorIds, null, {
+                    owner : {
+                        id : user.getId()
+                    }
+                })
         })
 
         return
