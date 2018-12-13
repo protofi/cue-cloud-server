@@ -19,11 +19,9 @@ document.getElementById('delete-sensors').addEventListener('submit', (event) => 
 document.getElementById('add-sensors').addEventListener('submit', (event) => {
     event.preventDefault()
 
-    const amount = document.getElementById('add-sensors-amount').value
+    // const amount = document.getElementById('add-sensors-amount').value
 
-    axios.put('/api/sensors', {
-        amount : amount
-    })
+    axios.put('/api/sensors')
     .then((result) => {
         console.log(result.data)
     }).catch((error) => {

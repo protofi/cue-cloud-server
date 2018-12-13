@@ -46,7 +46,7 @@ export default (app: Application) => {
 
     app.put('/api/sensors', async (req: Request, res: Response) => {
         
-        const amount = req.body.amount
+        // const amount = req.body.amount
 
         try{
             const fs = firestore()
@@ -64,10 +64,26 @@ export default (app: Application) => {
 
                 const sensors = []
 
-                for (let index = 0; index < amount; index++)
-                {
-                    sensors.push(db.sensor())    
-                }
+                // for (let index = 0; index < amount; index++)
+                // {
+                    sensors.push(await db.sensor().create({
+                        name        : 'Dørklokken',
+                        location    : 'Gangen',
+                        icon_string : 'doorbell'
+                    }))
+
+                    sensors.push(await db.sensor().create({
+                        name        : 'Røgalarmen',
+                        location    : 'Køkkenet',
+                        icon_string : 'firealarm'
+                    }))
+
+                    sensors.push(await db.sensor().create({
+                        name        : 'Røgalarmen',
+                        location    : 'Stuen',
+                        icon_string : 'firealarm'
+                    }))
+                // }
 
                 await household.sensors().attachBulk(sensors)
             })
@@ -84,7 +100,7 @@ export default (app: Application) => {
 
         res.status(200).json({
             success : true,
-            amount : amount
+            // amount : amount
         })
     })
 }
