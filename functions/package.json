@@ -21,7 +21,25 @@
     "test:stage": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep STAGE || true",
     "test:integration": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep Integration_Test || true",
     "test:offline": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep OFFLINE || true",
-    "test:report:rules": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep Emulated_Rules 2>&1 | tee ./../rules.description.txt"
+    "test:report:rules": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep Emulated_Rules 2>&1 | tee ./../rules.description.txt",
+    "test:coverage": "tsc -p test --outDir ./test && nyc --reporter=html --reporter=text mocha --exit --timeout 5000 || true",
+    "test:test": "nyc mocha --exit --timeout 5000 || true"
+  },
+  "nyc": {
+    "include": [
+      "test/**/*",
+      "lib/auth/**",
+      "lib/ctrl/**"
+    ],
+    "exclude": [
+      "coverage/",
+      "test/**.test.js"
+    ],
+    "reporter": [
+      "html",
+      "text"
+    ],
+    "all": true
   },
   "main": "lib/index.js",
   "dependencies": {
@@ -37,6 +55,7 @@
     "flat": "^4.1.0",
     "glob": "^7.1.3",
     "lodash": "^4.17.11",
+    "nyc": "^13.1.0",
     "pluralize": "^7.0.0",
     "pug": "^2.0.3"
   },

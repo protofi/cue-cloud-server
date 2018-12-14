@@ -230,7 +230,9 @@ describe('OFFLINE', () => {
 
                     const expectedSensorDoc = {
                         [Models.USER] : {
-                            [userId] : true
+                            [userId] : {
+                                id : userId
+                            }
                         }
                     }
 
