@@ -1,6 +1,6 @@
 import { Application, Request, Response } from 'express'
 import { firestore } from 'firebase-admin'
-import { Models } from '../lib/ORM/Models';
+import ModelImpl, { Models } from '../lib/ORM/Models';
 import { asyncForEach } from '../lib/util';
 import DataORMImpl from '../lib/ORM';
 import Household from '../lib/ORM/Models/Household';
@@ -48,6 +48,8 @@ export default (app: Application) => {
         
         // const amount = req.body.amount
 
+        const sensorAddedData = {}
+
         try{
             const fs = firestore()
             const db = new DataORMImpl(fs)
@@ -60,39 +62,45 @@ export default (app: Application) => {
                 households.push(db.household(doc))
             })
 
+            const data = [
+                {
+                    name        : 'Dørklokken',
+                    location    : 'Gangen',
+                    icon_string : 'doorbell'
+                },
+                {
+                    name        : 'Røgalarmen',
+                    location    : 'Køkkenet',
+                    icon_string : 'firealarm'
+                },
+                {
+                    name        : 'Røgalarmen',
+                    location    : 'Stuen',
+                    icon_string : 'firealarm'
+                }
+            ]
+
             await asyncForEach(households, async (household: Household) => {
 
-                const sensors = []
-
-                // for (let index = 0; index < amount; index++)
-                // {
-                    sensors.push(await db.sensor().create({
-                        name        : 'Dørklokken',
-                        location    : 'Gangen',
-                        icon_string : 'doorbell'
-                    }))
-
-                    sensors.push(await db.sensor().create({
-                        name        : 'Røgalarmen',
-                        location    : 'Køkkenet',
-                        icon_string : 'firealarm'
-                    }))
-
-                    sensors.push(await db.sensor().create({
-                        name        : 'Røgalarmen',
-                        location    : 'Stuen',
-                        icon_string : 'firealarm'
-                    }))
-                // }
+                const sensors: Array<ModelImpl> = []
+                
+                sensors.push(await db.sensor().create(data[0]))
+                sensors.push(await db.sensor().create(data[1]))
+                sensors.push(await db.sensor().create(data[2]))
 
                 await household.sensors().attachBulk(sensors)
+
+                sensors.forEach((sensor, i) => {
+                    if(!sensorAddedData[household.getId()]) sensorAddedData[household.getId()] = {}
+                    sensorAddedData[household.getId()][sensor.getId()] = data[i]
+                })
             })
         }
         catch(e)
         {
             res.status(500).json({
                 success : false,
-                error : e.message
+                error : e
             })
 
             return
@@ -100,7 +108,7 @@ export default (app: Application) => {
 
         res.status(200).json({
             success : true,
-            // amount : amount
+            sensors : sensorAddedData
         })
     })
 }
