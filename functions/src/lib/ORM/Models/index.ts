@@ -115,13 +115,17 @@ export default class ModelImpl implements Model {
 
     async getField(key: string): Promise<any>
     {
+        //if Document Snapshot exist fetch field from that
         if(this.snap) return this.snap.get(key)
 
+        //If not get Id and return null, if Id does not exist (model)
         const id = this.getId()
         if(!id) return null
 
+        //If Id exists fetch model
         await this.find(id)
 
+        //Recursive call
         return this.getField(key)
     }
 
