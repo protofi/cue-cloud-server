@@ -27,12 +27,13 @@
   "nyc": {
     "include": [
       "test/**/*",
-      "lib/auth/**",
-      "lib/ctrl/**"
+      "lib/**/*"
     ],
     "exclude": [
       "coverage/",
-      "test/**.test.js"
+      "test/stubs",
+      "test/**.test.js",
+      "lib/lib/**"
     ],
     "reporter": [
       "html",
