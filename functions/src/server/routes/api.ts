@@ -4,6 +4,8 @@ import ModelImpl, { Models } from '../lib/ORM/Models';
 import { asyncForEach } from '../lib/util';
 import DataORMImpl from '../lib/ORM';
 import Household from '../lib/ORM/Models/Household';
+import * as baseStationCode from 'randomatic'
+import * as fakeUuid from 'uuid/v1'
 
 export default (app: Application) => {
 
@@ -111,4 +113,64 @@ export default (app: Application) => {
             sensors : sensorAddedData
         })
     })
+
+    app.route('/api/base-station')
+
+        .get(async (req: Request, res: Response) => {
+
+            const fs = firestore()
+
+            const query = await fs.collection(Models.BASE_STATION).get()
+    
+            const baseStations = {}
+
+            query.forEach((baseStation) => {
+                
+                baseStations[baseStation.id] = baseStation.data()
+            })
+
+            res.json({
+                success: true,
+                baseStations : baseStations
+            })
+
+        })
+
+        .post(async (req: Request, res: Response) => {
+            res.status(501).end()
+        })
+
+        .put(async (req: Request, res: Response) => {
+        
+            const code = baseStationCode('A0', 5, { exclude: '0Ooil' })
+
+            const fs = firestore()
+            const db = new DataORMImpl(fs)
+            
+            const uuid = fakeUuid()
+    
+            const baseStation = await db.baseStation().find(uuid)
+    
+            if(await baseStation.exists())
+            {
+                res.status(500).json({
+                    success: false,
+                    uuid: uuid,
+                    message: 'A Base Station with this UUID already exists.'
+                })
+    
+                return
+            }
+    
+            await baseStation.updateOrCreate({
+                pin: code
+            })
+    
+            res.json({
+                success : true,
+                baseStationId: baseStation.getId(),
+                pin : code
+            })
+        })
+    
 }

@@ -18,4 +18,13 @@ export default (app: Application) => {
     
         res.status(200).render('test', data)
     })
+
+    app.get('/admin/base-stations', (req: Request, res: Response) => {
+        
+        const data = {
+            title: 'Base Stations Dashboard'
+        }
+    
+        res.status(200).render('admin/base-stations', data)
+    })
 }

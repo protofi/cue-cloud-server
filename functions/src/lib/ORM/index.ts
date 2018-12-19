@@ -5,6 +5,7 @@ import Room from "./Models/Room";
 import User from "./Models/User";
 import { Pivot } from "./Relation/Pivot";
 import { singular } from 'pluralize'
+import BaseStation from "./Models/BaseStation";
 
 export interface DataORM {
     user(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): User
@@ -29,6 +30,11 @@ export default class DataORMImpl implements DataORM{
     household(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Household
     {
         return new Household(this.db, snap, id)
+    }
+
+    baseStation(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): BaseStation
+    {
+        return new BaseStation(this.db, snap, id)
     }
 
     sensor(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Sensor

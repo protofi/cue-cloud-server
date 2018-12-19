@@ -91,12 +91,11 @@ describe('STAGE', () => {
                                         }
                                         catch(e)
                                         {
-                                            console.error(`Mock data is missing: ${e} [${`${col}/${id}`}]`)
+                                            console.error(`Mock data is missing: ${e.message} [${`${col}/${id}`}]`)
                                             return undefined
-                                            // throw Error(`Mock data is missing: ${e} [${`${col}/${id}`}]`)
                                         }
                                     },
-                                    exists : (!_.isEmpty(firestoreMockData[`${col}/${id}`]))
+                                    exists : (!_.isUndefined(firestoreMockData[`${col}/${id}`]))
                                 }
                             },
                             update: (data) => {
@@ -242,7 +241,6 @@ describe('STAGE', () => {
             })
 
             it('Get ID of created docRef', async () => {
-
                 const carId = uniqid()
 
                 const car = await new Car(stubFs, null, carId).create({
@@ -255,7 +253,6 @@ describe('STAGE', () => {
             })
 
             it('Creating a model with data should be possible', async () => {
-
                 const carId = uniqid()
                 const carName = 'Mustang'
 
@@ -333,8 +330,7 @@ describe('STAGE', () => {
                 expect(car.getId()).to.be.equal(carId)
             })
 
-            it('Single data fields on a model should be retrievable through method getField', async () =>
-            {
+            it('Single data fields on a model should be retrievable through method getField', async () => {
                 const carId = uniqid()
                 const carName = 'Mustang'
 
@@ -349,8 +345,7 @@ describe('STAGE', () => {
                 expect(carName).to.be.equal(fetchedName)
             })
 
-            it('GetField should return undefined id field does not exist', async () =>
-            {
+            it('GetField should return undefined id field does not exist', async () => {
                 const carId = uniqid()
 
                 const car = new Car(stubFs, null, carId)
@@ -500,6 +495,49 @@ describe('STAGE', () => {
                 }
 
                 expect(error).is.undefined
+            })
+
+            it('If a model is instatiated not already existing in the DB the method exists should return false', async () => {
+                const car = new Car(stubFs)
+
+                expect(await car.exists()).to.be.false
+            })
+
+            it('If a model is instatiated with an ID not already existing in the DB the method exists should return false', async () => {
+                const carId = uniqid()
+                const car = new Car(stubFs, null, carId)
+
+                expect(await car.exists()).to.be.false
+            })
+
+            it('If a model is instatiated already existing in the DB the method exists should return true', async () => {
+
+                const carId = uniqid()
+
+                firestoreMockData[`${Stubs.CAR}/${carId}`] = {}
+
+                // await adminFs.collection(Stubs.CAR).doc(carId).create({})
+
+                const car = new Car(stubFs, null, carId)
+
+                expect(await car.exists()).to.be.true
+            })
+
+            it('If a model is fetch with method find() already existing in the DB the method exists should return true', async () => {
+                const carId = uniqid()
+                firestoreMockData[`${Stubs.CAR}/${carId}`] = { id: carId }
+
+                const car = await new Car(stubFs).find(carId)
+
+                expect(await car.exists()).to.be.true
+            })
+
+            it('If a model is fetch with method find() not already existing in the DB the method exists should return false', async () => {
+                const carId = uniqid()
+
+                const car = await new Car(stubFs).find(carId)
+
+                expect(await car.exists()).to.be.false
             })
 
             describe('Actionable fields', () => {
@@ -3132,7 +3170,7 @@ describe('STAGE', () => {
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
-                it('Returned Pivot of a relation should have a correct name of the to owner models', async () => {
+                it('Returned Pivot of a relation should have a correct id of the to owner models', async () => {
                     const user = db.user()
                     const sensor = db.sensor()
                     const sensorId = sensor.getId()

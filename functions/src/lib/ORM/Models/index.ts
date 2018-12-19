@@ -5,6 +5,7 @@ import { difference, asyncForEach } from "../../util";
 import { IActionableFieldCommand, IModelCommand } from "../../Command";
 
 export enum Models {
+    BASE_STATION = 'base_stations',
     HOUSEHOLD = 'households',
     SENSOR = 'sensors',
     EVENT = 'events',
@@ -31,7 +32,7 @@ export interface Model{
 export default class ModelImpl implements Model {
 
     private ref: FirebaseFirestore.DocumentReference
-    private snap: FirebaseFirestore.DocumentSnapshot
+    private docSnap: FirebaseFirestore.DocumentSnapshot
     readonly name: string
     protected db: FirebaseFirestore.Firestore
 
@@ -39,24 +40,24 @@ export default class ModelImpl implements Model {
     protected actionableFields: Map<string, IActionableFieldCommand> = new Map<string, IActionableFieldCommand>()
     protected relations: Map<string, RelationImpl>
     
-    constructor(name: string, db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
+    constructor(name: string, db: FirebaseFirestore.Firestore, docSnap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
         this.name = name
         this.db = db
         this.relations = new Map()
         
-        if(snap)
+        if(docSnap)
         {
-            this.ref = snap.ref
-            this.snap = snap
+            this.ref = docSnap.ref
+            this.docSnap = docSnap
         }
         else if(id) this.getDocRef(id)
     }
 
     async exists(): Promise<boolean>
     {
-        await this.getSnap()
-        return this.snap.exists
+        await this.getDocSnap()
+        return this.docSnap.exists
     }
 
     protected getColRef(): FirebaseFirestore.CollectionReference
@@ -71,12 +72,12 @@ export default class ModelImpl implements Model {
         return this.ref
     }
 
-    private async getSnap(): Promise<FirebaseFirestore.DocumentSnapshot>
+    private async getDocSnap(): Promise<FirebaseFirestore.DocumentSnapshot>
     {
-        if(this.snap) return this.snap
+        if(this.docSnap) return this.docSnap
 
-        this.snap = await this.getDocRef(this.getId()).get()
-        return this.snap
+        this.docSnap = await this.getDocRef(this.getId()).get()
+        return this.docSnap
     }
 
     getId(): string
@@ -104,7 +105,7 @@ export default class ModelImpl implements Model {
     async find(id: string): Promise<ModelImpl>
     {
         const docRef: FirebaseFirestore.DocumentReference = this.getDocRef(id)
-        this.snap = await docRef.get()
+        this.docSnap = await docRef.get()
         return this
     }
 
@@ -116,7 +117,7 @@ export default class ModelImpl implements Model {
     async getField(key: string): Promise<any>
     {
         //if Document Snapshot exist fetch field from that
-        if(this.snap) return this.snap.get(key)
+        if(this.docSnap) return this.docSnap.get(key)
 
         //If not get Id and return null, if Id does not exist (model)
         const id = this.getId()
@@ -142,7 +143,7 @@ export default class ModelImpl implements Model {
             await docRef.update(flatten(data))
         }
 
-        this.snap = null
+        this.docSnap = null
         return this
     }
 
@@ -165,7 +166,7 @@ export default class ModelImpl implements Model {
                 })
         }
 
-        this.snap = null
+        this.docSnap = null
         return this
     }
 
@@ -174,7 +175,7 @@ export default class ModelImpl implements Model {
         const docRef: FirebaseFirestore.DocumentReference = this.getDocRef()
         await docRef.delete()
         
-        this.snap = null
+        this.docSnap = null
         this.ref = null
     }
 

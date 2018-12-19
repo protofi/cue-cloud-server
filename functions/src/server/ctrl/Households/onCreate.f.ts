@@ -26,5 +26,7 @@ exports = module.exports = functions.firestore
 
         household.onCreate()
 
-    ]).catch(console.error)
+    ]).catch(({message}) => {
+        console.error(message)
+    })
 })
