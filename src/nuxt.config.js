@@ -30,14 +30,12 @@ module.exports = {
   ** Global CSS
   */
   css: [
-    'vuetify/src/stylus/main.styl'
   ],
 
   /*
   ** Plugins to load before mounting the App
   */
   plugins: [
-    '@/plugins/vuetify'
   ],
 
   /*
@@ -45,7 +43,8 @@ module.exports = {
   */
   modules: [
     // Doc: https://github.com/nuxt-community/axios-module#usage
-    '@nuxtjs/axios'
+    '@nuxtjs/axios',
+    '@nuxtjs/vuetify'
   ],
   /*
   ** Axios module configuration
@@ -54,30 +53,40 @@ module.exports = {
     // See https://github.com/nuxt-community/axios-module#options
   },
 
+  vuetify: {
+    // Vuetify options
+    theme: {
+      primary: '#121212'
+    }
+  },
+
   /*
   ** Build configuration
   */
+  buildDir: '../functions/nuxt',
   build: {
+    publicPath: '/assets/',
+    extractCSS: true,
     /*
     ** You can extend webpack config here
     */
     extend(config, ctx) {
       // Run ESLint on save
-      if (ctx.isDev && ctx.isClient) {
-        config.module.rules.push({
-          enforce: 'pre',
-          test: /\.(js|vue)$/,
-          loader: 'eslint-loader',
-          exclude: /(node_modules)/
-        })
-      }
-      if (ctx.isServer) {
-        config.externals = [
-          nodeExternals({
-            whitelist: [/^vuetify/]
-          })
-        ]
-      }
+      // if (ctx.isDev && ctx.isClient) {
+      //   config.module.rules.push({
+      //     enforce: 'pre',
+      //     test: /\.(js|vue)$/,
+      //     loader: 'eslint-loader',
+      //     exclude: /(node_modules)/
+      //   })
+      // }
+      // if (ctx.isServer) {
+      //   config.externals = [
+      //     nodeExternals({
+      //       whitelist: [/^vuetify/]
+      //     })
+      //   ]
+      // }
     }
   }
 }
