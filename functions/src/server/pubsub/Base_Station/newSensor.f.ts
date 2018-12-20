@@ -16,9 +16,6 @@ exports = module.exports = functions.pubsub
     const baseStationUUID = message.attributes.base_station_UUID
     const sensorUUID = message.attributes.sensor_UUID
 
-    console.log('baseStationUUID', baseStationUUID)
-    console.log('sensorUUID', sensorUUID)
-
     const sensor = await db.sensor().create({
         UUID : sensorUUID
     })
