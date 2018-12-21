@@ -44,8 +44,13 @@ module.exports = {
   modules: [
     // Doc: https://github.com/nuxt-community/axios-module#usage
     '@nuxtjs/axios',
-    '@nuxtjs/vuetify'
+    '@nuxtjs/vuetify',
+    ['nuxt-validate', {
+      lang: 'es',
+    }]
   ],
+
+  
   /*
   ** Axios module configuration
   */

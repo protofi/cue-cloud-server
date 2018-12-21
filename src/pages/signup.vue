@@ -1,12 +1,10 @@
 <template>
-    <div>
-        <h2>USER {{$route.params.id}}</h2>
-    </div>
+    <h2>Sign Up</h2>
 </template>
 
 <script>
 export default {
-
+  
 }
 </script>
 

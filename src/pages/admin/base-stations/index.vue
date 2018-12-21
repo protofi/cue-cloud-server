@@ -1,12 +1,12 @@
 <template>
     <div>
-        <h2>USER {{$route.params.id}}</h2>
+        <h2>Base Stations</h2>
     </div>
 </template>
 
 <script>
 export default {
-
+    
 }
 </script>
 
