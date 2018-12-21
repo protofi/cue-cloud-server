@@ -1,4 +1,5 @@
 #!/bin/bash
+npm run build
 cd ../
 rm -rf public/*
 cp -R functions/nuxt/dist/ public/assets
