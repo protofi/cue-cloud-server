@@ -3,7 +3,8 @@ import 'firebase/functions'
 import 'firebase/firestore'
 import 'firebase/auth'
 
-if (!firebase.apps.length) {
+if (!firebase.apps.length)
+{
     const config = {
         apiKey: "AIzaSyBgOJkcSQ9pcCirryYf-dKkyIpW-lj8eQg",
         authDomain: "iot-cloud-216011.firebaseapp.com",
