@@ -1,6 +1,8 @@
 <template>
+
     <div>
-        <h2>Sign Up</h2>
+
+        <h2>Opret en ny profil</h2>
     
         <v-form ref="form" v-model="valid" lazy-validation >
            
@@ -23,12 +25,13 @@
 
             <v-btn
                 :submitLoading="submitLoading"
+                type="submit"
                 @click="submit"
-                >
-                submit
+            >
+                opret
             </v-btn>
 
-            <v-btn @click="clear">clear</v-btn>
+            <v-btn @click="clear">Nulstil</v-btn>
 
                 <v-alert
                     :value="formError"
@@ -51,12 +54,6 @@
     import { auth } from '~/plugins/firebase.js'
 
     export default {
-        mounted () {
-            let self = this
-            window.addEventListener('keyup', function (event) {
-                if (event.keyCode === 13) self.submit()
-            })
-        },
         data: () => ({
             submitLoading: false,
             errorMessage : '',
@@ -80,8 +77,8 @@
             }
         },
         methods: {
-            submit () {
-                
+            submit (e) {
+                e.preventDefault()
                 if (this.$refs.form.validate()) {
 
                     this.submitLoading = true
