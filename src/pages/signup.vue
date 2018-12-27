@@ -56,9 +56,11 @@
     export default {
         data: () => ({
             submitLoading: false,
+
             errorMessage : '',
             formError : false,
-            //form
+
+            //form validation
             valid: true,
             password: '',
             passwordRules: [
@@ -79,6 +81,7 @@
         methods: {
             submit (e) {
                 e.preventDefault()
+
                 if (this.$refs.form.validate()) {
 
                     this.submitLoading = true
