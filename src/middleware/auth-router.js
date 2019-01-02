@@ -1,5 +1,6 @@
 export default function({ store, redirect, route })
 {
+    console.log(store.getters.activeUser)
     store.state.user != null && route.name == 'signin' ? redirect('/admin') : ''
     store.state.user == null && isAdminRoute(route) ? redirect('/signin') : ''
 }

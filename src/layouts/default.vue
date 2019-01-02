@@ -55,6 +55,14 @@
       >
         <v-icon>menu</v-icon>
       </v-btn>
+
+      <v-btn
+        icon
+        @click.stop="signout"
+      >
+        <v-icon>lock</v-icon>
+      </v-btn>
+
     </v-toolbar>
     <v-content>
       <v-container>
@@ -86,6 +94,7 @@
 </template>
 
 <script>
+  import { auth } from '~/plugins/firebase.js'
   export default {
     data() {
       return {
@@ -94,12 +103,25 @@
         fixed: false,
         items: [
           { icon: 'apps', title: 'Welcome', to: '/' },
-          { icon: 'bubble_chart', title: 'Inspire', to: '/inspire' }
+          { icon: 'bubble_chart', title: 'Inspire', to: '/inspire' },
+          { icon: 'perm_identity', title: 'Admin', to: '/admin' },
+          { icon: 'lock_open', title: 'Sign in', to: '/signin' },
         ],
         miniVariant: false,
         right: true,
         rightDrawer: false,
         title: 'Vuetify.js'
+      }
+    },
+
+    methods: {
+      signout() {
+
+        auth.signOut().then(function() {
+          // Sign-out successful.
+        }).catch(function(error) {
+          // An error happened.
+        });
       }
     }
   }
