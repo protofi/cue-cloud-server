@@ -1,5 +1,6 @@
 import Vuex from 'vuex'
 import Vue from 'vue'
+const jwt_decode = require('jwt-decode')
 
 Vue.use(Vuex)
 
@@ -11,6 +12,16 @@ const createStore = () => {
     getters: {
       activeUser: (state, getters) => {
         return state.user
+      },
+      isUserAdmin: (state, getters) => {
+        try{
+            const token = jwt_decode(state.user.ra)
+            return (token.isAdmin)
+        }
+        catch(e)
+        {
+            return false
+        }
       }
     },
     mutations: {

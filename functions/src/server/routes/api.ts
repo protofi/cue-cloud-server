@@ -183,7 +183,7 @@ export default (app: Application) => {
 
             try{
                 await admin.auth().setCustomUserClaims('uoGNr0jTsATzecMzrdrKVv1qi8j2', {
-                    isAdmin: true
+                    isAdmin: false
                 })
             }
             catch(e)
