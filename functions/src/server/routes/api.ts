@@ -1,11 +1,16 @@
 import { Application, Request, Response } from 'express'
-import { firestore } from 'firebase-admin'
+import * as admin from 'firebase-admin'
+import * as functions from 'firebase-functions'
 import ModelImpl, { Models } from '../lib/ORM/Models';
 import { asyncForEach } from '../lib/util';
 import DataORMImpl from '../lib/ORM';
 import Household from '../lib/ORM/Models/Household';
 import * as baseStationCode from 'randomatic'
 import * as fakeUuid from 'uuid/v1'
+
+try {
+    admin.initializeApp()
+} catch (e) {}
 
 export default (app: Application) => {
 
@@ -22,11 +27,11 @@ export default (app: Application) => {
     
     app.delete('/api/sensors', async (req: Request, res: Response) => {
     
-        const fs = firestore()
+        const fs = admin.firestore()
 
-        const sensorQuerySnaps: firestore.QuerySnapshot = await fs.collection(Models.SENSOR).get()
+        const sensorQuerySnaps: admin.firestore.QuerySnapshot = await fs.collection(Models.SENSOR).get()
         
-        const sensors = new Array<firestore.DocumentReference>()
+        const sensors = new Array<admin.firestore.DocumentReference>()
 
         sensorQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
             sensors.push(doc.ref)
@@ -53,10 +58,10 @@ export default (app: Application) => {
         const sensorAddedData = {}
 
         try{
-            const fs = firestore()
+            const fs = admin.firestore()
             const db = new DataORMImpl(fs)
 
-            const householdQuerySnaps: firestore.QuerySnapshot = await fs.collection(Models.HOUSEHOLD).get()
+            const householdQuerySnaps: admin.firestore.QuerySnapshot = await fs.collection(Models.HOUSEHOLD).get()
             
             const households = new Array<Household>()
 
@@ -118,7 +123,7 @@ export default (app: Application) => {
 
         .get(async (req: Request, res: Response) => {
 
-            const fs = firestore()
+            const fs = admin.firestore()
 
             const query = await fs.collection(Models.BASE_STATION).get()
     
@@ -144,7 +149,7 @@ export default (app: Application) => {
         
             const code = baseStationCode('A0', 5, { exclude: '0Ooil' })
 
-            const fs = firestore()
+            const fs = admin.firestore()
             const db = new DataORMImpl(fs)
             
             const uuid = fakeUuid()
@@ -173,4 +178,25 @@ export default (app: Application) => {
             })
         })
     
+    app.route('/api/auth/grand-admin-permission')
+        .post(async (req: Request, res: Response) => {
+
+            try{
+                await admin.auth().setCustomUserClaims('uoGNr0jTsATzecMzrdrKVv1qi8j2', {
+                    isAdmin: true
+                })
+            }
+            catch(e)
+            {
+                res.status(200).json(e)
+            }
+
+            admin.auth().getUser('uoGNr0jTsATzecMzrdrKVv1qi8j2').then((userRecord) => {
+            // The claims can be accessed on the user record.
+                res.status(200).json(userRecord.customClaims)
+            }).catch(e => {
+                res.status(200).end(e)
+            })
+
+        })
 }

@@ -9,9 +9,25 @@ import * as camelCase from 'camelcase'
 const app = express()
 app.use(cors({ origin: true }))
 
-try {
-    admin.initializeApp()
-  } catch (e) {}
+const projectId = process.env.GCLOUD_PROJECT
+
+try{
+    const serviceAccount = require(`./../${projectId}.serviceAccountKey.json`)
+
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        databaseURL: `https://${projectId}.firebaseio.com`
+    })
+
+} catch(e)
+{
+    console.warn('Service Account Key missing. Initializing app with no credentials.')
+
+    try{
+        admin.initializeApp()
+    }
+    catch(e){}
+}
 
 const settings = { timestampsInSnapshots: true }
 

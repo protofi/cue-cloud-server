@@ -74,7 +74,8 @@
             ],
         }),
         watch: {
-            errorMessage (v) {
+            errorMessage (v) 
+            {
                 this.formError = (v.length > 0)
             }
         },
@@ -82,14 +83,14 @@
             submit (e) {
                 e.preventDefault()
 
-                if (this.$refs.form.validate()) {
-
+                if (this.$refs.form.validate())
+                {
                     this.submitLoading = true
                     this.errorMessage = ''
 
                     auth.createUserWithEmailAndPassword(this.email, this.password)
                     .catch((error) => {
-                        this.errorMessage = error.message;
+                        this.errorMessage = error.message
 
                     }).finally(() => {
                         this.submitLoading = false

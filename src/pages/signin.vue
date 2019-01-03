@@ -51,6 +51,7 @@
 
 <script>
     import axios from 'axios'
+    const jwt_decode = require('jwt-decode')
     import { auth } from '~/plugins/firebase.js'
 
     export default {
@@ -89,6 +90,17 @@
 
                     auth.signInWithEmailAndPassword(this.email, this.password)
                     .then((response) => {
+
+                        auth.currentUser.getIdToken(true)
+                        .then(function(token)
+                        {
+                            console.log(jwt_decode(token));
+                        })
+
+                        const claim = auth.currentUser.getIdTokenResult()
+
+                        console.log(claim)
+
                         this.$router.push('admin')
                     })
                     .catch((error) => {

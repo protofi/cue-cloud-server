@@ -16,6 +16,9 @@ const createStore = () => {
     mutations: {
       setUser (state, payload) {
         state.user = payload
+      },
+      unsetUser(state, payload) {
+        state.user = null
       }
     }
   })

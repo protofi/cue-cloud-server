@@ -116,12 +116,14 @@
 
     methods: {
       signout() {
-
-        auth.signOut().then(function() {
-          // Sign-out successful.
+        const _this = this
+        auth.signOut().then(function()
+        {
+          _this.$store.commit('unsetUser')
+          _this.$router.push('/')
         }).catch(function(error) {
-          // An error happened.
-        });
+          console.log(error)
+        })
       }
     }
   }

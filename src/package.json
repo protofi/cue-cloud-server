@@ -19,6 +19,7 @@
     "cross-env": "^5.2.0",
     "eslint-plugin-promise": "^4.0.1",
     "firebase": "^5.7.1",
+    "jwt-decode": "^2.2.0",
     "nuxt": "^2.0.0",
     "nuxt-validate": "^0.1.2",
     "vuetify": "^1.2.4"
