@@ -18,7 +18,7 @@ describe('OFFLINE', () => {
     beforeEach(async () => {
 
         firestoreMockData = {}
-        const stageProjectId = "staging-iot-cloud-server"
+        const stageProjectId = "staging-cue-iot-cloud"
 
         test = functionsTest({
             databaseURL: `https://${stageProjectId}.firebaseio.com`,
@@ -36,11 +36,11 @@ describe('OFFLINE', () => {
                             doc: (doc) => {
                                 return {
                                     set: (data) => {
-                                        console.log(col,doc)
+                                        console.log(col, doc)
                                         return null
                                     },
                                     get: () => {
-                                        console.log(col,doc)
+                                        console.log(col, doc)
                                         return null
                                     }
                                 }

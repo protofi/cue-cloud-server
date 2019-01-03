@@ -43,7 +43,7 @@ describe('STAGE', () => {
 
     before(async () => {
 
-        const stageProjectId = "staging-iot-cloud-server"
+        const stageProjectId = "staging-cue-iot-cloud"
 
         test = functionsTest({
             databaseURL: `https://${stageProjectId}.firebaseio.com`,

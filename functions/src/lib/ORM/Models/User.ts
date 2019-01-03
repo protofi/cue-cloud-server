@@ -1,12 +1,17 @@
 import ModelImpl, { Models } from "./"
 import { Many2ManyRelation, N2OneRelation } from "./../Relation"
 import CreateUserSensorRelationsCommand from "./../../Command/CreateUserSensorRelationsCommand";
+import UpdateCustomClaims from "./../../Command/UpdateCustomClaims";
 
 export default class User extends ModelImpl {
 
     constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
         super(Models.USER, db, snap, id)
+
+        this.actionableFields.set(
+            'claims', new UpdateCustomClaims()
+        )
     }
 
     household(): N2OneRelation
@@ -16,7 +21,8 @@ export default class User extends ModelImpl {
             .defineCachableFields([
                 'name'
             ]).defineActionableField('accepted',
-                    new CreateUserSensorRelationsCommand())
+                new CreateUserSensorRelationsCommand()
+            )
     }
 
     sensors(): Many2ManyRelation

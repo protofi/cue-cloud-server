@@ -13,6 +13,7 @@ import { CreateUserNewSensorRelationsCommand } from './lib/Command/CreateUserNew
 import Household from './lib/ORM/Models/Household';
 import { Relations, Roles, Errors } from './lib/const';
 import { GrandOneUserHouseholdAdminPrivileges } from './lib/Command/GrandOneUserHouseholdAdminPrivileges';
+import UpdateCustomClaims from './lib/Command/UpdateCustomClaims';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -27,9 +28,9 @@ const expect = chai.expect
 describe('OFFLINE', () => {
 
     let test: FeaturesList
-    let firestoreMockData
+    let firestoreMockData: any
 
-    let firestoreStub
+    let firestoreStub: any
 
     firestoreStub = {
         settings: () => { return null },
@@ -103,7 +104,7 @@ describe('OFFLINE', () => {
                 const householdId   = uniqid()
                 const sensorId      = uniqid()
                 const command       = new CreateUserSensorRelationsCommand()
-                let user
+                let user: User
 
                 beforeEach(() => {
 
@@ -181,7 +182,7 @@ describe('OFFLINE', () => {
                 const householdId   = uniqid()
                 const sensorId      = uniqid()
                 const command       = new CreateUserNewSensorRelationsCommand()
-                let household
+                let household: Household
 
                 beforeEach(() => {
 
@@ -260,13 +261,13 @@ describe('OFFLINE', () => {
         })
 
         describe('Model Commands', async () => {
-            
-            describe('Grand-One-User-Household-Admin-Privileges', () => {
+
+            describe('Grand One User Household Admin Privileges', () => {
 
                 const householdId   = uniqid()
                 const userId        = uniqid()
                 const command       = new GrandOneUserHouseholdAdminPrivileges()
-                let household
+                let household : Household
 
                 beforeEach(() => {
 
@@ -308,7 +309,7 @@ describe('OFFLINE', () => {
 
                     firestoreMockData[`${Models.USER}/${userId}`] = {}
 
-                    let error
+                    let error: Error
 
                     try{
                         await command.execute(household)
@@ -332,7 +333,7 @@ describe('OFFLINE', () => {
 
                     firestoreMockData[`${Models.USER}/${userId}`] = {}
 
-                    let error
+                    let error: Error
 
                     try{
                         await command.execute(household)
@@ -360,7 +361,7 @@ describe('OFFLINE', () => {
                         }
                     }
 
-                    let error
+                    let error: Error
 
                     try{
                         await command.execute(household)
@@ -383,6 +384,25 @@ describe('OFFLINE', () => {
                     expect(expectedSensorUserDoc).to.be.deep.equal(sensorUserDoc)
                 })
             })
+
+            // describe('Update Custom Claims', () => {
+
+            //     const command       = new UpdateCustomClaims()
+            //     const userId        = uniqid()
+            //     let user : User
+
+            //     beforeEach(() => {
+
+            //         user = new User(firestoreStub, null, userId)
+            //         firestoreMockData[`${Models.HOUSEHOLD}/${userId}`] = {}
+            //     })
+
+            //     it('', async () => {
+
+            //         await command.execute(user)
+            //         return
+            //     })
+            // })
         })
     })
 })

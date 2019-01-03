@@ -21,7 +21,7 @@ try{
 
 } catch(e)
 {
-    console.warn('Service Account Key missing. Initializing app with no credentials.')
+    console.warn(e.message, 'Service Account Key missing. Initializing app with no credentials.')
 
     try{
         admin.initializeApp()
