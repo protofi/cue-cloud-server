@@ -3,9 +3,20 @@
     <div>
 
         <h2>Log ind</h2>
-    
-        <v-form ref="form" v-model="valid" lazy-validation >
-           
+
+        <v-progress-linear v-show="authLoading"
+            color="primary"
+            :indeterminate="true"
+            transition="fade-transition"
+        ></v-progress-linear>
+
+        <v-form ref="form"
+            v-model="valid" 
+            lazy-validation
+            v-show="!authLoading && !auth"
+            transition="fade-transition"
+        >
+        
             <v-text-field
                 v-model="email"
                 :rules="emailRules"
@@ -40,7 +51,7 @@
                     transition="scale-transition"
                     outline
                 >
-                {{ errorMessage }}
+                {{ formErrorMessage }}
                 </v-alert>
 
         </v-form>
@@ -54,10 +65,21 @@
     import { auth } from '~/plugins/firebase.js'
 
     export default {
+        
+        async asyncData ({ route }) {
+            return {
+                redirect : (route.query.redirect) ? route.query.redirect : '/'
+            }
+        },
+        mounted () {
+            this.$store.watch(state => {
+                if(state.user) this.$router.push(this.redirect)
+            })
+        },
         data: () => ({
             submitLoading: false,
 
-            errorMessage : '',
+            formErrorMessage : '',
             formError : false,
 
             //form validation
@@ -74,8 +96,16 @@
             ],
         }),
         watch: {
-            errorMessage (v) {
+            formErrorMessage (v) {
                 this.formError = (v.length > 0)
+            },
+        },
+        computed : {
+            authLoading () {
+                return this.$store.getters.userIsLoading
+            },
+            auth () {
+                return this.$store.getters.activeUser
             }
         },
         methods: {
@@ -85,15 +115,15 @@
                 if (this.$refs.form.validate()) {
 
                     this.submitLoading = true
-                    this.errorMessage = ''
+                    this.formErrorMessage = ''
 
                     auth.signInWithEmailAndPassword(this.email, this.password)
                     .then((response) => {
 
-                        this.$router.push('admin')
+                        this.$router.push(this.redirect)
                     })
                     .catch((error) => {
-                        this.errorMessage = error.message;
+                        this.formErrorMessage = error.message;
 
                     }).finally(() => {
                         this.submitLoading = false
@@ -101,7 +131,7 @@
                 }
             },
             clear () {
-                this.errorMessage = ''
+                this.formErrorMessage = ''
                 this.$refs.form.reset()
             }
         }

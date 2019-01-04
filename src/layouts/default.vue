@@ -103,7 +103,6 @@
         fixed: false,
         items: [
           { icon: 'apps', title: 'Welcome', to: '/' },
-          { icon: 'bubble_chart', title: 'Inspire', to: '/inspire' },
           { icon: 'perm_identity', title: 'Admin', to: '/admin' },
           { icon: 'lock_open', title: 'Sign in', to: '/signin' },
         ],
