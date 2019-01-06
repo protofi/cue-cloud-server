@@ -228,15 +228,16 @@ export default class ModelImpl implements Model {
 
     async takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
     {
-        const beforeData = change.before.data()
-        const afterData = change.after.data()
+        const beforeData = (change.before.data()) ? change.before.data() : {}
+        const afterData = (change.after.data()) ? change.after.data() : {}
         
         const changes = (beforeData) ? difference(beforeData, afterData) : afterData
 
         await asyncForEach(Object.keys(changes),
             async (field) => {
                 const command = this.actionableFields.get(field)
-                if(command) await command.execute(this, changes[field] as string)
+
+                if(command) await command.execute(this, changes[field], afterData[field], beforeData[field])
 
                 return
         })

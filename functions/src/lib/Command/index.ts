@@ -1,7 +1,7 @@
 import ModelImpl from "../ORM/Models";
 
 export interface IActionableFieldCommand {
-    execute(owner: ModelImpl, field: any): Promise<void>
+    execute(owner: ModelImpl, change: any, after?: any, before?: any): Promise<void>
     undo(owner: ModelImpl): Promise<void>
 }
 

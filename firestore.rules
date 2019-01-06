@@ -1,48 +1,37 @@
-service cloud.firestore {
+service cloud.firestore{
   match /databases/{database}/documents {
-    function isAuth() {
-    		return (request.auth.uid != null)
-    }
-
     match /{documents=**} {
     		allow read: if false
     		allow write: if false
     }
-    
-    match /households/{householdId} {
-    	
-      function isHouseholdAdmin()
-      {
-      		return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.households.pivot.role == "admin"
-      }
-      
-      function isResident()
-      {
-          return resource.data.users.keys().hasAll([request.auth.uid])
-      }
 
+    match /households/{householdId} {
 			allow create: if isAuth()
                     && (
-                      request.resource.data.keys().hasAll(["users"])
+                      reqHasUsersField()
                       && request.resource.data.users.keys().hasOnly([request.auth.uid])
                       && request.resource.data.users[request.auth.uid] == true
                     )
-                
-      allow read: if isAuth() && isResident()
+
+      allow read: if (isAuth() && isResident()) || isAdmin()
 
 			allow update: if isAuth()
           					&& (
-                    	!request.resource.data.keys().hasAll(["users"])
+                    	!reqHasUsersField()
                 		  || isHouseholdAdmin()
                     )
 
       allow delete: if false
+
+      function isHouseholdAdmin() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.households.pivot.role == "admin" }
+      function isResident() { return resource.data.users.keys().hasAll([request.auth.uid]) }
+      function reqHasUsersField() { return request.resource.data.keys().hasAll(["users"]) }
     }
-    
+
     match /users/{userId} {
       allow create: if false
 
-      allow read: if isAuth()
+      allow read: if (isAuth() && isSelf()) || isAdmin()
 
       allow update: if isAuth()
                     && (
@@ -57,6 +46,11 @@ service cloud.firestore {
                         )
                       )
                     )
+
+      function isSelf() { return request.auth.uid == resource.data.id }
 	  }
+
+    function isAuth() { return (request.auth.uid != null) }
+    function isAdmin() { return request.auth.token.isAdmin }
   }
 }

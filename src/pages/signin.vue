@@ -1,14 +1,34 @@
 <template>
 
-    <div>
+    <v-container>
 
-        <h2>Log ind</h2>
+        <v-layout row wrap justify-center align-center v-show="authLoading">
+            <v-flex xs6>
+                <v-card color="blue-grey darken-2" class="white--text">
+                    
+                    <v-card-title primary-title>
+                        
+                        <div>
+                        
+                            <div class="headline">Just a moment...</div>
+                            <span>Checking if you are signed in or not.</span>
+                        
+                        </div>
 
-        <v-progress-linear v-show="authLoading"
-            color="primary"
-            :indeterminate="true"
-            transition="fade-transition"
-        ></v-progress-linear>
+                        <v-flex  text-lg-right>
+                            <v-progress-circular 
+                                :size="70"
+                                :width="7"
+                                indeterminate
+                            ></v-progress-circular>
+                        </v-flex>
+
+                    </v-card-title>
+                    
+                </v-card>
+
+          </v-flex>
+        </v-layout>
 
         <v-form ref="form"
             v-model="valid" 
@@ -16,7 +36,8 @@
             v-show="!authLoading && !auth"
             transition="fade-transition"
         >
-        
+            <h2>Log ind</h2>
+
             <v-text-field
                 v-model="email"
                 :rules="emailRules"
@@ -35,7 +56,7 @@
             ></v-text-field>
 
             <v-btn
-                :submitLoading="submitLoading"
+                :loading="submitLoading"
                 type="submit"
                 @click="submit"
             >
@@ -56,7 +77,7 @@
 
         </v-form>
 
-    </div>
+    </v-container>
 
 </template>
 

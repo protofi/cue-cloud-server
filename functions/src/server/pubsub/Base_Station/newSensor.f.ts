@@ -1,7 +1,6 @@
 import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
 import DataORMImpl from '../../lib/ORM'
-import { base64decode } from 'nodejs-base64'
 import Household from '../../lib/ORM/Models/Household';
 import BaseStation from '../../lib/ORM/Models/BaseStation';
 

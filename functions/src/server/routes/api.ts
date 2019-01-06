@@ -1,6 +1,5 @@
 import { Application, Request, Response } from 'express'
 import * as admin from 'firebase-admin'
-import * as functions from 'firebase-functions'
 import ModelImpl, { Models } from '../lib/ORM/Models';
 import { asyncForEach } from '../lib/util';
 import DataORMImpl from '../lib/ORM';
