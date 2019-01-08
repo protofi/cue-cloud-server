@@ -1,11 +1,13 @@
 import { Application, Request, Response } from 'express'
 import * as admin from 'firebase-admin'
+
 import ModelImpl, { Models } from '../lib/ORM/Models';
 import { asyncForEach } from '../lib/util';
 import DataORMImpl from '../lib/ORM';
 import Household from '../lib/ORM/Models/Household';
 import * as baseStationCode from 'randomatic'
 import * as fakeUuid from 'uuid/v1'
+const { PubSub } = require('@google-cloud/pubsub');
 
 try {
     admin.initializeApp()
@@ -118,6 +120,31 @@ export default (app: Application) => {
         })
     })
 
+    app.put('/api/sensors/:id/notication', async (req: Request, res: Response) => {
+        const pubsub = new PubSub()
+
+        const sensorId = req.params.id
+
+        const topicName = 'notification';
+
+        const data = {
+            sensor_id : sensorId
+        }
+
+        const messageId = await pubsub
+                .topic(topicName)
+                .publisher()
+                .publish(Buffer.from(''), data)
+                
+        console.log(`Message ${messageId} published.`);
+
+        res.json({
+            success: true,
+            sensor: sensorId,
+            msg : messageId
+        })
+    })
+
     app.route('/api/base-station')
 
         .get(async (req: Request, res: Response) => {
@@ -175,27 +202,5 @@ export default (app: Application) => {
                 baseStationId: baseStation.getId(),
                 pin : code
             })
-        })
-    
-    app.route('/api/auth/grand-admin-permission')
-        .post(async (req: Request, res: Response) => {
-
-            try{
-                await admin.auth().setCustomUserClaims('uoGNr0jTsATzecMzrdrKVv1qi8j2', {
-                    isAdmin: false
-                })
-            }
-            catch(e)
-            {
-                res.status(200).json(e)
-            }
-
-            admin.auth().getUser('uoGNr0jTsATzecMzrdrKVv1qi8j2').then((userRecord) => {
-            // The claims can be accessed on the user record.
-                res.status(200).json(userRecord.customClaims)
-            }).catch(e => {
-                res.status(200).end(e)
-            })
-
         })
 }

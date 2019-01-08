@@ -1,8 +1,8 @@
 import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
 import DataORMImpl from '../../lib/ORM'
-import Household from '../../lib/ORM/Models/Household';
-import BaseStation from '../../lib/ORM/Models/BaseStation';
+import Household from '../../lib/ORM/Models/Household'
+import BaseStation from '../../lib/ORM/Models/BaseStation'
 
 try {admin.initializeApp()} catch(e) {}
 
@@ -11,6 +11,8 @@ exports = module.exports = functions.pubsub
 .onPublish(async (message: functions.pubsub.Message, context: functions.EventContext) => {
 
     const db = new DataORMImpl(admin.firestore())
+
+    console.log(message.attributes)
 
     const baseStationUUID = message.attributes.base_station_UUID
     const sensorUUID = message.attributes.sensor_UUID

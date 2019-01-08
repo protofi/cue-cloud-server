@@ -45,7 +45,9 @@
   "dependencies": {
     "@firebase/app": "^0.3.4",
     "@firebase/firestore": "^0.8.2",
+    "@google-cloud/pubsub": "^0.22.2",
     "@nuxtjs/vuetify": "^0.5.0",
+    "@types/google-cloud__pubsub": "^0.18.1",
     "axios": "^0.18.0",
     "camelcase": "^5.0.0",
     "cors": "^2.8.5",
