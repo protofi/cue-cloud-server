@@ -62,7 +62,7 @@ const nuxt = new Nuxt({
 })
 
 //Handling requests for Nuxt front end
-function handleRequest(req: express.Request, res: express.Response)
+function handleNuxtRequest(req: express.Request, res: express.Response)
 {
     res.set('Cache-Control', 'public, max-age=600, s-maxage=1200')
 
@@ -73,7 +73,7 @@ function handleRequest(req: express.Request, res: express.Response)
     });
 }
 
-app.use(handleRequest)
+app.use(handleNuxtRequest)
 
 //Exporting HTTPS Function
 exports.httpOnRequest = functions.runWith({

@@ -5,7 +5,9 @@ import Sensor from '../../lib/ORM/Models/Sensor'
 
 try {admin.initializeApp()} catch(e) {}
 
-exports = module.exports = functions.pubsub.topic('notification').onPublish(async (message: functions.pubsub.Message, context: functions.EventContext) => {
+exports = module.exports = functions.pubsub
+.topic('notification')
+.onPublish(async (message: functions.pubsub.Message, context: functions.EventContext) => {
 
     const db = new DataORMImpl(admin.firestore())
 
@@ -23,7 +25,7 @@ exports = module.exports = functions.pubsub.topic('notification').onPublish(asyn
     const tokens = [
       iPhone5s,
       // iPhoneX,
-      // Nexus5
+      Nexus5
     ]
 
     const payload = {

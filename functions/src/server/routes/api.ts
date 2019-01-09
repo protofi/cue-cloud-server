@@ -1,4 +1,4 @@
-import { Application, Request, Response } from 'express'
+import { Router, Application, Request, Response, NextFunction } from 'express'
 import * as admin from 'firebase-admin'
 
 import ModelImpl, { Models } from '../lib/ORM/Models';
@@ -9,123 +9,62 @@ import * as baseStationCode from 'randomatic'
 import * as fakeUuid from 'uuid/v1'
 const { PubSub } = require('@google-cloud/pubsub');
 
+const apiBasePath = '/api/v1'
+
 try {
     admin.initializeApp()
 } catch (e) {}
 
 export default (app: Application) => {
 
-    app.get('/api', (req: Request, res: Response) => {
-        res.status(200).json({
-            success : true,
-            data : [
-                'one',
-                'two',
-                'three'
-            ]
-        })
-    })
     
-    app.delete('/api/sensors', async (req: Request, res: Response) => {
+    const guestRouter = Router()
+    app.use(apiBasePath, guestRouter)
     
-        const fs = admin.firestore()
+    const authRouter = Router()
+    app.use(apiBasePath, authRouter)
 
-        const sensorQuerySnaps: admin.firestore.QuerySnapshot = await fs.collection(Models.SENSOR).get()
-        
-        const sensors = new Array<admin.firestore.DocumentReference>()
 
-        sensorQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
-            sensors.push(doc.ref)
-        })
-        
-        const ids = sensors.map((sensor) => {
-            return sensor.id
+    guestRouter.route('/')
+        .get(async (req: Request, res: Response) => {
+            res.status(200).end()
         })
 
-        await asyncForEach(sensors, async (sensor) => {
-            await sensor.delete()
-        })
+    /******************************************
+     *  AUTH PROTECTED ROUTES
+     ******************************************/
 
-        res.status(200).json({
-            success : true,
-            deleted : ids
-        })
-    })
+    authRouter.use(authMiddleware)
 
-    app.put('/api/sensors', async (req: Request, res: Response) => {
-        
-        // const amount = req.body.amount
-
-        const sensorAddedData = {}
-
-        try{
-            const fs = admin.firestore()
-            const db = new DataORMImpl(fs)
-
-            const householdQuerySnaps: admin.firestore.QuerySnapshot = await fs.collection(Models.HOUSEHOLD).get()
-            
-            const households = new Array<Household>()
-
-            householdQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
-                households.push(db.household(doc))
-            })
-
-            const data = [
-                {
-                    name        : 'Dørklokken',
-                    location    : 'Gangen',
-                    icon_string : 'doorbell'
-                },
-                {
-                    name        : 'Røgalarmen',
-                    location    : 'Køkkenet',
-                    icon_string : 'firealarm'
-                },
-                {
-                    name        : 'Røgalarmen',
-                    location    : 'Stuen',
-                    icon_string : 'firealarm'
-                }
-            ]
-
-            await asyncForEach(households, async (household: Household) => {
-
-                const sensors: Array<ModelImpl> = []
-                
-                sensors.push(await db.sensor().create(data[0]))
-                sensors.push(await db.sensor().create(data[1]))
-                sensors.push(await db.sensor().create(data[2]))
-
-                await household.sensors().attachBulk(sensors)
-
-                sensors.forEach((sensor, i) => {
-                    if(!sensorAddedData[household.getId()]) sensorAddedData[household.getId()] = {}
-                    sensorAddedData[household.getId()][sensor.getId()] = data[i]
+    authRouter.route('/users')
+            .get(async (req: Request, res: Response) => {
+                res.status(200).json({
+                    user : req['auth']
                 })
             })
-        }
-        catch(e)
-        {
-            res.status(500).json({
-                success : false,
-                error : e
+
+    /******************************************
+     *  ADMIN PROTECTED ROUTES
+     ******************************************/
+    
+    authRouter.use(adminMiddleware)
+
+    authRouter
+    .route('/households')
+        .get(async (req: Request, res: Response) => {
+            res.status(200).json({
+                user : req['auth']
             })
-
-            return
-        }
-
-        res.status(200).json({
-            success : true,
-            sensors : sensorAddedData
         })
-    })
 
-    app.put('/api/sensors/:id/notication', async (req: Request, res: Response) => {
+    authRouter
+    .route('/sensors/:id/notification')
+        .put(async (req: Request, res: Response) => {
         const pubsub = new PubSub()
 
         const sensorId = req.params.id
 
-        const topicName = 'notification';
+        const topicName = 'notification'
 
         const data = {
             sensor_id : sensorId
@@ -136,7 +75,7 @@ export default (app: Application) => {
                 .publisher()
                 .publish(Buffer.from(''), data)
                 
-        console.log(`Message ${messageId} published.`);
+        console.log(`Message ${messageId} published.`)
 
         res.json({
             success: true,
@@ -145,62 +84,223 @@ export default (app: Application) => {
         })
     })
 
-    app.route('/api/base-station')
-
-        .get(async (req: Request, res: Response) => {
-
-            const fs = admin.firestore()
-
-            const query = await fs.collection(Models.BASE_STATION).get()
+    // app.get('/api', (req: Request, res: Response) => {
+    //     res.status(200).json({
+    //         success : true,
+    //         data : [
+    //             'one',
+    //             'two',
+    //             'three'
+    //         ]
+    //     })
+    // })
     
-            const baseStations = {}
+    // app.delete('/api/sensors', async (req: Request, res: Response) => {
+    
+    //     const fs = admin.firestore()
 
-            query.forEach((baseStation) => {
-                
-                baseStations[baseStation.id] = baseStation.data()
-            })
-
-            res.json({
-                success: true,
-                baseStations : baseStations
-            })
-
-        })
-
-        .post(async (req: Request, res: Response) => {
-            res.status(501).end()
-        })
-
-        .put(async (req: Request, res: Response) => {
+    //     const sensorQuerySnaps: admin.firestore.QuerySnapshot = await fs.collection(Models.SENSOR).get()
         
-            const code = baseStationCode('A0', 5, { exclude: '0Ooil' })
+    //     const sensors = new Array<admin.firestore.DocumentReference>()
 
-            const fs = admin.firestore()
-            const db = new DataORMImpl(fs)
+    //     sensorQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+    //         sensors.push(doc.ref)
+    //     })
+        
+    //     const ids = sensors.map((sensor) => {
+    //         return sensor.id
+    //     })
+
+    //     await asyncForEach(sensors, async (sensor) => {
+    //         await sensor.delete()
+    //     })
+
+    //     res.status(200).json({
+    //         success : true,
+    //         deleted : ids
+    //     })
+    // })
+
+    // app.put('/api/sensors', async (req: Request, res: Response) => {
+        
+    //     // const amount = req.body.amount
+
+    //     const sensorAddedData = {}
+
+    //     try{
+    //         const fs = admin.firestore()
+    //         const db = new DataORMImpl(fs)
+
+    //         const householdQuerySnaps: admin.firestore.QuerySnapshot = await fs.collection(Models.HOUSEHOLD).get()
             
-            const uuid = fakeUuid()
+    //         const households = new Array<Household>()
+
+    //         householdQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+    //             households.push(db.household(doc))
+    //         })
+
+    //         const data = [
+    //             {
+    //                 name        : 'Dørklokken',
+    //                 location    : 'Gangen',
+    //                 icon_string : 'doorbell'
+    //             },
+    //             {
+    //                 name        : 'Røgalarmen',
+    //                 location    : 'Køkkenet',
+    //                 icon_string : 'firealarm'
+    //             },
+    //             {
+    //                 name        : 'Røgalarmen',
+    //                 location    : 'Stuen',
+    //                 icon_string : 'firealarm'
+    //             }
+    //         ]
+
+    //         await asyncForEach(households, async (household: Household) => {
+
+    //             const sensors: Array<ModelImpl> = []
+                
+    //             sensors.push(await db.sensor().create(data[0]))
+    //             sensors.push(await db.sensor().create(data[1]))
+    //             sensors.push(await db.sensor().create(data[2]))
+
+    //             await household.sensors().attachBulk(sensors)
+
+    //             sensors.forEach((sensor, i) => {
+    //                 if(!sensorAddedData[household.getId()]) sensorAddedData[household.getId()] = {}
+    //                 sensorAddedData[household.getId()][sensor.getId()] = data[i]
+    //             })
+    //         })
+    //     }
+    //     catch(e)
+    //     {
+    //         res.status(500).json({
+    //             success : false,
+    //             error : e
+    //         })
+
+    //         return
+    //     }
+
+    //     res.status(200).json({
+    //         success : true,
+    //         sensors : sensorAddedData
+    //     })
+    // })
+
+    // app.put('/api/sensors/:id/notication', async (req: Request, res: Response) => {
+    //     const pubsub = new PubSub()
+
+    //     const sensorId = req.params.id
+
+    //     const topicName = 'notification'
+
+    //     const data = {
+    //         sensor_id : sensorId
+    //     }
+
+    //     const messageId = await pubsub
+    //             .topic(topicName)
+    //             .publisher()
+    //             .publish(Buffer.from(''), data)
+                
+    //     console.log(`Message ${messageId} published.`)
+
+    //     res.json({
+    //         success: true,
+    //         sensor: sensorId,
+    //         msg : messageId
+    //     })
+    // })
+
+    // app.route('/api/base-station')
+
+    //     .get(async (req: Request, res: Response) => {
+
+    //         const fs = admin.firestore()
+
+    //         const query = await fs.collection(Models.BASE_STATION).get()
     
-            const baseStation = await db.baseStation().find(uuid)
+    //         const baseStations = {}
+
+    //         query.forEach((baseStation) => {
+                
+    //             baseStations[baseStation.id] = baseStation.data()
+    //         })
+
+    //         res.json({
+    //             success: true,
+    //             baseStations : baseStations
+    //         })
+
+    //     })
+
+    //     .post(async (req: Request, res: Response) => {
+    //         res.status(501).end()
+    //     })
+
+    //     .put(async (req: Request, res: Response) => {
+        
+    //         const code = baseStationCode('A0', 5, { exclude: '0Ooil' })
+
+    //         const fs = admin.firestore()
+    //         const db = new DataORMImpl(fs)
+            
+    //         const uuid = fakeUuid()
     
-            if(await baseStation.exists())
-            {
-                res.status(500).json({
-                    success: false,
-                    uuid: uuid,
-                    message: 'A Base Station with this UUID already exists.'
-                })
+    //         const baseStation = await db.baseStation().find(uuid)
     
-                return
-            }
+    //         if(await baseStation.exists())
+    //         {
+    //             res.status(500).json({
+    //                 success: false,
+    //                 uuid: uuid,
+    //                 message: 'A Base Station with this UUID already exists.'
+    //             })
     
-            await baseStation.updateOrCreate({
-                pin: code
-            })
+    //             return
+    //         }
     
-            res.json({
-                success : true,
-                baseStationId: baseStation.getId(),
-                pin : code
-            })
-        })
+    //         await baseStation.updateOrCreate({
+    //             pin: code
+    //         })
+    
+    //         res.json({
+    //             success : true,
+    //             baseStationId: baseStation.getId(),
+    //             pin : code
+    //         })
+    //     })
+
+}
+
+const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+        
+    try
+    {
+        const token = req.headers.authorization
+        req['auth'] = await admin.auth().verifyIdToken(token)
+    }
+    catch(e)
+    {
+        res.status(401).json(e).end()
+    }
+
+    next()
+}
+
+const adminMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+    
+    try
+    {
+        const user = req['auth']
+        if(!user.isAdmin) throw new Error()
+    }
+    catch(e)
+    {
+        res.status(401).json(e)
+    }
+
+    next()
 }
