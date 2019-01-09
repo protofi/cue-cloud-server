@@ -1,7 +1,6 @@
+import { getStatusText, UNAUTHORIZED, NOT_FOUND, INTERNAL_SERVER_ERROR} from 'http-status-codes'
 import { Router, Application, Request, Response, NextFunction } from 'express'
 import * as admin from 'firebase-admin'
-
-import { getStatusText, UNAUTHORIZED} from 'http-status-codes'
 
 import ModelImpl, { Models } from '../lib/ORM/Models';
 import { asyncForEach } from '../lib/util';
@@ -19,25 +18,21 @@ try {
 
 export default (app: Application) => {
 
-    
-    const guestRouter = Router()
-    app.use(apiBasePath, guestRouter)
+    const publicRouter = Router()
+    app.use(apiBasePath, publicRouter)
     
     const authRouter = Router()
     app.use(apiBasePath, authRouter)
 
-    guestRouter.route('/')
-        .get(async (req: Request, res: Response) => {
-            res.status(200).json({
-                message: 'Welcome to the Cue API.'
-            })
-        })
-    
+    /******************************************
+     *  PUBLIC ROUTES
+     ******************************************/
+
+    publicRouter.route('/')
         
-    guestRouter.route('/lol')
-        .post(async (req: Request, res: Response) => {
-            res.status(200).json({
-                lol: 'lol'
+        .get(async (req: Request, res: Response) => {
+            res.json({
+                message: 'Welcome to the Cue API.'
             })
         })
 
@@ -48,11 +43,12 @@ export default (app: Application) => {
     authRouter.use(authMiddleware)
 
     authRouter.route('/users')
-            .get(async (req: Request, res: Response) => {
-                res.status(200).json({
-                    user : req['auth']
-                })
+        
+        .get(async (req: Request, res: Response) => {
+            res.json({
+                user : req['auth']
             })
+        })
 
     /******************************************
      *  ADMIN PROTECTED ROUTES
@@ -63,12 +59,80 @@ export default (app: Application) => {
     authRouter.route('/households')
         
         .get(async (req: Request, res: Response) => {
-            res.status(200).json({
+            res.json({
                 user : req['auth']
             })
         })
 
-    authRouter.route('/sensors/:id/notification')
+    authRouter.route('/sensors')
+    
+        .put(async (req: Request, res: Response) => {
+        
+            const sensorAddedData = {}
+
+            try{
+                const fs = admin.firestore()
+                const db = new DataORMImpl(fs)
+
+                const householdQuerySnaps: admin.firestore.QuerySnapshot = await fs.collection(Models.HOUSEHOLD).get()
+                
+                const households = new Array<Household>()
+
+                householdQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+                    households.push(db.household(doc))
+                })
+
+                const data = [
+                    {
+                        name        : 'Dørklokken',
+                        location    : 'Gangen',
+                        icon_string : 'doorbell'
+                    },
+                    {
+                        name        : 'Røgalarmen',
+                        location    : 'Køkkenet',
+                        icon_string : 'firealarm'
+                    },
+                    {
+                        name        : 'Røgalarmen',
+                        location    : 'Stuen',
+                        icon_string : 'firealarm'
+                    }
+                ]
+
+                await asyncForEach(households, async (household: Household) => {
+
+                    const sensors: Array<ModelImpl> = []
+                    
+                    sensors.push(await db.sensor().create(data[0]))
+                    sensors.push(await db.sensor().create(data[1]))
+                    sensors.push(await db.sensor().create(data[2]))
+
+                    await household.sensors().attachBulk(sensors)
+
+                    sensors.forEach((sensor, i) => {
+                        if(!sensorAddedData[household.getId()]) sensorAddedData[household.getId()] = {}
+                        sensorAddedData[household.getId()][sensor.getId()] = data[i]
+                    })
+                })
+            }
+            catch(e)
+            {
+                res.status(INTERNAL_SERVER_ERROR).json({
+                    success : false,
+                    error : e
+                })
+
+                return
+            }
+
+            res.json({
+                success : true,
+                sensors : sensorAddedData
+            })
+        })
+
+    authRouter.route('/sensors/:id/notifications')
         
         .put(async (req: Request, res: Response) => {
             const pubsub = new PubSub()
@@ -94,17 +158,6 @@ export default (app: Application) => {
                 msg : messageId
             })
         })
-
-    // app.get('/api', (req: Request, res: Response) => {
-    //     res.status(200).json({
-    //         success : true,
-    //         data : [
-    //             'one',
-    //             'two',
-    //             'three'
-    //         ]
-    //     })
-    // })
     
     // app.delete('/api/sensors', async (req: Request, res: Response) => {
     
@@ -132,158 +185,54 @@ export default (app: Application) => {
     //     })
     // })
 
-    // app.put('/api/sensors', async (req: Request, res: Response) => {
+    authRouter.route('/base-stations')
+
+        .put(async (req: Request, res: Response) => {
         
-    //     // const amount = req.body.amount
+            const code = baseStationCode('A0', 5, { exclude: '0Ooil' })
 
-    //     const sensorAddedData = {}
-
-    //     try{
-    //         const fs = admin.firestore()
-    //         const db = new DataORMImpl(fs)
-
-    //         const householdQuerySnaps: admin.firestore.QuerySnapshot = await fs.collection(Models.HOUSEHOLD).get()
+            const fs = admin.firestore()
+            const db = new DataORMImpl(fs)
             
-    //         const households = new Array<Household>()
-
-    //         householdQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
-    //             households.push(db.household(doc))
-    //         })
-
-    //         const data = [
-    //             {
-    //                 name        : 'Dørklokken',
-    //                 location    : 'Gangen',
-    //                 icon_string : 'doorbell'
-    //             },
-    //             {
-    //                 name        : 'Røgalarmen',
-    //                 location    : 'Køkkenet',
-    //                 icon_string : 'firealarm'
-    //             },
-    //             {
-    //                 name        : 'Røgalarmen',
-    //                 location    : 'Stuen',
-    //                 icon_string : 'firealarm'
-    //             }
-    //         ]
-
-    //         await asyncForEach(households, async (household: Household) => {
-
-    //             const sensors: Array<ModelImpl> = []
-                
-    //             sensors.push(await db.sensor().create(data[0]))
-    //             sensors.push(await db.sensor().create(data[1]))
-    //             sensors.push(await db.sensor().create(data[2]))
-
-    //             await household.sensors().attachBulk(sensors)
-
-    //             sensors.forEach((sensor, i) => {
-    //                 if(!sensorAddedData[household.getId()]) sensorAddedData[household.getId()] = {}
-    //                 sensorAddedData[household.getId()][sensor.getId()] = data[i]
-    //             })
-    //         })
-    //     }
-    //     catch(e)
-    //     {
-    //         res.status(500).json({
-    //             success : false,
-    //             error : e
-    //         })
-
-    //         return
-    //     }
-
-    //     res.status(200).json({
-    //         success : true,
-    //         sensors : sensorAddedData
-    //     })
-    // })
-
-    // app.put('/api/sensors/:id/notication', async (req: Request, res: Response) => {
-    //     const pubsub = new PubSub()
-
-    //     const sensorId = req.params.id
-
-    //     const topicName = 'notification'
-
-    //     const data = {
-    //         sensor_id : sensorId
-    //     }
-
-    //     const messageId = await pubsub
-    //             .topic(topicName)
-    //             .publisher()
-    //             .publish(Buffer.from(''), data)
-                
-    //     console.log(`Message ${messageId} published.`)
-
-    //     res.json({
-    //         success: true,
-    //         sensor: sensorId,
-    //         msg : messageId
-    //     })
-    // })
-
-    // app.route('/api/base-station')
-
-    //     .get(async (req: Request, res: Response) => {
-
-    //         const fs = admin.firestore()
-
-    //         const query = await fs.collection(Models.BASE_STATION).get()
+            const uuid = fakeUuid()
     
-    //         const baseStations = {}
-
-    //         query.forEach((baseStation) => {
-                
-    //             baseStations[baseStation.id] = baseStation.data()
-    //         })
-
-    //         res.json({
-    //             success: true,
-    //             baseStations : baseStations
-    //         })
-
-    //     })
-
-    //     .post(async (req: Request, res: Response) => {
-    //         res.status(501).end()
-    //     })
-
-    //     .put(async (req: Request, res: Response) => {
-        
-    //         const code = baseStationCode('A0', 5, { exclude: '0Ooil' })
-
-    //         const fs = admin.firestore()
-    //         const db = new DataORMImpl(fs)
-            
-    //         const uuid = fakeUuid()
+            const baseStation = await db.baseStation().find(uuid)
     
-    //         const baseStation = await db.baseStation().find(uuid)
+            if(await baseStation.exists())
+            {
+                res.status(500).json({
+                    success: false,
+                    uuid: uuid,
+                    message: 'A Base Station with this UUID already exists.'
+                })
     
-    //         if(await baseStation.exists())
-    //         {
-    //             res.status(500).json({
-    //                 success: false,
-    //                 uuid: uuid,
-    //                 message: 'A Base Station with this UUID already exists.'
-    //             })
+                return
+            }
     
-    //             return
-    //         }
+            await baseStation.updateOrCreate({
+                pin: code
+            })
     
-    //         await baseStation.updateOrCreate({
-    //             pin: code
-    //         })
+            res.json({
+                success : true,
+                baseStationId: baseStation.getId(),
+                pin : code
+            })
+        })
     
-    //         res.json({
-    //             success : true,
-    //             baseStationId: baseStation.getId(),
-    //             pin : code
-    //         })
-    //     })
+    /******************************************
+     *  ROUTES NOT FOUND
+     ******************************************/
 
+    authRouter.use(notFoundHandler)
+}
+
+const notFoundHandler = (req: Request, res: Response) => {
+ 
+    res.status(NOT_FOUND).json({
+        error : getStatusText(NOT_FOUND),
+        code : NOT_FOUND
+    }).end()
 }
 
 const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
