@@ -132,9 +132,36 @@ export default (app: Application) => {
             })
         })
 
+        .delete(async (req: Request, res: Response) => {
+        
+            const fs = admin.firestore()
+
+            const sensorQuerySnaps: admin.firestore.QuerySnapshot = await fs.collection(Models.SENSOR).get()
+            
+            const sensors = new Array<admin.firestore.DocumentReference>()
+
+            sensorQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+                sensors.push(doc.ref)
+            })
+            
+            const ids = sensors.map((sensor) => {
+                return sensor.id
+            })
+
+            await asyncForEach(sensors, async (sensor) => {
+                await sensor.delete()
+            })
+
+            res.status(200).json({
+                success : true,
+                deleted : ids
+            })
+        })
+
     authRouter.route('/sensors/:id/notifications')
         
         .put(async (req: Request, res: Response) => {
+            
             const pubsub = new PubSub()
 
             const sensorId = req.params.id
@@ -158,32 +185,6 @@ export default (app: Application) => {
                 msg : messageId
             })
         })
-    
-    // app.delete('/api/sensors', async (req: Request, res: Response) => {
-    
-    //     const fs = admin.firestore()
-
-    //     const sensorQuerySnaps: admin.firestore.QuerySnapshot = await fs.collection(Models.SENSOR).get()
-        
-    //     const sensors = new Array<admin.firestore.DocumentReference>()
-
-    //     sensorQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
-    //         sensors.push(doc.ref)
-    //     })
-        
-    //     const ids = sensors.map((sensor) => {
-    //         return sensor.id
-    //     })
-
-    //     await asyncForEach(sensors, async (sensor) => {
-    //         await sensor.delete()
-    //     })
-
-    //     res.status(200).json({
-    //         success : true,
-    //         deleted : ids
-    //     })
-    // })
 
     authRouter.route('/base-stations')
 
@@ -248,7 +249,7 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     {
         res.status(UNAUTHORIZED).json({
             error : getStatusText(UNAUTHORIZED),
-            code : UNAUTHORIZED
+            code : UNAUTHORIZED,
         }).end()
     }
 }
@@ -266,7 +267,7 @@ const adminMiddleware = async (req: Request, res: Response, next: NextFunction) 
     {
         res.status(UNAUTHORIZED).json({
             error : getStatusText(UNAUTHORIZED),
-            code : UNAUTHORIZED
+            code : UNAUTHORIZED,
         }).end()
     }
 }
