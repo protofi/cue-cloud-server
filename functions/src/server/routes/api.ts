@@ -1,6 +1,8 @@
 import { Router, Application, Request, Response, NextFunction } from 'express'
 import * as admin from 'firebase-admin'
 
+import { getStatusText, UNAUTHORIZED} from 'http-status-codes'
+
 import ModelImpl, { Models } from '../lib/ORM/Models';
 import { asyncForEach } from '../lib/util';
 import DataORMImpl from '../lib/ORM';
@@ -24,10 +26,19 @@ export default (app: Application) => {
     const authRouter = Router()
     app.use(apiBasePath, authRouter)
 
-
     guestRouter.route('/')
         .get(async (req: Request, res: Response) => {
-            res.status(200).end()
+            res.status(200).json({
+                message: 'Welcome to the Cue API.'
+            })
+        })
+    
+        
+    guestRouter.route('/lol')
+        .post(async (req: Request, res: Response) => {
+            res.status(200).json({
+                lol: 'lol'
+            })
         })
 
     /******************************************
@@ -49,40 +60,40 @@ export default (app: Application) => {
     
     authRouter.use(adminMiddleware)
 
-    authRouter
-    .route('/households')
+    authRouter.route('/households')
+        
         .get(async (req: Request, res: Response) => {
             res.status(200).json({
                 user : req['auth']
             })
         })
 
-    authRouter
-    .route('/sensors/:id/notification')
+    authRouter.route('/sensors/:id/notification')
+        
         .put(async (req: Request, res: Response) => {
-        const pubsub = new PubSub()
+            const pubsub = new PubSub()
 
-        const sensorId = req.params.id
+            const sensorId = req.params.id
 
-        const topicName = 'notification'
+            const topicName = 'notification'
 
-        const data = {
-            sensor_id : sensorId
-        }
+            const data = {
+                sensor_id : sensorId
+            }
 
-        const messageId = await pubsub
-                .topic(topicName)
-                .publisher()
-                .publish(Buffer.from(''), data)
-                
-        console.log(`Message ${messageId} published.`)
+            const messageId = await pubsub
+                    .topic(topicName)
+                    .publisher()
+                    .publish(Buffer.from(''), data)
+                    
+            console.log(`Message ${messageId} published.`)
 
-        res.json({
-            success: true,
-            sensor: sensorId,
-            msg : messageId
+            res.json({
+                success: true,
+                sensor: sensorId,
+                msg : messageId
+            })
         })
-    })
 
     // app.get('/api', (req: Request, res: Response) => {
     //     res.status(200).json({
@@ -281,13 +292,16 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     {
         const token = req.headers.authorization
         req['auth'] = await admin.auth().verifyIdToken(token)
+
+        next()
     }
     catch(e)
     {
-        res.status(401).json(e).end()
+        res.status(UNAUTHORIZED).json({
+            error : getStatusText(UNAUTHORIZED),
+            code : UNAUTHORIZED
+        }).end()
     }
-
-    next()
 }
 
 const adminMiddleware = async (req: Request, res: Response, next: NextFunction) => {
@@ -296,11 +310,14 @@ const adminMiddleware = async (req: Request, res: Response, next: NextFunction) 
     {
         const user = req['auth']
         if(!user.isAdmin) throw new Error()
+
+        next()
     }
     catch(e)
     {
-        res.status(401).json(e)
+        res.status(UNAUTHORIZED).json({
+            error : getStatusText(UNAUTHORIZED),
+            code : UNAUTHORIZED
+        }).end()
     }
-
-    next()
 }
