@@ -33,10 +33,12 @@ const createStore = () => {
       setUser (state, payload)
       {
         state.user = payload
+        this.$axios.setHeader('Authorization', payload.ra)
       },
       unsetUser(state, payload)
       {
         state.user = null
+        this.$axios.setHeader('Authorization', null)
       },
       userLoading(state, payload)
       {

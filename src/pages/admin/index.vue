@@ -259,7 +259,7 @@
         this.activeHousehold = household
       },
       sensorNotification(sensor) {
-        console.log(sensor.id)
+        this.$axios.$put(`sensors/${sensor.id}/notifications`)
       }
     },
     computed: {
@@ -309,7 +309,7 @@
     },
 
     created () {
-        firestore.collection("households")
+        firestore.collection('households')
             .onSnapshot(snapshot => {
                 const households = []
                 
