@@ -307,6 +307,7 @@
         return sensors
       }
     },
+
     created () {
         firestore.collection("households")
             .onSnapshot(snapshot => {
@@ -314,10 +315,15 @@
                 
                 snapshot.docs.forEach(doc => {
                     
-                    households.push({
+                    const household = {
                         id    : doc.id,
                         data : doc.data()
-                    })
+                    }
+
+                    households.push(household)
+
+                    if(this.activeHousehold && this.activeHousehold.id == doc.id)
+                        this.activeHousehold = household
                 })
 
                 this.households = households
