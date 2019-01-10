@@ -30,5 +30,8 @@ export default class Sensor extends ModelImpl {
     household(): N2OneRelation
     {
         return this.belongsTo(Models.HOUSEHOLD)
+            .defineCachableFields([
+                'name'
+            ])
     }
 }

@@ -1,5 +1,6 @@
 service cloud.firestore{
   match /databases/{database}/documents {
+    
     match /{documents=**} {
     		allow read: if false
     		allow write: if false
@@ -15,12 +16,12 @@ service cloud.firestore{
 
       allow read: if (isAuth() && isResident()) || isAdmin()
 
-			allow update: if isAuth()
+			allow update: if (isAuth()
           					&& (
                     	!reqHasUsersField()
                 		  || isHouseholdAdmin()
-                    )
-
+                    )) || isAdmin()
+                    
       allow delete: if false
 
       function isHouseholdAdmin() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.households.pivot.role == "admin" }
@@ -50,7 +51,22 @@ service cloud.firestore{
       function isSelf() { return request.auth.uid == resource.data.id }
 	  }
 
+    match /sensors/{sensorId} {
+      allow create: if false
+      allow read:   if isAdmin()
+      allow update: if isAdmin()
+      allow delete: if false
+    }
+
+    match /base_stations/{baseStationId} {
+      allow create: if false
+      allow read:   if isAdmin()
+      allow update: if isAdmin()
+      allow delete: if false
+    }
+
     function isAuth() { return (request.auth.uid != null) }
     function isAdmin() { return request.auth.token.isAdmin }
+    
   }
 }

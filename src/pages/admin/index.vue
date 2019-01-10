@@ -78,16 +78,16 @@
                 {{baseStation.name ? baseStation.name : baseStation.id }}
               </v-list-tile-title>
               
-              <v-list-tile-action>
+              <!-- <v-list-tile-action>
 
                  <v-btn icon ripple
-                  @click.stop="">
+                  @click.stop="unlinkBaseStation(baseStation.id)">
                   <v-icon color="grey lighten-1">
-                    delete_forever
+                    link_off
                   </v-icon>
                 </v-btn>
 
-              </v-list-tile-action>
+              </v-list-tile-action> -->
               
             </v-list-tile>
 
@@ -100,12 +100,11 @@
             </v-list-tile>
 
             <v-list-tile
-              v-for="(crud, i) in cruds"
-              :key="i"
+              @click="showBaseStationDialog = true"
             >
-              <v-list-tile-title v-text="crud[0]"></v-list-tile-title>
+              <v-list-tile-title>Claim</v-list-tile-title>
               <v-list-tile-action>
-                <v-icon v-text="crud[1]"></v-icon>
+                <v-icon>fiber_pin</v-icon>
               </v-list-tile-action>
             </v-list-tile>
           </v-list-group>
@@ -137,7 +136,7 @@
                  <v-btn icon ripple
                   @click.stop="">
                   <v-icon color="grey lighten-1">
-                    delete_forever
+                    clear
                   </v-icon>
                 </v-btn>
 
@@ -145,24 +144,6 @@
               
             </v-list-tile>
 
-          <v-list-group
-            sub-group
-            no-action
-          >
-            <v-list-tile slot="activator">
-              <v-list-tile-title>Actions</v-list-tile-title>
-            </v-list-tile>
-
-            <v-list-tile
-              v-for="(crud, i) in cruds"
-              :key="i"
-            >
-              <v-list-tile-title v-text="crud[0]"></v-list-tile-title>
-              <v-list-tile-action>
-                <v-icon v-text="crud[1]"></v-icon>
-              </v-list-tile-action>
-            </v-list-tile>
-          </v-list-group>
         </v-list-group> <!-- Users Section End -->
         
         <!-- Sensors Section -->
@@ -176,7 +157,7 @@
 
           <v-list-tile v-if="activeHouseholdSensers.length < 1">
 
-            <v-list-tile-action> </v-list-tile-action>
+            <v-list-tile-action></v-list-tile-action>
 
              <v-list-tile-title>
                 No sensors registered
@@ -216,12 +197,19 @@
             </v-list-tile>
 
             <v-list-tile
-              v-for="(crud, i) in cruds"
-              :key="i"
+              @click="pairSensor(activeHousehold.id)"
             >
-              <v-list-tile-title v-text="crud[0]"></v-list-tile-title>
+              <v-list-tile-title>Pair new</v-list-tile-title>
               <v-list-tile-action>
-                <v-icon v-text="crud[1]"></v-icon>
+                <v-icon>leak_add</v-icon>
+              </v-list-tile-action>
+            </v-list-tile>
+            <v-list-tile
+              @click="deleteSensors(activeHousehold.id)"
+            >
+              <v-list-tile-title>Delete all</v-list-tile-title>
+              <v-list-tile-action>
+                <v-icon>delete_forever</v-icon>
               </v-list-tile-action>
             </v-list-tile>
           </v-list-group>
@@ -229,38 +217,266 @@
       </v-list>
     </v-navigation-drawer>
 
+    <v-dialog v-model="showBaseStationDialog" max-width="600px">
+      <v-card>
+        <v-card-title>
+          <span class="headline">Enter Base Station Pin Code</span>
+        </v-card-title>
+        <v-card-text>
+          <v-form v-model="baseStationDialogValid" ref="baseStationClaimForm">
+            <v-container grid-list-md>
+              <v-layout wrap>
+                <v-flex xs12>
+                  <v-text-field
+                    :rules="baseStationPinRules"
+                    label="Pin code"
+                    v-model="baseStationPin"
+                    required>
+                    </v-text-field>
+                </v-flex>
+              </v-layout>
+            </v-container>
+            <v-alert
+                    :value="baseStationPinError"
+                    color="error"
+                    icon="warning"
+                    transition="scale-transition"
+                    outline
+                >
+                {{ baseStationPinErrorMessage }}
+                </v-alert>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue darken-1" flat @click="showBaseStationDialog = false">Close</v-btn>
+          <v-btn color="blue darken-1" flat type="submit" @click="claimBaseStation">Claim</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="showSensorConfigDialog" max-width="600px">
+      <v-card>
+        <v-card-title>
+          <span class="headline">Configurate the newly paired sensor</span>
+        </v-card-title>
+        <v-card-text>
+          <v-form ref="sensorForm">
+            <v-container grid-list-md>
+              <v-layout wrap>
+                <v-flex xs12>
+                  <v-text-field
+                    label="Sensor id"
+                    disabled
+                    v-model="sensorIdToBeConfigured">
+                    </v-text-field>
+                </v-flex>
+                <v-flex xs12>
+                  <v-text-field
+                    label="Name"
+                    v-model="sensorName">
+                    </v-text-field>
+                </v-flex>
+                <v-flex xs12>
+                  <v-text-field
+                    label="Sensor icon"
+                    v-model="sensorIcon">
+                    </v-text-field>
+                </v-flex>
+                <v-flex xs12>
+                  <v-text-field
+                    label="Location of the sensor"
+                    v-model="sensorLocation">
+                    </v-text-field>
+                </v-flex>
+              </v-layout>
+            </v-container>
+            <v-alert
+                    :value="sensorConfigError"
+                    color="error"
+                    icon="warning"
+                    transition="scale-transition"
+                    outline
+                >
+                {{ sensorConfigErrorMessage }}
+                </v-alert>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue darken-1" flat @click="showSensorConfigDialog = false">Leave unconfigured</v-btn>
+          <v-btn color="blue darken-1" flat type="submit" @click="saveSensorData">Save</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
   </v-layout>
 
 </template>
 
 <script>
-    import { firestore } from '~/plugins/firebase.js'
+    import { firebase, firestore, messaging } from '~/plugins/firebase.js'
+    import axios from 'axios'
 
   export default {
     data () {
       return {
           drawer: null,
+          
           households: [],
           activeHousehold : null,
-          admins: [
-            ['Management', 'people_outline'],
-            ['Settings', 'settings']
+
+          showSensorConfigDialog: false,
+          sensorIdToBeConfigured : '',
+          sensorName : '',
+          sensorLocation : '',
+          sensorIcon : '',
+          sensorConfigError : false,
+          sensorConfigErrorMessage : '',
+
+          showBaseStationDialog: false,
+          baseStationDialogValid: false,
+          baseStationPin : '',
+          baseStationPinRules: [
+            v => !!v || 'A pincode is required'
           ],
-          cruds: [
-            ['Create', 'add'],
-            ['Delete all', 'delete']
-          ]
+          baseStationPinErrorMessage : '',
+          baseStationPinError : false,
       }
     },
     methods : {
+      
       toggleHouseholdInfo(household) {
-
         this.drawer = !(this.activeHousehold && this.activeHousehold.id == household.id && this.drawer)
         this.activeHousehold = household
       },
+      
       sensorNotification(sensor) {
         this.$axios.$put(`sensors/${sensor.id}/notifications`)
+      },
+
+      async pairSensor(householdId) {
+      
+        try{
+          const response = await this.$axios.$put(`households/${householdId}/sensors`)
+
+          this.showSensorConfigDialog = true;
+          this.sensorIdToBeConfigured = response.sensor
+        }
+        catch(e)
+        {
+          console.log(e)
+        }
+      },
+
+      async saveSensorData (e)
+      {
+        e.preventDefault()
+
+        try{
+          await firestore.collection('sensors').doc(this.sensorIdToBeConfigured).set({
+            name : this.sensorName,
+            location : this.sensorLocation,
+            string_icon : this.sensorIcon
+          }, {
+            merge : true
+          })
+
+          this.sensorName = ''
+          this.sensorLocation = ''
+          this.sensorIcon = ''
+    
+          this.showSensorConfigDialog = false
+        }
+        catch(e)
+        {
+          console.log(e)
+        }
+
+      },
+
+      async claimBaseStation (e)
+      {
+        e.preventDefault()
+
+        if (this.$refs.baseStationClaimForm.validate())
+        {
+            const batch = firestore.batch()
+
+            try{
+                const querySnapshot = await firestore.collection('base_stations').where('pin', '==', this.baseStationPin).get()
+
+                if(querySnapshot.size > 1)  this.baseStationPinErrorMessage = 'Something went wrong. please contact Cue support.'
+                if(querySnapshot.empty)     this.baseStationPinErrorMessage = 'Pin code is invalid. Check if you have typed the code correctly.'
+                if(querySnapshot.size != 1) return
+
+                const baseStation = querySnapshot.docs[0]
+
+                if(baseStation.data().households)
+                {
+                    this.baseStationPinErrorMessage = 'This Base Station has already been claimed.'
+                    return
+                }
+
+                batch.set(firestore.collection('households').doc(this.activeHousehold.id), {
+                  'base_stations' : {
+                    [baseStation.id] : true
+                  }
+                }, {
+                  merge : true
+                })
+
+                batch.set(firestore.collection('base_stations').doc(baseStation.id), {
+                  'households' : {
+                    id : this.activeHousehold.id
+                  }
+                }, {
+                  merge : true
+                })
+
+                await batch.commit()
+
+                this.showBaseStationDialog = false
+                this.baseStationPin = ''
+            }
+            catch(e)
+            {
+                this.baseStationPinErrorMessage = 'Something went wrong. Contact the closest developer.'
+                console.log("Error getting documents: ", e);
+            }
+        }
+      },
+      async deleteSensors(householdId) {
+          try{
+            await this.$axios.$delete(`households/${householdId}/sensors`)    
+          }
+          catch(e)
+          {
+            console.log(e)
+          }
       }
+      // async unlinkBaseStation(id)
+      // {
+      //     try{
+      //       await firestore.collection('base_stations').doc(id).set({
+      //           households : firebase.firestore.FieldValue.delete()
+      //       }, {
+      //         merge : true
+      //       })
+      //     }
+      //     catch(e)
+      //     {
+      //       console.log(e)
+      //     }
+      // }
+    },
+    watch : {
+      baseStationPinErrorMessage (v) {
+            this.baseStationPinError = (v.length > 0)
+      },
+      sensorConfigErrorMessage (v) {
+            this.sensorConfigError = (v.length > 0)
+      },
     },
     computed: {
       activeHouseholdUsers () {
@@ -307,28 +523,31 @@
         return sensors
       }
     },
-
+    mounted () {
+      
+    },
     created () {
-        firestore.collection('households')
-            .onSnapshot(snapshot => {
-                const households = []
-                
-                snapshot.docs.forEach(doc => {
-                    
-                    const household = {
-                        id    : doc.id,
-                        data : doc.data()
-                    }
+    
+      firestore.collection('households')
+          .onSnapshot(snapshot => {
+              const households = []
+              
+              snapshot.docs.forEach(doc => {
+                  
+                  const household = {
+                      id    : doc.id,
+                      data : doc.data()
+                  }
 
-                    households.push(household)
+                  households.push(household)
 
-                    if(this.activeHousehold && this.activeHousehold.id == doc.id)
-                        this.activeHousehold = household
-                })
+                  if(this.activeHousehold && this.activeHousehold.id == doc.id)
+                      this.activeHousehold = household
+              })
 
-                this.households = households
-            }
-        )
+              this.households = households
+          }
+      	)
     }
   }
 </script>

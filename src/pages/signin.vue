@@ -82,7 +82,7 @@
 </template>
 
 <script>
-    import axios from 'axios'
+    // import axios from 'axios'
     import { auth } from '~/plugins/firebase.js'
 
     export default {

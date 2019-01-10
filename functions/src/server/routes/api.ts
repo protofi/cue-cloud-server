@@ -16,6 +16,50 @@ try {
     admin.initializeApp()
 } catch (e) {}
 
+const notFoundHandler = (req: Request, res: Response) => {
+ 
+    res.status(NOT_FOUND).json({
+        error : getStatusText(NOT_FOUND),
+        code : NOT_FOUND
+    }).end()
+}
+
+const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+        
+    try
+    {
+        const token = req.headers.authorization
+        req['auth'] = await admin.auth().verifyIdToken(token)
+
+        next()
+    }
+    catch(e)
+    {
+        res.status(UNAUTHORIZED).json({
+            error : getStatusText(UNAUTHORIZED),
+            code : UNAUTHORIZED,
+        }).end()
+    }
+}
+
+const adminMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+    
+    try
+    {
+        const user = req['auth']
+        if(!user.isAdmin) throw new Error()
+
+        next()
+    }
+    catch(e)
+    {
+        res.status(UNAUTHORIZED).json({
+            error : getStatusText(UNAUTHORIZED),
+            code : UNAUTHORIZED,
+        }).end()
+    }
+}
+
 export default (app: Application) => {
 
     const publicRouter = Router()
@@ -61,6 +105,45 @@ export default (app: Application) => {
         .get(async (req: Request, res: Response) => {
             res.json({
                 user : req['auth']
+            })
+        })
+
+    authRouter.route('/households/:id/sensors')
+        
+        .put(async (req: Request, res: Response) => {
+            const householdId = req.params.id
+            
+            const fs = admin.firestore()
+            const db = new DataORMImpl(fs)
+
+            const household = await db.household().find(householdId) as Household
+
+            const sensor = db.sensor()
+            await household.sensors().attach(sensor)
+
+            res.json({
+                success: true,
+                sensor: sensor.getId()
+            })
+        })
+
+        .delete(async (req: Request, res: Response) => {
+            
+            const householdId = req.params.id
+            
+            const fs = admin.firestore()
+            const db = new DataORMImpl(fs)
+
+            const household = await db.household().find(householdId) as Household
+
+            const sensors: Array<ModelImpl> = await household.sensors().get()
+            
+            await asyncForEach(sensors, async sensor => {
+                await sensor.delete()
+            })
+
+            res.json({
+                success: true
             })
         })
 
@@ -144,11 +227,11 @@ export default (app: Application) => {
                 sensors.push(doc.ref)
             })
             
-            const ids = sensors.map((sensor) => {
+            const ids = sensors.map(sensor => {
                 return sensor.id
             })
 
-            await asyncForEach(sensors, async (sensor) => {
+            await asyncForEach(sensors, async sensor => {
                 await sensor.delete()
             })
 
@@ -226,48 +309,4 @@ export default (app: Application) => {
      ******************************************/
 
     authRouter.use(notFoundHandler)
-}
-
-const notFoundHandler = (req: Request, res: Response) => {
- 
-    res.status(NOT_FOUND).json({
-        error : getStatusText(NOT_FOUND),
-        code : NOT_FOUND
-    }).end()
-}
-
-const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-        
-    try
-    {
-        const token = req.headers.authorization
-        req['auth'] = await admin.auth().verifyIdToken(token)
-
-        next()
-    }
-    catch(e)
-    {
-        res.status(UNAUTHORIZED).json({
-            error : getStatusText(UNAUTHORIZED),
-            code : UNAUTHORIZED,
-        }).end()
-    }
-}
-
-const adminMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-    
-    try
-    {
-        const user = req['auth']
-        if(!user.isAdmin) throw new Error()
-
-        next()
-    }
-    catch(e)
-    {
-        res.status(UNAUTHORIZED).json({
-            error : getStatusText(UNAUTHORIZED),
-            code : UNAUTHORIZED,
-        }).end()
-    }
 }

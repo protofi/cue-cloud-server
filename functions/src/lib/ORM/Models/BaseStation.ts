@@ -1,5 +1,6 @@
 import ModelImpl, { Models } from "./";
 import { N2OneRelation } from "../Relation";
+import { UnlinkBaseStationFromHousehold } from "../../Command/UnlinkBaseStationFromHousehold";
 
 export default class BaseStation extends ModelImpl {
 
@@ -11,5 +12,6 @@ export default class BaseStation extends ModelImpl {
     household(): N2OneRelation
     {
         return this.belongsTo(Models.HOUSEHOLD)
+            .defineActionableField(Models.HOUSEHOLD, new UnlinkBaseStationFromHousehold())
     }
 }
