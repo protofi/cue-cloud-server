@@ -25,6 +25,7 @@ exports = module.exports = functions.firestore
   
     return Promise.all([
 
+        sensor.takeActionOn(change),
         sensor.household().updateCache(change),
         
     ]).catch(console.error)
