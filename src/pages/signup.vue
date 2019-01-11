@@ -89,7 +89,7 @@
                     this.errorMessage = ''
 
                     auth.createUserWithEmailAndPassword(this.email, this.password)
-                    .catch((error) => {
+                    .catch(error => {
                         this.errorMessage = error.message
 
                     }).finally(() => {

@@ -101,8 +101,9 @@
 
             <v-list-tile
               @click="showBaseStationDialog = true"
+              ripple
             >
-              <v-list-tile-title>Claim</v-list-tile-title>
+              <v-list-tile-title>Claim new</v-list-tile-title>
               <v-list-tile-action>
                 <v-icon>fiber_pin</v-icon>
               </v-list-tile-action>
@@ -131,7 +132,7 @@
                 {{user.name ? user.name : user.id }}
               </v-list-tile-title>
               
-              <v-list-tile-action>
+              <!-- <v-list-tile-action>
 
                  <v-btn icon ripple
                   @click.stop="">
@@ -140,7 +141,7 @@
                   </v-icon>
                 </v-btn>
 
-              </v-list-tile-action>
+              </v-list-tile-action> -->
               
             </v-list-tile>
 
@@ -167,8 +168,7 @@
           <v-list-tile
             v-for="sensor in activeHouseholdSensers"
             :key="sensor.id"
-             >
-
+          >
             <v-list-tile-action></v-list-tile-action>
 
             <v-list-tile-title>
@@ -177,8 +177,10 @@
             
             <v-list-tile-action>
 
-                <v-btn icon ripple
-                @click.stop="sensorNotification(sensor)">
+              <v-btn icon ripple
+                @click.stop="sensorNotification(sensor)"
+                :loading="sensorNotificationLoading"
+                >
                 <v-icon color="grey lighten-1">
                   notification_important
                 </v-icon>
@@ -198,18 +200,46 @@
 
             <v-list-tile
               @click="pairSensor(activeHousehold.id)"
+              :disabled="sensorConfigLoading"
+              ripple
             >
               <v-list-tile-title>Pair new</v-list-tile-title>
               <v-list-tile-action>
-                <v-icon>leak_add</v-icon>
+                
+                <v-progress-circular
+                  v-if="sensorConfigLoading"
+                  :size="24"
+                  :width="3"
+                  color="white"
+                  indeterminate
+                ></v-progress-circular>
+
+                <v-icon
+                  v-if="!sensorConfigLoading"
+                >leak_add</v-icon>
+
               </v-list-tile-action>
             </v-list-tile>
             <v-list-tile
               @click="deleteSensors(activeHousehold.id)"
+              :disabled="deleteSensorsLoading"
+              ripple
             >
               <v-list-tile-title>Delete all</v-list-tile-title>
               <v-list-tile-action>
-                <v-icon>delete_forever</v-icon>
+
+                <v-progress-circular
+                  v-if="deleteSensorsLoading"
+                  :size="24"
+                  :width="3"
+                  color="white"
+                  indeterminate
+                ></v-progress-circular>
+
+                <v-icon
+                  v-if="!deleteSensorsLoading"
+                >delete_forever</v-icon>
+
               </v-list-tile-action>
             </v-list-tile>
           </v-list-group>
@@ -250,7 +280,7 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="blue darken-1" flat @click="showBaseStationDialog = false">Close</v-btn>
-          <v-btn color="blue darken-1" flat type="submit" @click="claimBaseStation">Claim</v-btn>
+          <v-btn color="blue darken-1" flat type="submit" :disabled="claimBaseStationLoading" :loading="claimBaseStationLoading" @click="claimBaseStation">Claim</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -299,7 +329,7 @@
                     outline
                 >
                 {{ sensorConfigErrorMessage }}
-                </v-alert>
+            </v-alert>
           </v-form>
         </v-card-text>
         <v-card-actions>
@@ -326,6 +356,7 @@
           households: [],
           activeHousehold : null,
 
+          sensorConfigLoading : false,
           showSensorConfigDialog: false,
           sensorIdToBeConfigured : '',
           sensorName : '',
@@ -334,6 +365,9 @@
           sensorConfigError : false,
           sensorConfigErrorMessage : '',
 
+          deleteSensorsLoading : false,
+
+          claimBaseStationLoading : false,
           showBaseStationDialog: false,
           baseStationDialogValid: false,
           baseStationPin : '',
@@ -342,6 +376,8 @@
           ],
           baseStationPinErrorMessage : '',
           baseStationPinError : false,
+
+          sensorNotificationLoading : false
       }
     },
     methods : {
@@ -352,27 +388,36 @@
       },
       
       sensorNotification(sensor) {
+        this.sensorNotificationLoading = true
+
         this.$axios.$put(`sensors/${sensor.id}/notifications`)
+          .finally(() => 
+          {
+            this.sensorNotificationLoading = false
+          })
       },
 
       async pairSensor(householdId) {
-      
-        try{
-          const response = await this.$axios.$put(`households/${householdId}/sensors`)
+        
+        this.sensorConfigLoading = true
 
-          this.showSensorConfigDialog = true;
-          this.sensorIdToBeConfigured = response.sensor
-        }
-        catch(e)
-        {
-          console.log(e)
-        }
+          this.$axios.$put(`households/${householdId}/sensors`)
+            .then(response =>{
+              this.showSensorConfigDialog = true;
+              this.sensorIdToBeConfigured = response.sensor
+            })
+            .catch(e => {
+              console.log(e)
+            })
+            .finally(()=>{
+                      this.sensorConfigLoading = false
+            })
       },
 
       async saveSensorData (e)
       {
         e.preventDefault()
-
+  
         try{
           await firestore.collection('sensors').doc(this.sensorIdToBeConfigured).set({
             name : this.sensorName,
@@ -392,12 +437,14 @@
         {
           console.log(e)
         }
-
       },
 
       async claimBaseStation (e)
       {
         e.preventDefault()
+        
+        this.baseStationPinErrorMessage = ''
+        this.claimBaseStationLoading = true
 
         if (this.$refs.baseStationClaimForm.validate())
         {
@@ -408,13 +455,18 @@
 
                 if(querySnapshot.size > 1)  this.baseStationPinErrorMessage = 'Something went wrong. please contact Cue support.'
                 if(querySnapshot.empty)     this.baseStationPinErrorMessage = 'Pin code is invalid. Check if you have typed the code correctly.'
-                if(querySnapshot.size != 1) return
+                if(querySnapshot.size != 1)
+                {
+                  this.claimBaseStationLoading = false
+                  return
+                }
 
                 const baseStation = querySnapshot.docs[0]
 
                 if(baseStation.data().households)
                 {
                     this.baseStationPinErrorMessage = 'This Base Station has already been claimed.'
+                    this.claimBaseStationLoading = false
                     return
                 }
 
@@ -442,18 +494,25 @@
             catch(e)
             {
                 this.baseStationPinErrorMessage = 'Something went wrong. Contact the closest developer.'
+
                 console.log("Error getting documents: ", e);
             }
         }
+        else
+        {
+          this.claimBaseStationLoading = false
+        }
       },
       async deleteSensors(householdId) {
-          try{
-            await this.$axios.$delete(`households/${householdId}/sensors`)    
-          }
-          catch(e)
-          {
-            console.log(e)
-          }
+          this.deleteSensorsLoading = true
+  
+          this.$axios.$delete(`households/${householdId}/sensors`)    
+            .catch(e => {
+              console.log(e)
+            })
+            .finally(() => {
+              this.deleteSensorsLoading = false
+            })
       }
       // async unlinkBaseStation(id)
       // {
