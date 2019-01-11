@@ -3384,6 +3384,64 @@ describe('STAGE', () => {
                     expect(driverDoc).to.deep.equal(expectedCarDoc)
                 })
 
+                it.only('Fields defined as cachable from the owner to property should be cached when new field is added', async () => {
+
+                    class CarM extends Car {
+                        drivers(): Many2ManyRelation
+                        {
+                            return this.belongsToMany('drivers')
+                                    .defineCachableFields([
+                                        `name${Models.SECURE_SURFIX}`,
+                                        'name'
+                                    ])
+                        }
+                    }
+
+                    const carId = uniqid()
+                    const driverId = uniqid()
+
+                    const car = new CarM(stubFs, null, carId)
+                    const driver = new Driver(stubFs, null, driverId)
+
+                    await car.drivers().attach(driver)
+
+                    firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {}
+
+                    const before = test.firestore.makeDocumentSnapshot({}, '')
+
+                    const data = {
+                        name : 'Mustang'
+                    }
+
+                    const after = test.firestore.makeDocumentSnapshot(data, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await car.drivers().updateCache(change)
+
+                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const expectedDriverDoc = {
+                        [Stubs.CAR] : {
+                            [carId] : {
+                                name : data.name
+                            }
+                        }
+                    }
+
+                    expect(driverDoc).to.deep.equal(expectedDriverDoc)
+
+                    const driverSecureDoc = firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
+                    const expectedDriverSecureDoc = {
+                        [Stubs.CAR] : {
+                            [carId] : {
+                                name : data.name
+                            }
+                        }
+                    }
+
+                    expect(driverSecureDoc).to.deep.equal(expectedDriverSecureDoc)
+                })
+
                 it('Fields defined as cachable from the owner to property should not be cached data has not changed', async () => {
 
                     class CarM extends Car {

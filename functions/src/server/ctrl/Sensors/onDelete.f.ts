@@ -25,7 +25,8 @@ exports = module.exports = functions.firestore
     return Promise.all([
 
         sensor.users().detach(),
-        sensor.household().unset()
+        sensor.household().unset(),
+        sensor.onDelete(),
 
     ]).catch(console.error)
 })

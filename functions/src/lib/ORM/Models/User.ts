@@ -30,7 +30,8 @@ export default class User extends ModelImpl {
         return this
             .belongsToMany(Models.SENSOR)
             .defineCachableFields([
-                'id'
+                'id',
+                `FCM_tokens${Models.SECURE_SURFIX}`
             ])
     }
 }

@@ -12,9 +12,8 @@ exports = module.exports = functions.pubsub
     const db = new DataORMImpl(admin.firestore())
 
     const sensorId = message.attributes.sensor_id
-    const sensor = await db.sensor().find(sensorId) as Sensor
-
-    const users = await sensor.users().cache()
+    const sensor = await db.sensor().secure().find(sensorId) as Sensor
+    const users = await sensor.getField('')
 
     const collapseKey = '123abc'
 

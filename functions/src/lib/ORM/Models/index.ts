@@ -10,7 +10,9 @@ export enum Models {
     SENSOR = 'sensors',
     EVENT = 'events',
     ROOM = 'rooms',
-    USER = 'users'
+    USER = 'users',
+
+    SECURE_SURFIX = '_secure'
 }
 
 export interface Model{
@@ -26,6 +28,7 @@ export interface Model{
     defineActionableField(field: string, command: IActionableFieldCommand): void
     takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
     addOnCreateAction(command: IModelCommand): void
+    addOnDeleteAction(command: IModelCommand): void
     onCreate(): Promise<void>
 }
 
@@ -37,6 +40,7 @@ export default class ModelImpl implements Model {
     protected db: FirebaseFirestore.Firestore
 
     protected onCreateAction: IModelCommand
+    protected onDeleteAction: IModelCommand
     protected actionableFields: Map<string, IActionableFieldCommand> = new Map<string, IActionableFieldCommand>()
     protected relations: Map<string, RelationImpl>
     
@@ -252,5 +256,21 @@ export default class ModelImpl implements Model {
     {
         if(!this.onCreateAction) return
         await this.onCreateAction.execute(this)
+    }
+
+    addOnDeleteAction(command: IModelCommand): void 
+    {
+        this.onDeleteAction = command
+    }
+
+    async onDelete(): Promise<void>
+    {
+        if(!this.onDeleteAction) return
+        await this.onDeleteAction.execute(this)
+    }
+
+    secure() : ModelImpl
+    {
+        return new ModelImpl(`${this.name}${Models.SECURE_SURFIX}`, this.db, null, this.getId())
     }
 }

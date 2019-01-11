@@ -2,9 +2,9 @@ import { Change } from "firebase-functions"
 import { asyncForEach, difference } from "../../util"
 import { Relations } from "../../const"
 import { singular } from "pluralize"
-import ModelImpl from "../Models"
+import ModelImpl, { Models } from "../Models"
 import { Pivot } from "./Pivot"
-import { get, capitalize, isEmpty } from "lodash"
+import { get, capitalize, isEmpty, includes } from "lodash"
 import { IActionableFieldCommand } from "../../Command";
 import { firestore } from "firebase-admin";
 
@@ -67,20 +67,30 @@ export default class RelationImpl implements Relation{
     protected async getCacheFieldsToUpdateOnProperty(beforeData: FirebaseFirestore.DocumentData, afterData: FirebaseFirestore.DocumentData): Promise<any>
     {
         const newCacheData = {}
+        const newSecureCacheData = {}
+
         const ownerId = await this.owner.getId()
 
         this.cacheOnToProperty.forEach((field) => {
-                
-            const fieldPath = field.replace(Relations.PIVOT, `${this.propertyModelName}.${Relations.PIVOT}`) // prepend relevant model name to pivot field path
+            
+            const fieldPath = field
+                        .replace(Relations.PIVOT, `${this.propertyModelName}.${Relations.PIVOT}`) // prepend relevant model name to pivot field path
+                        .replace(Models.SECURE_SURFIX,'') // remove secure surfix
 
             const cachableFieldBefore = get(beforeData, fieldPath, null) // retrieve data associated with the cached field before update
             const cachableFieldAfter  = get(afterData, fieldPath, null) // retrieve data associated with the cached field after update
             if(cachableFieldBefore === cachableFieldAfter) return //if the field have not been updated continue to next iteration and do not include it in the data to be cached
 
-            newCacheData[`${this.owner.name}.${ownerId}.${field}`] = cachableFieldAfter
+            if(includes(field, Models.SECURE_SURFIX))
+                newSecureCacheData[`${this.owner.name}.${ownerId}.${field.replace(Models.SECURE_SURFIX,'')}`] = cachableFieldAfter
+            else
+                newCacheData[`${this.owner.name}.${ownerId}.${field}`] = cachableFieldAfter
         })
 
-        return newCacheData
+        return {
+            newCacheData        : newCacheData,
+            newSecureCacheData  : newSecureCacheData
+        }
     }
 }
 
@@ -264,15 +274,28 @@ export class Many2ManyRelation extends N2ManyRelation {
 
         if(this.cacheOnToProperty)
         {
-            const newCacheData = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
+            const { newCacheData, newSecureCacheData } = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
             
+            let properties: Array<ModelImpl>
+
             if(Object.keys(newCacheData).length > 0)
             {
-                const properties: Array<ModelImpl> = await this.get()
+                properties = (properties) ? properties : await this.get()
 
                 await asyncForEach(properties,
                     async (property: ModelImpl) => {
                         await property.update(newCacheData, transaction)
+                    }
+                )
+            }
+            
+            if(Object.keys(newSecureCacheData).length > 0)
+            {
+                properties = (properties) ? properties : await this.get()
+
+                await asyncForEach(properties,
+                    async (property: ModelImpl) => {
+                        await property.secure().update(newSecureCacheData, transaction)
                     }
                 )
             }
@@ -561,7 +584,7 @@ export class N2OneRelation extends RelationImpl {
         const beforeData: FirebaseFirestore.DocumentData = change.before.data()
         const afterData: FirebaseFirestore.DocumentData = change.after.data()
 
-        const newCacheData = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
+        const { newCacheData } = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
 
         const property: ModelImpl = await this.get()
 

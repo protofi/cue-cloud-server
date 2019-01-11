@@ -2,7 +2,6 @@ import * as functions from 'firebase-functions'
 import { Models } from '../../lib/ORM/Models'
 import { firestore } from 'firebase-admin'
 import DataORMImpl from './../../lib/ORM'
-import Household from '../../lib/ORM/Models/Household';
 import BaseStation from '../../lib/ORM/Models/BaseStation';
 
 exports = module.exports = functions.firestore

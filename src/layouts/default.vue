@@ -42,23 +42,12 @@
       >
         <v-icon>web</v-icon>
       </v-btn>
-      <v-btn
-        icon
-        @click.stop="fixed = !fixed"
-      >
-        <v-icon>remove</v-icon>
-      </v-btn>
+
       <v-toolbar-title v-text="title"/>
-      <v-btn
-        icon
-        @click.stop="rightDrawer = !rightDrawer"
-      >
-        <v-icon>menu</v-icon>
-      </v-btn>
 
       <v-btn
         icon
-        @click.stop="signout"
+        @click.stop="signOut"
       >
         <v-icon>lock</v-icon>
       </v-btn>
@@ -69,27 +58,7 @@
         <nuxt />
       <!-- </v-container> -->
     </v-content>
-    <v-navigation-drawer
-      :right="right"
-      v-model="rightDrawer"
-      temporary
-      fixed
-    >
-      <v-list>
-        <v-list-tile @click.native="right = !right">
-          <v-list-tile-action>
-            <v-icon light>compare_arrows</v-icon>
-          </v-list-tile-action>
-          <v-list-tile-title>Switch drawer (click me)</v-list-tile-title>
-        </v-list-tile>
-      </v-list>
-    </v-navigation-drawer>
-    <v-footer
-      :fixed="fixed"
-      app
-    >
-      <span>&copy; 2017</span>
-    </v-footer>
+    
   </v-app>
 </template>
 
@@ -100,21 +69,18 @@
       return {
         clipped: false,
         drawer: true,
-        fixed: false,
         items: [
-          { icon: 'apps', title: 'Welcome', to: '/' },
-          { icon: 'perm_identity', title: 'Admin', to: '/admin' },
+          { icon: 'panorama', title: 'Welcome', to: '/' },
+          { icon: 'security', title: 'Admin', to: '/admin' },
           { icon: 'lock_open', title: 'Sign in', to: '/signin' },
         ],
         miniVariant: false,
-        right: true,
-        rightDrawer: false,
-        title: 'Vuetify.js'
+        title: 'Cue dashboard'
       }
     },
 
     methods: {
-      signout() {
+      signOut() {
         const _this = this
         auth.signOut().then(function()
         {
