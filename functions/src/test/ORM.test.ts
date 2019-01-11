@@ -3384,7 +3384,7 @@ describe('STAGE', () => {
                     expect(driverDoc).to.deep.equal(expectedCarDoc)
                 })
 
-                it.only('Fields defined as cachable from the owner to property should be cached when new field is added', async () => {
+                it('Fields defined as cachable from the owner to property should be cached when new field is added', async () => {
 
                     class CarM extends Car {
                         drivers(): Many2ManyRelation

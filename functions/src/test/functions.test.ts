@@ -20,7 +20,9 @@ const expect = chai.expect
 describe('OFFLINE', () => {
 
     let adminInitStub: sinon.SinonStub
-    let adminfirestoreStub: sinon.SinonStub
+    let adminFirestoreStub: sinon.SinonStub
+    let adminMessagingStub: sinon.SinonStub
+    const messagingSendToDeviceSpy = sinon.spy()
     let myFunctions
     let firestoreStub
 
@@ -97,10 +99,19 @@ describe('OFFLINE', () => {
             }
         }
 
-        adminfirestoreStub = sinon.stub(admin, 'firestore')
+        adminFirestoreStub = sinon.stub(admin, 'firestore')
         .get(() => {
             return () => {
                 return firestoreStub
+            }
+        })
+
+        adminMessagingStub = sinon.stub(admin, 'messaging')
+        .get(() => {
+            return () => {
+                return {
+                    sendToDevice : messagingSendToDeviceSpy
+                }
             }
         })
 
@@ -110,7 +121,7 @@ describe('OFFLINE', () => {
     after(async () => {
         test.cleanup()
         adminInitStub.restore()
-        adminfirestoreStub.restore()
+        adminFirestoreStub.restore()
         firestoreMockData = {}
     })
 
@@ -337,6 +348,43 @@ describe('OFFLINE', () => {
                     }
                 }
                 expect(sensorDoc).to.deep.equal(expectedSensorDoc)
+            })
+        })
+
+        describe.only('Pub/Sub', () => {
+            
+            it('Notification Topic', async () => {
+                
+                const userId        = uniqid()
+                const sensorId      = uniqid()
+                const FCMToken      = uniqid()
+                
+                // mock data
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                    [Models.USER] : {
+                        [userId] : {
+                            FCM_tokens : {
+                                [FCMToken] : true
+                            }
+                        }
+                    }
+                }
+
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    name : 'Doorbell'
+                }
+
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+            
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: {
+                        sensor_id: sensorId
+                    }}
+                )
+
+                console.error(messagingSendToDeviceSpy.args)
+                expect(messagingSendToDeviceSpy.called).to.be.true
             })
         })
     })
