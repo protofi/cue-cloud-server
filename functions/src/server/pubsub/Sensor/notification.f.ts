@@ -8,6 +8,7 @@ import { forOwn, capitalize } from "lodash"
 exports = module.exports = pubsub
 .topic('notification')
 .onPublish(async (message: pubsub.Message, context: EventContext) => {
+	
     try{
 		const db = new DataORMImpl(firestore())
 

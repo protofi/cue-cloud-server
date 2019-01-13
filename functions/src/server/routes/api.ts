@@ -1,6 +1,6 @@
 import { getStatusText, UNAUTHORIZED, NOT_FOUND, INTERNAL_SERVER_ERROR} from 'http-status-codes'
 import { Router, Application, Request, Response, NextFunction } from 'express'
-import * as admin from 'firebase-admin'
+import { firestore, auth } from 'firebase-admin'
 
 import ModelImpl, { Models } from '../lib/ORM/Models';
 import { asyncForEach } from '../lib/util';
@@ -8,13 +8,12 @@ import DataORMImpl from '../lib/ORM';
 import Household from '../lib/ORM/Models/Household';
 import * as baseStationCode from 'randomatic'
 import * as fakeUuid from 'uuid/v1'
-const { PubSub } = require('@google-cloud/pubsub');
+const { PubSub } = require('@google-cloud/pubsub')
 
 const apiBasePath = '/api/v1'
 
-try {
-    admin.initializeApp()
-} catch (e) {}
+const fs = firestore()
+const db = new DataORMImpl(fs)
 
 const notFoundHandler = (req: Request, res: Response) => {
  
@@ -29,7 +28,7 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
     try
     {
         const token = req.headers.authorization
-        req['auth'] = await admin.auth().verifyIdToken(token)
+        req['auth'] = await auth().verifyIdToken(token)
 
         next()
     }
@@ -113,9 +112,6 @@ export default (app: Application) => {
         .put(async (req: Request, res: Response) => {
             const householdId = req.params.id
             
-            const fs = admin.firestore()
-            const db = new DataORMImpl(fs)
-
             const household = await db.household().find(householdId) as Household
 
             const sensor = db.sensor()
@@ -131,9 +127,6 @@ export default (app: Application) => {
             
             const householdId = req.params.id
             
-            const fs = admin.firestore()
-            const db = new DataORMImpl(fs)
-
             const household = await db.household().find(householdId) as Household
 
             const sensors: Array<ModelImpl> = await household.sensors().get()
@@ -154,10 +147,7 @@ export default (app: Application) => {
             const sensorAddedData = {}
 
             try{
-                const fs = admin.firestore()
-                const db = new DataORMImpl(fs)
-
-                const householdQuerySnaps: admin.firestore.QuerySnapshot = await fs.collection(Models.HOUSEHOLD).get()
+                const householdQuerySnaps: firestore.QuerySnapshot = await fs.collection(Models.HOUSEHOLD).get()
                 
                 const households = new Array<Household>()
 
@@ -217,11 +207,9 @@ export default (app: Application) => {
 
         .delete(async (req: Request, res: Response) => {
         
-            const fs = admin.firestore()
-
-            const sensorQuerySnaps: admin.firestore.QuerySnapshot = await fs.collection(Models.SENSOR).get()
+            const sensorQuerySnaps: firestore.QuerySnapshot = await fs.collection(Models.SENSOR).get()
             
-            const sensors = new Array<admin.firestore.DocumentReference>()
+            const sensors = new Array<firestore.DocumentReference>()
 
             sensorQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
                 sensors.push(doc.ref)
@@ -274,9 +262,6 @@ export default (app: Application) => {
         .put(async (req: Request, res: Response) => {
         
             const code = baseStationCode('A0', 5, { exclude: '0Ooil' })
-
-            const fs = admin.firestore()
-            const db = new DataORMImpl(fs)
             
             const uuid = fakeUuid()
     

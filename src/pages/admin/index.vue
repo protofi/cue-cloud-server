@@ -68,6 +68,16 @@
             <v-list-tile-title>BASE STATIONS</v-list-tile-title>
           </v-list-tile>
 
+          <v-list-tile v-if="activeHouseholdBaseStations.length < 1">
+
+            <v-list-tile-action></v-list-tile-action>
+
+             <v-list-tile-title>
+                No Base Stations are claimed
+              </v-list-tile-title>
+          </v-list-tile>
+
+
           <v-list-tile
               v-for="baseStation in activeHouseholdBaseStations"
               :key="baseStation.id"
@@ -161,7 +171,7 @@
             <v-list-tile-action></v-list-tile-action>
 
              <v-list-tile-title>
-                No sensors registered
+                No sensors are paired
               </v-list-tile-title>
           </v-list-tile>
 
