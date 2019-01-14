@@ -16,10 +16,10 @@ function isAdminRoute(route)
 
 function isGuest(store)
 {
-    return store.state.user == null
+    return store.getters['auth/isGuest']
 }
 
 function isAdmin(store)
 {
-    return store.getters.isUserAdmin
+    return store.getters['auth/isAdmin']
 }

@@ -358,267 +358,267 @@
     import { firebase, firestore, messaging } from '~/plugins/firebase.js'
     import axios from 'axios'
 
-  export default {
-    data () {
-      return {
-          drawer: null,
-          
-          households: [],
-          activeHousehold : null,
+	export default {
+		data () {
+			return {
+				drawer: null,
+				
+				households: [],
+				activeHousehold : null,
 
-          sensorConfigLoading : false,
-          showSensorConfigDialog: false,
-          sensorIdToBeConfigured : '',
-          sensorName : '',
-          sensorLocation : '',
-          sensorIcon : '',
-          sensorConfigError : false,
-          sensorConfigErrorMessage : '',
+				sensorConfigLoading : false,
+				showSensorConfigDialog: false,
+				sensorIdToBeConfigured : '',
+				sensorName : '',
+				sensorLocation : '',
+				sensorIcon : '',
+				sensorConfigError : false,
+				sensorConfigErrorMessage : '',
 
-          deleteSensorsLoading : false,
+				deleteSensorsLoading : false,
 
-          claimBaseStationLoading : false,
-          showBaseStationDialog: false,
-          baseStationDialogValid: false,
-          baseStationPin : '',
-          baseStationPinRules: [
-            v => !!v || 'A pincode is required'
-          ],
-          baseStationPinErrorMessage : '',
-          baseStationPinError : false,
+				claimBaseStationLoading : false,
+				showBaseStationDialog: false,
+				baseStationDialogValid: false,
+				baseStationPin : '',
+				baseStationPinRules: [
+					v => !!v || 'A pincode is required'
+				],
+				baseStationPinErrorMessage : '',
+				baseStationPinError : false,
 
-          sensorNotificationLoading : false
-      }
-    },
-    methods : {
-      
-      toggleHouseholdInfo(household) {
-        this.drawer = !(this.activeHousehold && this.activeHousehold.id == household.id && this.drawer)
-        this.activeHousehold = household
-      },
-      
-      sensorNotification(sensor) {
-        this.sensorNotificationLoading = true
+				sensorNotificationLoading : false
+			}
+		},
+		methods : {
+		
+			toggleHouseholdInfo(household) {
+				this.drawer = !(this.activeHousehold && this.activeHousehold.id == household.id && this.drawer)
+				this.activeHousehold = household
+			},
+			
+			sensorNotification(sensor) {
+				this.sensorNotificationLoading = true
 
-        this.$axios.$put(`sensors/${sensor.id}/notifications`)
-          .finally(() => 
-          {
-            this.sensorNotificationLoading = false
-          })
-      },
+				this.$axios.$put(`sensors/${sensor.id}/notifications`)
+				.finally(() => 
+				{
+					this.sensorNotificationLoading = false
+				})
+			},
 
-      async pairSensor(householdId) {
-        
-        this.sensorConfigLoading = true
+			async pairSensor(householdId) {
+				
+				this.sensorConfigLoading = true
 
-          this.$axios.$put(`households/${householdId}/sensors`)
-            .then(response =>{
-              this.showSensorConfigDialog = true;
-              this.sensorIdToBeConfigured = response.sensor
-            })
-            .catch(e => {
-              console.log(e)
-            })
-            .finally(()=>{
-                      this.sensorConfigLoading = false
-            })
-      },
+				this.$axios.$put(`households/${householdId}/sensors`)
+					.then(response =>{
+					this.showSensorConfigDialog = true;
+					this.sensorIdToBeConfigured = response.sensor
+					})
+					.catch(e => {
+					console.log(e)
+					})
+					.finally(()=>{
+							this.sensorConfigLoading = false
+					})
+			},
 
-      async saveSensorData (e)
-      {
-        e.preventDefault()
-  
-        try{
-          await firestore.collection('sensors').doc(this.sensorIdToBeConfigured).set({
-            name : this.sensorName,
-            location : this.sensorLocation,
-            string_icon : this.sensorIcon
-          }, {
-            merge : true
-          })
+			async saveSensorData (e)
+			{
+				e.preventDefault()
+		
+				try{
+				await firestore.collection('sensors').doc(this.sensorIdToBeConfigured).set({
+					name : this.sensorName,
+					location : this.sensorLocation,
+					string_icon : this.sensorIcon
+				}, {
+					merge : true
+				})
 
-          this.sensorName = ''
-          this.sensorLocation = ''
-          this.sensorIcon = ''
-    
-          this.showSensorConfigDialog = false
-        }
-        catch(e)
-        {
-          console.log(e)
-        }
-      },
+				this.sensorName = ''
+				this.sensorLocation = ''
+				this.sensorIcon = ''
+			
+				this.showSensorConfigDialog = false
+				}
+				catch(e)
+				{
+					console.log(e)
+				}
+			},
 
-      async claimBaseStation (e)
-      {
-        e.preventDefault()
-        
-        this.baseStationPinErrorMessage = ''
-        this.claimBaseStationLoading = true
+			async claimBaseStation (e)
+			{
+				e.preventDefault()
+				
+				this.baseStationPinErrorMessage = ''
+				this.claimBaseStationLoading = true
 
-        if (this.$refs.baseStationClaimForm.validate())
-        {
-            const batch = firestore.batch()
+				if (this.$refs.baseStationClaimForm.validate())
+				{
+					const batch = firestore.batch()
 
-            try{
-                const querySnapshot = await firestore.collection('base_stations').where('pin', '==', this.baseStationPin).get()
+					try{
+						const querySnapshot = await firestore.collection('base_stations').where('pin', '==', this.baseStationPin).get()
 
-                if(querySnapshot.size > 1)  this.baseStationPinErrorMessage = 'Something went wrong. please contact Cue support.'
-                if(querySnapshot.empty)     this.baseStationPinErrorMessage = 'Pin code is invalid. Check if you have typed the code correctly.'
-                if(querySnapshot.size != 1)
-                {
-                  this.claimBaseStationLoading = false
-                  return
-                }
+						if(querySnapshot.size > 1)  this.baseStationPinErrorMessage = 'Something went wrong. please contact Cue support.'
+						if(querySnapshot.empty)     this.baseStationPinErrorMessage = 'Pin code is invalid. Check if you have typed the code correctly.'
+						if(querySnapshot.size != 1)
+						{
+							this.claimBaseStationLoading = false
+							return
+						}
 
-                const baseStation = querySnapshot.docs[0]
+						const baseStation = querySnapshot.docs[0]
 
-                if(baseStation.data().households)
-                {
-                    this.baseStationPinErrorMessage = 'This Base Station has already been claimed.'
-                    this.claimBaseStationLoading = false
-                    return
-                }
+						if(baseStation.data().households)
+						{
+							this.baseStationPinErrorMessage = 'This Base Station has already been claimed.'
+							this.claimBaseStationLoading = false
+							return
+						}
 
-                batch.set(firestore.collection('households').doc(this.activeHousehold.id), {
-                  'base_stations' : {
-                    [baseStation.id] : true
-                  }
-                }, {
-                  merge : true
-                })
+						batch.set(firestore.collection('households').doc(this.activeHousehold.id), {
+							'base_stations' : {
+								[baseStation.id] : true
+							}
+						}, {
+							merge : true
+						})
 
-                batch.set(firestore.collection('base_stations').doc(baseStation.id), {
-                  'households' : {
-                    id : this.activeHousehold.id
-                  }
-                }, {
-                  merge : true
-                })
+						batch.set(firestore.collection('base_stations').doc(baseStation.id), {
+							'households' : {
+								id : this.activeHousehold.id
+							}
+						}, {
+							merge : true
+						})
 
-                await batch.commit()
+						await batch.commit()
 
-                this.showBaseStationDialog = false
-                this.baseStationPin = ''
-            }
-            catch(e)
-            {
-                this.baseStationPinErrorMessage = 'Something went wrong. Contact the closest developer.'
+						this.showBaseStationDialog = false
+						this.baseStationPin = ''
+					}
+					catch(e)
+					{
+						this.baseStationPinErrorMessage = 'Something went wrong. Contact the closest developer.'
 
-                console.log("Error getting documents: ", e);
-            }
-        }
-        else
-        {
-          this.claimBaseStationLoading = false
-        }
-      },
-      async deleteSensors(householdId) {
-          this.deleteSensorsLoading = true
-  
-          this.$axios.$delete(`households/${householdId}/sensors`)    
-            .catch(e => {
-              console.log(e)
-            })
-            .finally(() => {
-              this.deleteSensorsLoading = false
-            })
-      }
-      // async unlinkBaseStation(id)
-      // {
-      //     try{
-      //       await firestore.collection('base_stations').doc(id).set({
-      //           households : firebase.firestore.FieldValue.delete()
-      //       }, {
-      //         merge : true
-      //       })
-      //     }
-      //     catch(e)
-      //     {
-      //       console.log(e)
-      //     }
-      // }
-    },
-    watch : {
-      baseStationPinErrorMessage (v) {
-            this.baseStationPinError = (v.length > 0)
-      },
-      sensorConfigErrorMessage (v) {
-            this.sensorConfigError = (v.length > 0)
-      },
-    },
-    computed: {
-      activeHouseholdUsers () {
-        const users = []
+						console.log("Error getting documents: ", e);
+					}
+				}
+				else
+				{
+					this.claimBaseStationLoading = false
+				}
+			},
+			async deleteSensors(householdId) {
 
-        if(!this.activeHousehold || !this.activeHousehold.data.users) return users
+				this.deleteSensorsLoading = true
+		
+				this.$axios.$delete(`households/${householdId}/sensors`)    
+					.catch(e => {
+						console.log(e)
+					})
+					.finally(() => {
+						this.deleteSensorsLoading = false
+					})
+			}
+		// async unlinkBaseStation(id)
+		// {
+		//     try{
+		//       await firestore.collection('base_stations').doc(id).set({
+		//           households : firebase.firestore.FieldValue.delete()
+		//       }, {
+		//         merge : true
+		//       })
+		//     }
+		//     catch(e)
+		//     {
+		//       console.log(e)
+		//     }
+		// }
+		},
+		watch : {
+			baseStationPinErrorMessage (v) {
+				this.baseStationPinError = (v.length > 0)
+			},
+			sensorConfigErrorMessage (v) {
+				this.sensorConfigError = (v.length > 0)
+			},
+		},
+		computed: {
+		activeHouseholdUsers () {
+			const users = []
 
-        Object.keys(this.activeHousehold.data.users).forEach(id => {
-          users.push({
-            id : id,
-            name: this.activeHousehold.data.users[id].name
-          })
-        })
+			if(!this.activeHousehold || !this.activeHousehold.data.users) return users
 
-        return users
-      },
+			Object.keys(this.activeHousehold.data.users).forEach(id => {
+				users.push({
+					id : id,
+					name: this.activeHousehold.data.users[id].name
+				})
+			})
 
-      activeHouseholdBaseStations () {
-        const baseStations = []
+			return users
+		},
 
-        if(!this.activeHousehold || !this.activeHousehold.data.base_stations) return baseStations
+		activeHouseholdBaseStations () {
+			const baseStations = []
 
-        Object.keys(this.activeHousehold.data.base_stations).forEach(id => {
-          baseStations.push({
-            id : id
-          })
-        })
+			if(!this.activeHousehold || !this.activeHousehold.data.base_stations) return baseStations
 
-        return baseStations
-      },
+			Object.keys(this.activeHousehold.data.base_stations).forEach(id => {
+				baseStations.push({
+					id : id
+				})
+			})
 
-      activeHouseholdSensers () {
-        const sensors = []
+			return baseStations
+		},
 
-        if(!this.activeHousehold || !this.activeHousehold.data.sensors) return sensors
+		activeHouseholdSensers () {
+			const sensors = []
 
-        Object.keys(this.activeHousehold.data.sensors).forEach(id => {
-          sensors.push({
-            id : id,
-            name : this.activeHousehold.data.sensors[id].name
-          })
-        })
+			if(!this.activeHousehold || !this.activeHousehold.data.sensors) return sensors
 
-        return sensors
-      }
-    },
-    mounted () {
-      
-    },
-    created () {
-    
-      firestore.collection('households')
-          .onSnapshot(snapshot => {
-              const households = []
-              
-              snapshot.docs.forEach(doc => {
-                  
-                  const household = {
-                      id    : doc.id,
-                      data : doc.data()
-                  }
+			Object.keys(this.activeHousehold.data.sensors).forEach(id => {
+				sensors.push({
+					id : id,
+					name : this.activeHousehold.data.sensors[id].name
+				})
+			})
 
-                  households.push(household)
+			return sensors
+		}
+		},
+		mounted () {
+		
+		},
+		async created () {
 
-                  if(this.activeHousehold && this.activeHousehold.id == doc.id)
-                      this.activeHousehold = household
-              })
+			firestore.collection('households')
+				.onSnapshot(snapshot => {
+					const households = []
+					
+					snapshot.docs.forEach(doc => {
+						
+						const household = {
+							id    : doc.id,
+							data : doc.data()
+						}
 
-              this.households = households
-          }
-      	)
-    }
-  }
+						households.push(household)
+
+						if(this.activeHousehold && this.activeHousehold.id == doc.id)
+							this.activeHousehold = household
+					})
+
+					this.households = households
+				})
+		}
+	}
 </script>
 
 <style>

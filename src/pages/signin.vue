@@ -36,7 +36,7 @@
             v-show="!authLoading && !auth"
             transition="fade-transition"
         >
-            <h2>Log ind</h2>
+            <h2>Sign in</h2>
 
             <v-text-field
                 v-model="email"
@@ -56,24 +56,24 @@
             ></v-text-field>
 
             <v-btn
-                :loading="submitLoading"
                 type="submit"
+                :loading="signInLoading"
                 @click="submit"
             >
-                log ind
+                Sign in
             </v-btn>
 
-            <v-btn @click="clear">Nulstil</v-btn>
+            <v-btn @click="clear">Reset</v-btn>
 
-                <v-alert
-                    :value="formError"
-                    color="error"
-                    icon="warning"
-                    transition="scale-transition"
-                    outline
-                >
+            <v-alert
+                :value="formError"
+                color="error"
+                icon="warning"
+                transition="scale-transition"
+                outline
+            >
                 {{ formErrorMessage }}
-                </v-alert>
+            </v-alert>
 
         </v-form>
 
@@ -83,24 +83,20 @@
 
 <script>
     // import axios from 'axios'
-    import { auth } from '~/plugins/firebase.js'
 
     export default {
         
         async asyncData ({ route }) {
             return {
-                redirect : (route.query.redirect) ? route.query.redirect : '/'
+                redirect : ( route.query.redirect ) ? route.query.redirect : '/'
             }
         },
         mounted () {
             this.$store.watch(state => {
-                if(state.user) this.$router.push(this.redirect)
+                if(state.auth.user) this.$router.push(this.redirect)
             })
         },
         data: () => ({
-            submitLoading: false,
-
-            formErrorMessage : '',
             formError : false,
 
             //form validation
@@ -123,10 +119,16 @@
         },
         computed : {
             authLoading () {
-                return this.$store.getters.userIsLoading
+                return this.$store.getters['auth/loading']
+            },
+            signInLoading () {
+                return this.$store.getters['auth/signInLoading']
             },
             auth () {
-                return this.$store.getters.activeUser
+                return this.$store.getters['auth/get']
+            },
+            formErrorMessage() {
+                return this.$store.getters['auth/error']
             }
         },
         methods: {
@@ -135,20 +137,24 @@
 
                 if (this.$refs.form.validate()) {
 
-                    this.submitLoading = true
-                    this.formErrorMessage = ''
+                    // this.submitLoading = true
+                    // this.formErrorMessage = ''
 
-                    auth.signInWithEmailAndPassword(this.email, this.password)
-                    .then((response) => {
-
-                        this.$router.push(this.redirect)
+                    this.$store.dispatch('auth/signIn', {
+                        email : this.email,
+                        password : this.password
                     })
-                    .catch((error) => {
-                        this.formErrorMessage = error.message;
+                    // auth.signInWithEmailAndPassword(this.email, this.password)
+                    // .then((response) => {
 
-                    }).finally(() => {
-                        this.submitLoading = false
-                    })
+                    //     this.$router.push(this.redirect)
+                    // })
+                    // .catch((error) => {
+                    //     this.formErrorMessage = error.message;
+
+                    // }).finally(() => {
+                    //     this.submitLoading = false
+                    // })
                 }
             },
             clear () {

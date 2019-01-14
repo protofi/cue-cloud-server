@@ -63,33 +63,26 @@
 </template>
 
 <script>
-  import { auth } from '~/plugins/firebase.js'
-  export default {
-    data() {
-      return {
-        clipped: false,
-        drawer: true,
-        items: [
-          { icon: 'panorama', title: 'Welcome', to: '/' },
-          { icon: 'security', title: 'Admin', to: '/admin' },
-          { icon: 'lock_open', title: 'Sign in', to: '/signin' },
-        ],
-        miniVariant: false,
-        title: 'Cue dashboard'
-      }
-    },
+	import { auth } from '~/plugins/firebase.js'
+	export default {
+		data() {
+			return {
+			clipped: false,
+			drawer: true,
+			items: [
+				{ icon: 'panorama', title: 'Welcome', to: '/' },
+				{ icon: 'security', title: 'Admin', to: '/admin' },
+				{ icon: 'lock_open', title: 'Sign in', to: '/signin' },
+			],
+			miniVariant: false,
+			title: 'Cue dashboard'
+			}
+		},
 
-    methods: {
-      signOut() {
-        const _this = this
-        auth.signOut().then(function()
-        {
-          _this.$store.commit('unsetUser')
-          _this.$router.push('/')
-        }).catch(function(error) {
-          console.log(error)
-        })
-      }
-    }
-  }
+		methods: {
+			signOut() {
+				this.$store.dispatch('auth/signOut')
+			}
+		}
+	}
 </script>
