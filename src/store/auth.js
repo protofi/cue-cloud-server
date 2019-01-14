@@ -6,7 +6,7 @@ const jwt_decode = require('jwt-decode')
 export const state = () => ({
     user: null,
     error: null,
-    loading: false,
+    loading: true,
     redirect: null,
     processing: false,
 })
@@ -75,6 +75,7 @@ export const mutations = {
 
     signIn (state, payload)
     {
+        state.error = null
         state.processing = true
 
         auth.signInWithEmailAndPassword(payload.email, payload.password)

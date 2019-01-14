@@ -1,11 +1,11 @@
 
 export default function({ store, redirect, route })
 {
-    // isAdmin(store) && route.name == 'signin' ? redirect('/admin') : ''
-    // !isGuest(store) && route.name == 'signin' ? redirect('/') : ''
+    isAdmin(store) && route.name == 'signin' ? redirect('/admin') : ''
+    !isGuest(store) && route.name == 'signin' ? redirect('/') : ''
 
-    // isGuest(store) && isAdminRoute(route) ? redirect(`/signin?redirect=${route.fullPath}`) : ''
-    // !isGuest(store) && isAdminRoute(route) && !isAdmin(store) ? redirect('/') : ''
+    isGuest(store) && isAdminRoute(route) ? redirect(`/signin?redirect=${route.fullPath}`) : ''
+    !isGuest(store) && isAdminRoute(route) && !isAdmin(store) ? redirect('/') : ''
 }
 
 function isAdminRoute(route)
