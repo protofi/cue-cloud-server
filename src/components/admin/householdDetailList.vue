@@ -360,12 +360,12 @@
                             </v-container>
 
                             <v-alert
-                                    :value="sensorConfigError"
-                                    color="error"
-                                    icon="warning"
-                                    transition="scale-transition"
-                                    outline
-                                >
+                                :value="sensorConfigError"
+                                color="error"
+                                icon="warning"
+                                transition="scale-transition"
+                                outline
+                            >
                                 {{ sensorConfigErrorMessage }}
 
                             </v-alert>
@@ -392,6 +392,7 @@
 </template>
 
 <script>
+
 import { firebase, firestore, messaging } from '~/plugins/firebase.js'
 
 export default {

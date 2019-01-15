@@ -12,6 +12,7 @@
             width="600"
             dark
         >
+
             <v-card dark flat>
                 
                 <v-toolbar>
@@ -170,7 +171,6 @@ export default {
         }
     },
     methods : {
-		
         toggleHouseholdInfo(household) {
             this.householdsDetailDrawer = !(this.activeHousehold && this.activeHousehold.id == household.id && this.householdsDetailDrawer)
             this.activeHousehold = household

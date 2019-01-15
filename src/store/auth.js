@@ -5,6 +5,7 @@ const jwt_decode = require('jwt-decode')
 
 export const state = () => ({
     user: null,
+    token : null,
     error: null,
     loading: true,
     redirect: null,
@@ -24,8 +25,17 @@ export const getters = {
 	isAdmin: state => {
 	
 		try{
-			const token = jwt_decode(state.user.ra)
-			return (token.isAdmin)
+			return state.token.isAdmin
+		}
+		catch(e) {
+			return false
+		}
+    },
+    
+    isSuperAdmin: state => {
+	
+		try{
+			return state.token.isSuperAdmin
 		}
 		catch(e) {
 			return false
@@ -54,7 +64,13 @@ export const mutations = {
         
         if(!state.user) return
 
-		this.$axios.setHeader('Authorization', payload.ra)
+        try{
+            state.token = jwt_decode(payload.ra)
+            this.$axios.setHeader('Authorization', payload.ra)
+        }
+		catch(e) {
+			return false
+		} 
     },
     
     redirect (state, payload)

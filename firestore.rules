@@ -34,7 +34,7 @@ service cloud.firestore{
 
       allow read: if (isAuth() && isSelf()) || isAdmin()
 
-      allow update: if isAuth()
+      allow update: if (isAuth() && isSelf()
                     && (
                       !request.resource.data.keys().hasAll(["households"])
                       || (
@@ -46,8 +46,7 @@ service cloud.firestore{
                             || request.resource.data.households.pivot.accepted == true)
                         )
                       )
-                    )
-
+                    )) || isSuperAdmin()
       function isSelf() { return request.auth.uid == resource.data.id }
 	  }
 
@@ -66,7 +65,8 @@ service cloud.firestore{
     }
 
     function isAuth() { return (request.auth.uid != null) }
-    function isAdmin() { return request.auth.token.isAdmin }
+    function isAdmin() { return request.auth.token.isAdmin || request.auth.token.isSuperAdmin }
+    function isSuperAdmin() { return request.auth.token.isSuperAdmin }
     
   }
 }
