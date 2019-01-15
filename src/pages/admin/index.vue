@@ -1,41 +1,10 @@
 <template>
-    
-    <v-card>
-		<v-toolbar color="light-blue" dark>
 
-		<v-toolbar-title>Households</v-toolbar-title>
+	<v-layout row>
 
-		</v-toolbar>
+		<h2>ADMIN DASHBOARD</h2>
 
-		<v-list two-line subheader>
-		
-			<v-list-tile
-				v-for="household in households"
-				:key="household.id"
-				avatar
-			>
-				<v-list-tile-avatar>
-					<v-icon class="grey lighten-1 white--text">home</v-icon>
-				</v-list-tile-avatar>
-
-				<v-list-tile-content>
-					<v-list-tile-title>{{ household.id }}</v-list-tile-title>
-					<v-list-tile-sub-title></v-list-tile-sub-title>
-
-				</v-list-tile-content>
-
-				<v-list-tile-action>
-					<v-btn icon ripple
-					@click.stop="toggleHouseholdInfo(household)">
-						<v-icon color="grey lighten-1">info</v-icon>
-					</v-btn>
-				</v-list-tile-action>
-
-			</v-list-tile>
-
-		</v-list>
-
-	</v-card>
+	</v-layout>
 
 </template>
 
@@ -45,10 +14,21 @@ import { firebase, firestore, messaging } from '~/plugins/firebase.js'
 
 export default {
 
-data () {
+	data () {
         return {
             households: [],
-            activeHousehold : null,
+			activeHousehold : null,
+			householdsDetailDrawer: false,
+			admins: [
+				['Management', 'people_outline'],
+				['Settings', 'settings']
+			],
+			cruds: [
+				['Create', 'add'],
+				['Read', 'insert_drive_file'],
+				['Update', 'update'],
+				['Delete', 'delete']
+			]
         }
     },
 
@@ -75,10 +55,32 @@ data () {
 			}, error => {
 				console.log(error.message)
 			})
-    }
+	},
+	
+	methods : {
+		toggleHouseholdInfo(household) {
+				this.householdsDetailDrawer = !(this.activeHousehold && this.activeHousehold.id == household.id && this.householdsDetailDrawer)
+				this.activeHousehold = household
+			},
+	}
 }
 </script>
 
 <style>
-
+	.manual-v-layout {
+		display: -webkit-box;
+		display: -ms-flexbox;
+		display: flex;
+		-webkit-box-flex: 1;
+		-ms-flex: 1 1 auto;
+		flex: 1 1 auto;
+		-ms-flex-wrap: wrap;
+		flex-wrap: wrap;
+		-webkit-box-orient: horizontal;
+		-webkit-box-direction: normal;
+		-ms-flex-direction: row;
+		flex-direction: row;
+		padding-bottom: 8px !important;
+		padding-top: 8px !important;
+	}
 </style>

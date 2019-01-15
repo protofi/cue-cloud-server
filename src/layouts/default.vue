@@ -7,6 +7,7 @@
 			<v-toolbar>
 
 				<v-toolbar-side-icon
+					v-show="$store.getters['auth/isAdmin']"
 					@click.stop="drawer = !drawer"
 				>
 					<v-icon>
@@ -47,25 +48,6 @@
 					<v-list>
 			
 						<v-list-tile
-							to="/me"
-							router
-							exact
-						>
-							<v-list-tile-action>
-						
-								<v-icon>account_circle</v-icon>
-						
-							</v-list-tile-action>
-
-							<v-list-tile-content>
-						
-								<v-list-tile-title>Profile</v-list-tile-title>
-						
-							</v-list-tile-content>
-
-						</v-list-tile>
-
-						<v-list-tile
 							to="/home"
 							router
 							exact
@@ -85,20 +67,19 @@
 						</v-list-tile>
 						
 						<v-list-tile
-							v-show="$store.getters['auth/isAdmin']"
-							to="/admin"
+							to="/me"
 							router
 							exact
 						>
 							<v-list-tile-action>
 						
-								<v-icon>security</v-icon>
+								<v-icon>account_circle</v-icon>
 						
 							</v-list-tile-action>
 
 							<v-list-tile-content>
 						
-								<v-list-tile-title>Admin</v-list-tile-title>
+								<v-list-tile-title>Profile</v-list-tile-title>
 						
 							</v-list-tile-content>
 
@@ -120,6 +101,29 @@
 							</v-list-tile-content>
 
 						</v-list-tile>
+						
+						<v-divider></v-divider>
+
+						<v-list-tile
+							v-show="$store.getters['auth/isAdmin']"
+							to="/admin"
+							router
+							exact
+						>
+							<v-list-tile-action>
+						
+								<v-icon>security</v-icon>
+						
+							</v-list-tile-action>
+
+							<v-list-tile-content>
+						
+								<v-list-tile-title>Admin</v-list-tile-title>
+						
+							</v-list-tile-content>
+
+						</v-list-tile>
+
 
 					</v-list>
 
@@ -144,10 +148,11 @@
 			<v-navigation-drawer
 				app
 				dark
-				clipped
 				hide-overlay
 				v-model="drawer"
 				disable-route-watcher
+				:temporary="!$store.getters['auth/isAdmin']"
+				v-show="$store.getters['auth/isAdmin']"
 			>
 				<v-toolbar flat>
 					
@@ -155,7 +160,7 @@
 						icon
 						@click.stop="drawer = !drawer"
 					>
-						<v-icon>chevron_left</v-icon>
+						<v-icon>notes</v-icon>
 
 					</v-btn>
 
@@ -168,7 +173,9 @@
 				<v-list>
 				
 					<v-list-tile
-						@click=""
+						to="/admin/households"
+						router
+						exact
 					>
 						<v-list-tile-action>
 					
@@ -184,11 +191,49 @@
 
 					</v-list-tile>
 
+					<v-list-tile
+						to="/admin/users"
+						router
+						exact
+					>
+						<v-list-tile-action>
+					
+							<v-icon>account_circle</v-icon>
+					
+						</v-list-tile-action>
+
+						<v-list-tile-content>
+					
+							<v-list-tile-title>Users</v-list-tile-title>
+					
+						</v-list-tile-content>
+
+					</v-list-tile>
+
+					<v-list-tile
+						to="/admin/base-stations"
+						router
+						exact
+					>
+						<v-list-tile-action>
+					
+							<v-icon>router</v-icon>
+					
+						</v-list-tile-action>
+
+						<v-list-tile-content>
+					
+							<v-list-tile-title>Base Staions</v-list-tile-title>
+					
+						</v-list-tile-content>
+
+					</v-list-tile>
+
 				</v-list>
 
 			</v-navigation-drawer>
 				
-			<v-dialog v-model="showDialog" max-width="600px">
+			<v-dialog v-model="signIn.showDialog" max-width="600px">
 
 				<v-card>
 
@@ -225,6 +270,7 @@
 
 		<v-container
 			v-show="$store.getters['auth/loading']"
+			fill-height
 		>
 			<v-layout align-center justify-center column fill-height>
 
@@ -244,21 +290,22 @@
 </template>
 
 <script>
-	  import { auth } from '~/plugins/firebase.js'
-	  import SignInForm from '~/components/SignInForm.vue'
+
+	import { auth } from '~/plugins/firebase.js'
+	import SignInForm from '~/components/SignInForm.vue'
 
 	export default {
+		created () {
+			this.$store.watch((state) => this.$store.getters['auth/isGuest'], () => {
+				this.signIn.showDialog = false
+			})
+		},
 		data() {
 			return {
 				drawer: null,
 				signIn: {
 					showDialog : false,
 				}
-			}
-		},
-		computed : {
-			showDialog () {
-				return this.signIn.showDialog && this.$store.getters['auth/isGuest']
 			}
 		},
 		methods : {
@@ -270,5 +317,6 @@
 		components : {
 			SignInForm
 		}
-  	}
+	}
+	  
 </script>

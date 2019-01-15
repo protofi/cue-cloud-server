@@ -57,7 +57,7 @@
 
 <script>
 export default {
-    mounted () {
+    created () {
         this.$store.watch((state) => this.$store.getters['auth/isGuest'], () => {
             this.$refs.signInForm.reset()
         })
