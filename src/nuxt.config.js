@@ -48,12 +48,11 @@ module.exports = {
   modules: [
     // Doc: https://github.com/nuxt-community/axios-module#usage
     ['@nuxtjs/axios', {
-      baseURL: 'http://localhost:5000/api/v1/'
+      baseURL: (process.env.NODE_ENV == 'production') ? '/api/v1/' : 'http://localhost:5000/api/v1/'
     }],
     '@nuxtjs/vuetify',
-    // 'jwt-decode',
     ['nuxt-validate', {
-      lang: 'es',
+      lang: 'en',
     }]
   ],
 

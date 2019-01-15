@@ -5,7 +5,12 @@
                                 
             <div v-if="activeHousehold != null">
 
-                <v-list-tile>
+                <v-list-tile
+                    :to="activeHousehold.path"
+                    ripple
+                    router
+
+                >
 
                     <v-list-tile-action>
 
