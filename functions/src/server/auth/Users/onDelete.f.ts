@@ -1,13 +1,11 @@
-import * as functions from 'firebase-functions'
+import { auth } from 'firebase-functions'
 import { UserRecord } from 'firebase-functions/lib/providers/auth'
-import * as admin from 'firebase-admin'
+import { firestore } from 'firebase-admin'
 import DataORMImpl from './../../lib/ORM/';
 
-try {admin.initializeApp()} catch(e) {}
-
-exports = module.exports = functions.auth.user().onDelete((user: UserRecord) => {
+exports = module.exports = auth.user().onDelete((user: UserRecord) => {
     
-    const adminFs = admin.firestore()
+    const adminFs = firestore()
 
     const db = new DataORMImpl(adminFs)
 

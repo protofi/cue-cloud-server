@@ -17,7 +17,7 @@ const test: FeaturesList = require('firebase-functions-test')()
 const assert = chai.assert
 const expect = chai.expect
 
-describe('OFFLINE', () => {
+describe.only('OFFLINE', () => {
 
     let adminInitStub: sinon.SinonStub
     let adminFirestoreStub: sinon.SinonStub
@@ -42,8 +42,8 @@ describe('OFFLINE', () => {
         token: null
     }
     
-    before(async () => {
-
+    before(() => {
+        
         adminInitStub = sinon.stub(admin, 'initializeApp')
 
         firestoreStub = {
@@ -128,6 +128,9 @@ describe('OFFLINE', () => {
     describe('Functions', async () => {
         
         beforeEach(() => {
+            test.cleanup()
+            adminInitStub.restore()
+            adminFirestoreStub.restore()
             firestoreMockData = {}
         })
 
@@ -209,6 +212,59 @@ describe('OFFLINE', () => {
                             }
                         })
                 })
+            })
+        })
+
+        describe('Auth', () => {
+
+            describe('On Create', () => {
+
+                it('When a new user is registered a User record should be created', async () => {
+
+                    const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(testUserDataOne)
+                    const wrappedAuthUsersOnCreate = test.wrap(myFunctions.authUsersOnCreate)
+
+                    await wrappedAuthUsersOnCreate(userRecord)
+
+                    const userDoc = firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]
+                    expect(userDoc).to.exist
+                })
+
+                it('When a new user is registered a User record should be created with an id and email field', async () => {
+
+                    const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(testUserDataOne)
+                    const wrappedAuthUsersOnCreate = test.wrap(myFunctions.authUsersOnCreate)
+
+                    await wrappedAuthUsersOnCreate(userRecord)
+
+                    const userDoc = firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]
+
+                    const expectedUserDoc = {
+                        id      : testUserDataOne.uid,
+                        email   : testUserDataOne.email
+                    }
+
+                    expect(userDoc).to.deep.equal(expectedUserDoc)
+                })
+            })
+
+            describe('On Delete', () => {
+
+                it('When a user is delete the corresponding User record sould be deleted', async () => {
+
+                    firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {
+                        id      : testUserDataOne.uid,
+                        email   : testUserDataOne.email
+                    }
+
+                    const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(testUserDataOne)
+                    const wrappedAuthUsersOnDelete = test.wrap(myFunctions.authUsersOnDelete)
+
+                    await wrappedAuthUsersOnDelete(userRecord)
+
+                    expect(firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]).to.not.exist
+                })
+
             })
         })
 

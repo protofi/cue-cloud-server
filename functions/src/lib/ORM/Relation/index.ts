@@ -619,6 +619,9 @@ export class N2OneRelation extends RelationImpl {
     {
         const property = await this.get()
 
+        if(!property)
+            console.log('PROPERTY DOES NOT EXIST')
+
         await property.update({
             [this.owner.name] : {
                 [this.owner.getId()] : firestore.FieldValue.delete()
