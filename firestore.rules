@@ -1,72 +1,76 @@
 service cloud.firestore{
-  match /databases/{database}/documents {
-    
-    match /{documents=**} {
-    		allow read: if false
-    		allow write: if false
-    }
+	match /databases/{database}/documents {
+		
+		match /{documents=**} {
+			allow read: if false
+			allow write: if false
+		}
 
-    match /households/{householdId} {
+		match /households/{householdId} {
 			allow create: if isAuth()
-                    && (
-                      reqHasUsersField()
-                      && request.resource.data.users.keys().hasOnly([request.auth.uid])
-                      && request.resource.data.users[request.auth.uid] == true
-                    )
+							&& (
+								reqHasUsersField()
+								&& request.resource.data.users.keys().hasOnly([request.auth.uid])
+								&& request.resource.data.users[request.auth.uid] == true
+							)
 
-      allow read: if (isAuth() && isResident()) || isAdmin()
+			allow read: if isResident() || isAdmin()
 
 			allow update: if (isAuth()
-          					&& (
-                    	!reqHasUsersField()
-                		  || isHouseholdAdmin()
-                    )) || isAdmin()
-                    
-      allow delete: if false
+							&& (
+								!reqHasUsersField()
+								|| isHouseholdAdmin()
+							)
+						) || isAdmin()
+							
+			allow delete: if false
 
-      function isHouseholdAdmin() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.households.pivot.role == "admin" }
-      function isResident() { return resource.data.users.keys().hasAll([request.auth.uid]) }
-      function reqHasUsersField() { return request.resource.data.keys().hasAll(["users"]) }
-    }
+			function isHouseholdAdmin() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.households.pivot.role == "admin" }
+			function isResident() { return resource.data.users.keys().hasAll([request.auth.uid]) }
+			function reqHasUsersField() { return request.resource.data.keys().hasAll(["users"]) }
+		}
 
-    match /users/{userId} {
-      allow create: if false
+		match /users/{userId} {
+			allow create: if false
 
-      allow read: if (isAuth() && isSelf()) || isAdmin()
+			allow read: if isSelf() || isAdmin()
 
-      allow update: if (isAuth() && isSelf()
-                    && (
-                      !request.resource.data.keys().hasAll(["households"])
-                      || (
-                        !request.resource.data.households.keys().hasAll(["pivot"])
-                        || (
-                          !request.resource.data.households.pivot.keys().hasAll(["role"]) // cannot exist on update
-                          && (
-                            !request.resource.data.households.pivot.keys().hasAll(["accepted"]) // if exists; must be true
-                            || request.resource.data.households.pivot.accepted == true)
-                        )
-                      )
-                    )) || isSuperAdmin()
-      function isSelf() { return request.auth.uid == resource.data.id }
-	  }
+			allow update: if ( isSelf()
+							&& (
+								!request.resource.data.keys().hasAll(["households"]) // If request has no households field allow
+								|| (
+									!request.resource.data.households.keys().hasAll(["pivot"]) // If request has no households.pivot field allow
+									|| (
+										!request.resource.data.households.pivot.keys().hasAll(["role"]) // If request has no households.pivot.role field allow
+										&& (
+											!request.resource.data.households.pivot.keys().hasAll(["accepted"]) 
+											|| request.resource.data.households.pivot.accepted == true
+										) // If request has households.pivot.accepted it must be true
+									)
+								)
+							)) || isSuperAdmin()
 
-    match /sensors/{sensorId} {
-      allow create: if false
-      allow read:   if isAdmin()
-      allow update: if isAdmin()
-      allow delete: if false
-    }
+			allow delete: if false
 
-    match /base_stations/{baseStationId} {
-      allow create: if false
-      allow read:   if isAdmin()
-      allow update: if isAdmin()
-      allow delete: if false
-    }
+			function isSelf() { return request.auth.uid == userId }
+		}
 
-    function isAuth() { return (request.auth.uid != null) }
-    function isAdmin() { return request.auth.token.isAdmin || request.auth.token.isSuperAdmin }
-    function isSuperAdmin() { return request.auth.token.isSuperAdmin }
-    
-  }
+		match /sensors/{sensorId} {
+			allow create: if false
+			allow read:   if isAdmin()
+			allow update: if isAdmin()
+			allow delete: if false
+		}
+
+		match /base_stations/{baseStationId} {
+			allow create: if false
+			allow read:   if isAdmin()
+			allow update: if isAdmin()
+			allow delete: if false
+		}
+
+		function isAuth() { return (request.auth.uid != null) }
+		function isAdmin() { return request.auth.token.isAdmin || request.auth.token.isSuperAdmin }
+		function isSuperAdmin() { return request.auth.token.isSuperAdmin }
+	}
 }

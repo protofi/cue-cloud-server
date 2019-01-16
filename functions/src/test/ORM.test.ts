@@ -3275,7 +3275,6 @@ describe('STAGE', () => {
 
                     expect(cachedFromPivot).to.be.equal(cache)
                 })
-
                 
                 it('Fields to be cached from the owner to the property should be definable on the relation between the owner and the property', async () => {
 
@@ -3618,6 +3617,61 @@ describe('STAGE', () => {
                     await car.drivers().updateCache(change)
 
                     const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedCarDoc = {
+                        [Stubs.DRIVER] : {
+                            [driverId] : {
+                                [Relations.PIVOT] : {
+                                    [cachedField] : 3
+                                }
+                            }
+                        }
+                    }
+
+                    expect(carDoc).to.deep.equal(expectedCarDoc)
+                })
+
+                it('Fields defined as cachable from the pivot on to the owner ECURE COLLECTION should be cached on field update', async () => {
+
+                    const cachedField = 'crashes'
+
+                    const driverId = uniqid()
+                    const carId = uniqid()
+
+                    firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
+
+                    const driver = new Driver(stubFs, null, driverId)
+
+                    class CarM extends Car {
+                        drivers(): Many2ManyRelation
+                        {
+                            return this.belongsToMany(Stubs.DRIVER)
+                                    .defineCachableFields(null, [
+                                        `${cachedField}${Models.SECURE_SURFIX}`
+                                    ])
+                        }
+                    }
+
+                    const car = new CarM(stubFs, null, carId)
+
+                    await car.drivers().attach(driver)
+
+                    const pivotData = {
+                        [Relations.PIVOT]: {
+                            [cachedField] : 2
+                        }
+                    }
+
+                    const before = test.firestore.makeDocumentSnapshot(pivotData, '')
+
+                    pivotData[Relations.PIVOT].crashes = 3 // change
+
+                    const after = test.firestore.makeDocumentSnapshot(pivotData, '')
+
+                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                    await car.drivers().updateCache(change)
+
+                    const carDoc = firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
                     const expectedCarDoc = {
                         [Stubs.DRIVER] : {
                             [driverId] : {
@@ -4155,9 +4209,9 @@ describe('STAGE', () => {
                 })
 
                 it('When properties are detached from the owner, only the pivot collection related to properties and owner should be deleteted', async () => {
-                    const driverId = uniqid()
-                    const carId = uniqid()
-                    const carId2 = uniqid()
+                    const driverId  = uniqid()
+                    const carId     = uniqid()
+                    const carId2    = uniqid()
 
                     firestoreMockData[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.DRIVER] : {

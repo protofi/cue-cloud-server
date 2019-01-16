@@ -81,6 +81,7 @@ export const mutations = {
     remove(state, payload)
 	{
 		state.user = null
+		state.token = null
 		this.$axios.setHeader('Authorization', null)
     },
     

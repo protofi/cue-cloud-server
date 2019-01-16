@@ -12,7 +12,7 @@
     "serve:test": "firebase serve --only firestore",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
-    "deploy:prod": "firebase use production && firebase deploy",
+    "deploy:production": "firebase use production && firebase deploy",
     "deploy:stage": "firebase use staging && firebase deploy",
     "deploy": "firebase deploy --only functions,hosting",
     "deploy:stage:rules": "firebase use staging && firebase deploy --only firestore:rules",

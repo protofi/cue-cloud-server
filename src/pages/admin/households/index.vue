@@ -55,7 +55,7 @@
                             <v-list-tile
                                 v-for="household in households"
                                 :key="household.id"
-                                @click.prevent.stop="toggleHouseholdInfo(household)"
+                                :to="household.path"
                                 ripple
                                 avatar
                                 router

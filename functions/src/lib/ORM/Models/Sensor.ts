@@ -27,7 +27,8 @@ export default class Sensor extends ModelImpl {
         return this
             .belongsToMany(Models.USER)
             .defineCachableFields(null, [
-                'muted'
+                'muted',
+                `muted${Models.SECURE_SURFIX}`
             ])
     }
 

@@ -23,13 +23,16 @@ exports = module.exports = pubsub
 
 		forOwn(users, user => {
 			if(!user.FCM_tokens) return
+			
+			const sensorIsMuted = (user.pivot && user.pivot.muted)
+			if(sensorIsMuted) return
 
 			const tokens = Object.keys(user.FCM_tokens)
 			FCM_tokens = FCM_tokens.concat(tokens)
 		})
 
-		const sensorName = await sensor.getField('name')
-		const sensorLocation = await sensor.getField('location')
+		const sensorName		= await sensor.getField('name')
+		const sensorLocation 	= await sensor.getField('location')
 
 		const notificationTitle = (sensorName && sensorLocation) ? `${sensorName} lyder i ${sensorLocation}` : 'UNCONFIGURED SENSOR'
 		

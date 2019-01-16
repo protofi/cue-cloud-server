@@ -351,7 +351,7 @@ describe('OFFLINE', () => {
             })
         })
 
-        describe.only('Pub/Sub', () => {
+        describe('Pub/Sub', () => {
             
             it('Notification Topic', async () => {
                 

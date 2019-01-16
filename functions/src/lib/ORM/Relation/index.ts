@@ -278,7 +278,7 @@ export class Many2ManyRelation extends N2ManyRelation {
             
             let properties: Array<ModelImpl>
 
-            if(Object.keys(newCacheData).length > 0)
+            if(!isEmpty(newCacheData))
             {
                 properties = (properties) ? properties : await this.get()
 
@@ -289,7 +289,7 @@ export class Many2ManyRelation extends N2ManyRelation {
                 )
             }
             
-            if(Object.keys(newSecureCacheData).length > 0)
+            if(!isEmpty(newSecureCacheData))
             {
                 properties = (properties) ? properties : await this.get()
 
@@ -301,15 +301,17 @@ export class Many2ManyRelation extends N2ManyRelation {
             }
         }
         
+
         if(this.cacheFromPivot)
         {
             const newCacheData = {}
-
+            const newSecureCacheData = {}
+            
             const propertyIds: Array<string> = await this.getIds()
 
             this.cacheFromPivot.forEach((field) => {
 
-                const fieldPath = `${Relations.PIVOT}.${field}`
+                const fieldPath = `${Relations.PIVOT}.${field.replace(Models.SECURE_SURFIX,'')}` // remove secure surfix
 
                 const cachableFieldBefore = get(beforeData, fieldPath, null) // retrieve data associated with the cached field before update
                 const cachableFieldAfter  = get(afterData, fieldPath, null) // retrieve data associated with the cached field after update
@@ -317,13 +319,21 @@ export class Many2ManyRelation extends N2ManyRelation {
                 if(!cachableFieldAfter && !cachableFieldBefore) return // if the field havn't been updated return and do not include it in the data to be cached
                 
                 propertyIds.forEach((id) => {
-                    newCacheData[`${this.propertyModelName}.${id}.${Relations.PIVOT}.${field}`] = cachableFieldAfter
+                    if(includes(field, Models.SECURE_SURFIX))
+                        newSecureCacheData[`${this.propertyModelName}.${id}.${Relations.PIVOT}.${field.replace(Models.SECURE_SURFIX,'')}`] = cachableFieldAfter
+                    else
+                        newCacheData[`${this.propertyModelName}.${id}.${Relations.PIVOT}.${field}`] = cachableFieldAfter
                 })
             })
 
-            if(Object.keys(newCacheData).length > 0)
+            if(!isEmpty(newCacheData))
             {
                 await this.owner.update(newCacheData)
+            }
+
+            if(!isEmpty(newSecureCacheData))
+            {
+                await this.owner.secure().update(newSecureCacheData)
             }
         }
     }
@@ -584,13 +594,14 @@ export class N2OneRelation extends RelationImpl {
         const beforeData: FirebaseFirestore.DocumentData = change.before.data()
         const afterData: FirebaseFirestore.DocumentData = change.after.data()
 
-        const { newCacheData } = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
+        const { newCacheData, newSecureCacheData } = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
 
         const property: ModelImpl = await this.get()
 
         if(!property) return null
 
-        if(!(Object.keys(newCacheData).length > 0)) return property
+        if(!isEmpty(newCacheData)) await property.update(newCacheData)
+        // if(!isEmpty(newSecureCacheData)) await property.secure().update(newSecureCacheData)
 
         return property.update(newCacheData)
     }

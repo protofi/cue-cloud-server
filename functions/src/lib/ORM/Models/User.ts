@@ -19,7 +19,8 @@ export default class User extends ModelImpl {
         return this
             .belongsTo(Models.HOUSEHOLD)
             .defineCachableFields([
-                'name'
+                'name',
+                'email'
             ]).defineActionableField('accepted',
                 new CreateUserSensorRelationsCommand()
             )

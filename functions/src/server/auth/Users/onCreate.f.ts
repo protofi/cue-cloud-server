@@ -10,10 +10,8 @@ exports = module.exports = functions.auth.user().onCreate(async (user: UserRecor
     const adminFs = admin.firestore()
     const db = new DataORMImpl(adminFs)
 
-    const data = {
-        id      : user.uid,
-        email   : user.email
-    }
-
-    return await db.user(null, user.uid).create(data)
+    return db.user(null, user.uid).create({
+                                        id      : user.uid,
+                                        email   : user.email
+                                    })
 })
