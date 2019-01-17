@@ -29,6 +29,12 @@ try{
     catch(e){}
 }
 
+
+try {
+    admin.initializeApp()
+  } catch (e) {}
+
+
 const settings = { timestampsInSnapshots: true }
 
 const adminFs = admin.firestore()

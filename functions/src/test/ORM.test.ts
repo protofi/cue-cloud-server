@@ -175,7 +175,7 @@ describe('STAGE', () => {
             })
         })
 
-        describe.only('CRUD', async () => {
+        describe('CRUD', async () => {
 
             it('Create doc new ref', async () => {
                 const docRef = db.user().getDocRef()

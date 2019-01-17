@@ -42,7 +42,7 @@ describe('OFFLINE', () => {
         token: null
     }
     
-    before(() => {
+    before(async () => {
 
         adminInitStub = sinon.stub(admin, 'initializeApp')
 
@@ -125,101 +125,17 @@ describe('OFFLINE', () => {
         firestoreMockData = {}
     })
 
-    describe.only('Functions', async () => {
+    describe('Functions', async () => {
         
         beforeEach(() => {
-            test.cleanup()
-            adminInitStub.restore()
-            adminFirestoreStub.restore()
             firestoreMockData = {}
-        })
-
-        describe('Households', async () => {
-
-            describe('On Create', async () => { 
-                
-                it.only('Pivot between user and household should recieve a role property of admin', async () => {
-                    
-                    const householdId = uniqid()
-
-                    firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {
-                        id: testUserDataOne.uid,
-                        [Models.HOUSEHOLD] : {
-                            id : householdId
-                        }
-                    }
-
-                    const householdSnap = new OfflineDocumentSnapshotStub({
-                        data : {
-                            [Models.USER] : {
-                                [testUserDataOne.uid] : true
-                            }
-                        },
-                        ref : {
-                            id : householdId
-                        }
-                    })
-
-                    const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
-
-                    await wrappedHouseholdsOnCreate(householdSnap)
-
-                    const userDoc = firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]
-
-                    const expectedUserDoc = {
-                        id: testUserDataOne.uid,
-                        [Models.HOUSEHOLD] : {
-                            id : householdId,
-                            [Relations.PIVOT] : {
-                                role : Roles.ADMIN,
-                                accepted : true
-                            }
-                        }
-                    }
-
-                    expect(userDoc).to.deep.include(expectedUserDoc)
-                })
-
-                it('Role field should not be added to pivot property if user aleady have a property of HOUSEHOLD with a different ID', async () => {
-                    
-                    const householdIdOne = uniqid()
-                    const householdIdTwo = uniqid()
-
-                    firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {
-                        [Models.HOUSEHOLD] : {
-                            id : householdIdOne
-                        }
-                    }
-
-                    const householdSnap = new OfflineDocumentSnapshotStub({
-                        data : { [Models.USER] : { [testUserDataOne.uid] : true } },
-                        ref: {
-                            id : householdIdTwo,
-                            delete : () => {
-                                return
-                            }
-                        }
-                    })
-
-                    const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
-
-                    await wrappedHouseholdsOnCreate(householdSnap)
-
-                    expect(firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`])
-                        .to.deep.equal({
-                            [Models.HOUSEHOLD] : {
-                                id : householdIdOne
-                            }
-                        })
-                })
-            })
         })
 
         describe('Auth', () => {
 
-            describe('On Create', () => {
+            describe('On Create', async () => {
 
-                it('When a new user is registered a User record should be created', async () => {
+                it('When a new user is registered a Users record should be created', async () => {
 
                     const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(testUserDataOne)
                     const wrappedAuthUsersOnCreate = test.wrap(myFunctions.authUsersOnCreate)
@@ -227,34 +143,35 @@ describe('OFFLINE', () => {
                     await wrappedAuthUsersOnCreate(userRecord)
 
                     const userDoc = firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]
+
                     expect(userDoc).to.exist
                 })
 
-                it('When a new user is registered a User record should be created with an id and email field', async () => {
+                it('When a new user is registered a Users record should be created with an ID and email field', async () => {
 
                     const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(testUserDataOne)
                     const wrappedAuthUsersOnCreate = test.wrap(myFunctions.authUsersOnCreate)
 
                     await wrappedAuthUsersOnCreate(userRecord)
 
-                    const userDoc = firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]
-
                     const expectedUserDoc = {
-                        id      : testUserDataOne.uid,
-                        email   : testUserDataOne.email
+                        id : testUserDataOne.uid,
+                        email : testUserDataOne.email
                     }
 
-                    expect(userDoc).to.deep.equal(expectedUserDoc)
+                    const userDoc = firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]
+
+                    expect(userDoc).to.be.deep.equal(expectedUserDoc)
                 })
             })
+            
+            describe('On Delete', async () => {
 
-            describe('On Delete', () => {
-
-                it('When a user is delete the corresponding User record sould be deleted', async () => {
+                it('When a user is delete the corresponding Users record should be deleted', async () => {
 
                     firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {
-                        id      : testUserDataOne.uid,
-                        email   : testUserDataOne.email
+                        id : testUserDataOne.uid,
+                        email : testUserDataOne.email
                     }
 
                     const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(testUserDataOne)
@@ -262,9 +179,10 @@ describe('OFFLINE', () => {
 
                     await wrappedAuthUsersOnDelete(userRecord)
 
-                    expect(firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]).to.not.exist
-                })
+                    const userDoc = firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]
 
+                    expect(userDoc).to.not.exist
+                })
             })
         })
 
@@ -351,7 +269,88 @@ describe('OFFLINE', () => {
                 })
             })
         })
-    
+
+        describe('Households', async () => {
+
+            describe('On Create', async () => { 
+                
+                it('Pivot between user and household should recieve a role property of admin', async () => {
+                    
+                    const householdId = uniqid()
+
+                    firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {
+                        id: testUserDataOne.uid,
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    }
+
+                    const householdSnap = new OfflineDocumentSnapshotStub({
+                        data : {
+                            [Models.USER] : {
+                                [testUserDataOne.uid] : true
+                            }
+                        },
+                        ref : {
+                            id : householdId
+                        }
+                    })
+
+                    const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
+
+                    await wrappedHouseholdsOnCreate(householdSnap)
+
+                    const userDoc = firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`]
+
+                    const expectedUserDoc = {
+                        id: testUserDataOne.uid,
+                        [Models.HOUSEHOLD] : {
+                            id : householdId,
+                            [Relations.PIVOT] : {
+                                role : Roles.ADMIN,
+                                accepted : true
+                            }
+                        }
+                    }
+
+                    expect(userDoc).to.deep.include(expectedUserDoc)
+                })
+
+                it('Role field should not be added to pivot property if user aleady have a property of HOUSEHOLD with a different ID', async () => {
+                    
+                    const householdIdOne = uniqid()
+                    const householdIdTwo = uniqid()
+
+                    firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdIdOne
+                        }
+                    }
+
+                    const householdSnap = new OfflineDocumentSnapshotStub({
+                        data : { [Models.USER] : { [testUserDataOne.uid] : true } },
+                        ref: {
+                            id : householdIdTwo,
+                            delete : () => {
+                                return
+                            }
+                        }
+                    })
+
+                    const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
+
+                    await wrappedHouseholdsOnCreate(householdSnap)
+
+                    expect(firestoreMockData[`${Models.USER}/${testUserDataOne.uid}`])
+                        .to.deep.equal({
+                            [Models.HOUSEHOLD] : {
+                                id : householdIdOne
+                            }
+                        })
+                })
+            })
+        })
+
         describe('Sensors-Users-Relation', () => {
     
             it('Mute should be cached on related Sensor', async () => {
@@ -407,41 +406,41 @@ describe('OFFLINE', () => {
             })
         })
 
-        describe('Pub/Sub', () => {
+        // describe('Pub/Sub', () => {
             
-            it('Notification Topic', async () => {
+        //     it('Notification Topic', async () => {
                 
-                const userId        = uniqid()
-                const sensorId      = uniqid()
-                const FCMToken      = uniqid()
+        //         const userId        = uniqid()
+        //         const sensorId      = uniqid()
+        //         const FCMToken      = uniqid()
                 
-                // mock data
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
-                    [Models.USER] : {
-                        [userId] : {
-                            FCM_tokens : {
-                                [FCMToken] : true
-                            }
-                        }
-                    }
-                }
+        //         // mock data
+        //         firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+        //             [Models.USER] : {
+        //                 [userId] : {
+        //                     FCM_tokens : {
+        //                         [FCMToken] : true
+        //                     }
+        //                 }
+        //             }
+        //         }
 
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                    name : 'Doorbell'
-                }
+        //         firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+        //             name : 'Doorbell'
+        //         }
 
-                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+        //         const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
             
-                await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
-                    attributes: {
-                        sensor_id: sensorId
-                    }}
-                )
+        //         await wrappedPubsubSensorNotification({
+        //             data: new Buffer(''),
+        //             attributes: {
+        //                 sensor_id: sensorId
+        //             }}
+        //         )
 
-                console.error(messagingSendToDeviceSpy.args)
-                expect(messagingSendToDeviceSpy.called).to.be.true
-            })
-        })
+        //         console.error(messagingSendToDeviceSpy.args)
+        //         expect(messagingSendToDeviceSpy.called).to.be.true
+        //     })
+        // })
     })
 })
