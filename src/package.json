@@ -8,6 +8,7 @@
     "dev": "nuxt",
     "build": "nuxt build",
     "build:win": "build.sh",
+    "deploy:win": "build.sh && firebase deploy",
     "serve:win": "build.sh && firebase serve --only functions,hosting",
     "start": "nuxt start",
     "generate": "nuxt generate",

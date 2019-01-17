@@ -42,13 +42,14 @@ exports = module.exports = pubsub
 
 		const payload = {
 			data : {
-				sensor_id : sensorId  
+				sensor_id : sensorId,
+				title : capitalize(notificationTitle),
 			},
 			notification : {
 				title : capitalize(notificationTitle),
 				sound : 'default',
 				clickAction : 'FLUTTER_NOTIFICATION_CLICK'
-			},
+			}
 		}
 
 		if(!(FCM_tokens.length > 0)) return

@@ -17,7 +17,7 @@ const test: FeaturesList = require('firebase-functions-test')()
 const assert = chai.assert
 const expect = chai.expect
 
-describe.only('OFFLINE', () => {
+describe('OFFLINE', () => {
 
     let adminInitStub: sinon.SinonStub
     let adminFirestoreStub: sinon.SinonStub
@@ -43,7 +43,7 @@ describe.only('OFFLINE', () => {
     }
     
     before(() => {
-        
+
         adminInitStub = sinon.stub(admin, 'initializeApp')
 
         firestoreStub = {
@@ -125,7 +125,7 @@ describe.only('OFFLINE', () => {
         firestoreMockData = {}
     })
 
-    describe('Functions', async () => {
+    describe.only('Functions', async () => {
         
         beforeEach(() => {
             test.cleanup()
@@ -138,7 +138,7 @@ describe.only('OFFLINE', () => {
 
             describe('On Create', async () => { 
                 
-                it('Pivot between user and household should recieve a role property of admin', async () => {
+                it.only('Pivot between user and household should recieve a role property of admin', async () => {
                     
                     const householdId = uniqid()
 

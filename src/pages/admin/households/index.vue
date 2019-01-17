@@ -55,7 +55,8 @@
                             <v-list-tile
                                 v-for="household in households"
                                 :key="household.id"
-                                :to="household.path"
+
+                                @click.stop="toggleHouseholdInfo(household)"
                                 ripple
                                 avatar
                                 router
@@ -73,12 +74,7 @@
 
                                 <v-list-tile-action>
 
-                                    <v-btn
-                                        icon
-                                    >
-                                        <v-icon color="grey lighten-1">info</v-icon>
-
-                                    </v-btn>
+                                    <v-icon color="grey lighten-1">info</v-icon>
 
                                 </v-list-tile-action>
 
