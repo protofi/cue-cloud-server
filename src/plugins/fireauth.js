@@ -9,7 +9,7 @@ export default context => {
 
 		auth.onAuthStateChanged(user => {
 			
-			return resolve(store.commit('auth/set', user))
+			return resolve(store.commit('auth/user', user))
 		})
 	})
 }

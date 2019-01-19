@@ -1,39 +1,55 @@
 <template>
-    <div>
-        <h2>Sensors</h2>
-        <v-btn
-        :loading="loading"
-        :disabled="loading"
-        color="secondary"
-        @click="deleting">
-            Delete all
-        </v-btn>
-    </div>
+    
+	<div>
+		
+		<v-toolbar color="cyan" dark tabs>
+
+			<v-toolbar-title>Users</v-toolbar-title>
+
+			<v-spacer></v-spacer>
+
+			<v-tabs
+				slot="extension"
+				v-model="tab"
+				color="cyan"
+				align-with-title
+			>
+				<v-tabs-slider color="yellow"></v-tabs-slider>
+
+				<v-tab v-for="item in items" :key="item">
+				{{ item }}
+				</v-tab>
+			
+			</v-tabs>
+
+		</v-toolbar>
+
+		<v-tabs-items v-model="tab">
+
+			<v-tab-item v-for="item in items" :key="item">
+				
+				<v-card flat>
+					<v-card-text>{{ text }}</v-card-text>
+				</v-card>
+				
+			</v-tab-item>
+
+		</v-tabs-items>
+
+	</div>
+
 </template>
 
 <script>
 export default {
     data () {
       return {
-        loader: null,
-        loading: false,
-        message : ''
+        tab: null,
+        items: [
+          'all', 'admins'
+        ],
+        text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.'
       }
-    },
-    watch: {
-      loader () {
-        const l = this.loader
-        this[l] = !this[l]
-
-        setTimeout(() => (this[l] = false), 3000)
-
-        this.loader = null
-      }
-    },
-    methods : {
-        deleting: () => {
-            message = 'hej'
-        }
     }
 }
 </script>

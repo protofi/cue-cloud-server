@@ -6,6 +6,32 @@ service cloud.firestore{
 			allow write: if false
 		}
 
+		match /users/{userId} {
+			allow create: if false
+
+			allow read: if isSelf() || isAdmin()
+
+			allow update: if ( isSelf()
+							&& reqDataHasNo(['id', 'claims', 'email'])
+							&& (
+								reqDataHasNo(["households"]) // If request has no households field: allow
+								|| (
+									!request.resource.data.households.keys().hasAll(["pivot"]) // If request has no households.pivot field: allow
+									|| (
+										!request.resource.data.households.pivot.keys().hasAll(["role"]) // If request has no households.pivot.role field: allow
+										&& (
+											!request.resource.data.households.pivot.keys().hasAll(["accepted"]) 
+											|| request.resource.data.households.pivot.accepted == true // If request has households.pivot.accepted it must be true
+										) 
+									)
+								)
+							)) || isSuperAdmin()
+
+			allow delete: if false
+
+			function isSelf() { return request.auth.uid == userId }
+		}
+
 		match /households/{householdId} {
 			allow create: if isAuth()
 							&& (
@@ -30,31 +56,6 @@ service cloud.firestore{
 			function reqHasUsersField() { return request.resource.data.keys().hasAll(["users"]) }
 		}
 
-		match /users/{userId} {
-			allow create: if false
-
-			allow read: if isSelf() || isAdmin()
-
-			allow update: if ( isSelf()
-							&& (
-								!request.resource.data.keys().hasAll(["households"]) // If request has no households field allow
-								|| (
-									!request.resource.data.households.keys().hasAll(["pivot"]) // If request has no households.pivot field allow
-									|| (
-										!request.resource.data.households.pivot.keys().hasAll(["role"]) // If request has no households.pivot.role field allow
-										&& (
-											!request.resource.data.households.pivot.keys().hasAll(["accepted"]) 
-											|| request.resource.data.households.pivot.accepted == true
-										) // If request has households.pivot.accepted it must be true
-									)
-								)
-							)) || isSuperAdmin()
-
-			allow delete: if false
-
-			function isSelf() { return request.auth.uid == userId }
-		}
-
 		match /sensors/{sensorId} {
 			allow create: if false
 			allow read:   if isAdmin()
@@ -69,6 +70,7 @@ service cloud.firestore{
 			allow delete: if false
 		}
 
+		function reqDataHasNo(fields) { return !request.resource.data.keys().hasAny(fields) }
 		function isAuth() { return (request.auth.uid != null) }
 		function isAdmin() { return request.auth.token.isAdmin || request.auth.token.isSuperAdmin }
 		function isSuperAdmin() { return request.auth.token.isSuperAdmin }

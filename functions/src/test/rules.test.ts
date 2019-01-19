@@ -18,6 +18,20 @@ const expect = chai.expect
 
 describe('OFFLINE', () => {
 
+    const testAdminUserData = {
+        uid: "admin-user",
+        name: "Admin",
+        email: "admin@mail.com",
+        isAdmin : true
+    }
+
+    const testSuperAdminUserData = {
+        uid: "super-admin-user",
+        name: "Super Admin",
+        email: "superadmin@mail.com",
+        isSuperAdmin : true
+    }
+
     const testUserDataOne = {
         uid: "test-user-1",
         name: "Andy",
@@ -51,6 +65,281 @@ describe('OFFLINE', () => {
 
             const ref = db.collection('random-collection')
             expect(await firestore.assertFails(ref.add({})))
+        })
+
+        it('Reads from a random collection should fail', async () => {
+            const db = await setup()
+
+            const ref = db.collection('random-collection')
+            expect(await firestore.assertFails(ref.get()))
+        })
+
+        describe('Users', async () => {
+
+            describe('Create', async () => {
+                
+                it('Unautherized users should not be able to create new users', async () => {
+                    const db = await setup()
+                    const ref = db.collection(Models.USER)
+
+                    expect(await firestore.assertFails(ref.add({})))
+                })
+
+                it('Users should not be able to create new users', async () => {
+                    const db = await setup(testUserDataOne)
+                    const ref = db.collection(Models.USER)
+
+                    expect(await firestore.assertFails(ref.add({})))
+                })
+
+                it('Admin Users should not be able to create new users', async () => {
+                    const db = await setup(testAdminUserData)
+                    const ref = db.collection(Models.USER)
+
+                    expect(await firestore.assertFails(ref.add({})))
+                })
+
+                it('Super Admin Users should not be able to create new users', async () => {
+                    const db = await setup(testSuperAdminUserData)
+                    const ref = db.collection(Models.USER)
+
+                    expect(await firestore.assertFails(ref.add({})))
+                })
+            })
+
+            describe('Read', async () => {
+                
+                it('Unautherized users should not be able to read data from users', async () => {
+                    const db = await setup(null, {
+                        [`${Models.USER}/${testUserDataOne.uid}`] : {}
+                    })
+                    const ref = db.collection(Models.USER)
+
+                    expect(await firestore.assertFails(ref.doc(testUserDataTwo.uid).get()))
+                })
+
+                it('Users should be able to read their own data', async () => {
+                    const db = await setup(testUserDataOne, {
+                        [`${Models.USER}/${testUserDataOne.uid}`] : {}
+                    })
+    
+                    const ref = db.collection(Models.USER)
+    
+                    expect(await firestore.assertSucceeds(ref.doc(testUserDataOne.uid).get()))
+                })
+
+                it('Users should not be able to read data on other users', async () => {
+                    const db = await setup(testUserDataOne, {
+                        [`${Models.USER}/${testUserDataTwo.uid}`] : {}
+                    })
+
+                    const ref = db.collection(Models.USER)
+
+                    expect(await firestore.assertFails(ref.doc(testUserDataTwo.uid).get()))
+                })
+
+                it('Admin users should be able to read data on other users', async () => {
+                    const db = await setup(testAdminUserData, {
+                        [`${Models.USER}/${testUserDataOne.uid}`] : {}
+                    })
+
+                    const ref = db.collection(Models.USER)
+
+                    expect(await firestore.assertSucceeds(ref.doc(testUserDataOne.uid).get()))
+                })
+
+                it('Super Admin users should be able to read data on other users', async () => {
+                    const db = await setup(testSuperAdminUserData, {
+                        [`${Models.USER}/${testUserDataOne.uid}`] : {}
+                    })
+
+                    const ref = db.collection(Models.USER)
+
+                    expect(await firestore.assertSucceeds(ref.doc(testUserDataOne.uid).get()))
+                })
+            })
+
+            describe.only('Update', async () => {
+
+                it('Unautherized Users should not be able to update data on users', async () => {
+                    const db = await setup(null, {
+                        [`${Models.USER}/${testUserDataOne.uid}`] : {}
+                    })
+    
+                    const ref = db.collection(Models.USER)
+    
+                    expect(await firestore.assertFails(ref.doc(testUserDataOne.uid).update({})))
+                })
+
+                it('Users should not be able to update data on other users', async () => {
+                    const db = await setup(testUserDataOne, {
+                        [`${Models.USER}/${testUserDataTwo.uid}`] : {}
+                    })
+
+                    const ref = db.collection(Models.USER)
+
+                    expect(await firestore.assertFails(ref.doc(testUserDataTwo.uid).update({
+                        randomData : true
+                    })))
+                })
+
+                it('Users should not be able to update field: id', async () => {
+                    const db = await setup(testUserDataOne, {
+                        [`${Models.USER}/${testUserDataOne.uid}`] : {}
+                    })
+    
+                    const ref = db.collection(Models.USER)
+    
+                    expect(await firestore.assertFails(ref.doc(testUserDataOne.uid).update({
+                        id : '123'
+                    })))
+                })
+
+                it('Users should not be able to update field: claims', async () => {
+                    const db = await setup(testUserDataOne, {
+                        [`${Models.USER}/${testUserDataOne.uid}`] : {}
+                    })
+    
+                    const ref = db.collection(Models.USER)
+    
+                    expect(await firestore.assertFails(ref.doc(testUserDataOne.uid).update({
+                        claims : {}
+                    })))
+                })
+
+                it('Users should not be able to update field: email', async () => {
+                    const db = await setup(testUserDataOne, {
+                        [`${Models.USER}/${testUserDataOne.uid}`] : {}
+                    })
+    
+                    const userDoc = db.collection(Models.USER).doc(testUserDataOne.uid)
+    
+                    expect(await firestore.assertFails(userDoc.update({
+                        email : 'mail@mail.com'
+                    })))
+                })
+
+                it('Users should be able to update field: name', async () => {
+                    const db = await setup(testUserDataOne, {
+                        [`${Models.USER}/${testUserDataOne.uid}`] : {}
+                    })
+    
+                    const userDoc = db.collection(Models.USER).doc(testUserDataOne.uid)
+    
+                    expect(await firestore.assertSucceeds(userDoc.update({
+                        name : testUserDataOne.name
+                    })))
+                })
+
+                it('Users should be able to update data on the relation to a household', async () => {
+                    const db = await setup(testUserDataOne, {
+                        [`${Models.USER}/${testUserDataOne.uid}`] : {
+                            [Models.HOUSEHOLD] : {
+                                pivot : {}
+                            }
+                        }
+                    })
+    
+                    const ref = db.collection(Models.USER)
+    
+                    expect(await firestore.assertSucceeds(ref.doc(testUserDataOne.uid).update({
+                        [Models.HOUSEHOLD]: {
+                            pivot : {
+                                randomData : true
+                            }
+                        }
+                    })))
+                })
+
+                it('Users should not be able to update their role in relation to a household', async () => {
+                    const db = await setup(testUserDataOne, {
+                        [`${Models.USER}/${testUserDataOne.uid}`] : {
+                            [Models.HOUSEHOLD] : {
+                                pivot : {
+                                    role : 'res'
+                                }
+                            }
+                        }
+                    })
+    
+                    const ref = db.collection(Models.USER)
+    
+                    expect(await firestore.assertFails(ref.doc(testUserDataOne.uid).update({
+                        [Models.HOUSEHOLD]: {
+                            pivot : {
+                                role : Roles.ADMIN
+                            }
+                        }
+                    })))
+                })
+    
+                it('Users should not be able to update the accecpted property in relation to a household to false', async () => {
+                    const db = await setup(testUserDataOne, {
+                        [`${Models.USER}/${testUserDataOne.uid}`] : {
+                            [Models.HOUSEHOLD] : true
+                        }
+                    })
+    
+                    const ref = db.collection(Models.USER)
+    
+                    expect(await firestore.assertFails(ref.doc(testUserDataOne.uid).update({
+                        [Models.HOUSEHOLD]: {
+                            pivot : {
+                                accepted: false
+                            }
+                        }
+                    })))
+                })
+    
+                it('Users should be able to change the accecpted property in relation to a household to true', async () => {
+                    const db = await setup(testUserDataOne, {
+                        [`${Models.USER}/${testUserDataOne.uid}`] : {
+                            [Models.HOUSEHOLD] : true
+                        }
+                    })
+    
+                    const ref = db.collection(Models.USER)
+    
+                    expect(await firestore.assertSucceeds(ref.doc(testUserDataOne.uid).update({
+                        [Models.HOUSEHOLD]: {
+                            pivot : {
+                                accepted: true
+                            }
+                        }
+                    })))
+                })
+                    
+               
+
+                it('Super Admin users should be able to update data on other users', async () => {
+                    const db = await setup(testSuperAdminUserData, {
+                        [`${Models.USER}/${testUserDataOne.uid}`] : {}
+                    })
+    
+                    const ref = db.collection(Models.USER)
+    
+                    expect(await firestore.assertSucceeds(ref.doc(testUserDataOne.uid).get()))
+                })
+            })
+
+            describe('Delete', async () => {
+
+                it('Unautherized users should not be able the delete users', async () => {
+                    const db = await setup()
+
+                    const ref = db.collection(Models.USER)
+
+                    expect(await firestore.assertFails(ref.doc().delete()))
+                })
+
+                it('Users should not be able the delete users', async () => {
+                    const db = await setup(testHouseDataOne)
+
+                    const ref = db.collection(Models.USER)
+
+                    expect(await firestore.assertFails(ref.doc().delete()))
+                })
+            })
         })
 
         describe('Households', async () => {
@@ -158,145 +447,6 @@ describe('OFFLINE', () => {
                 const db = await setup(testHouseDataOne)
 
                 const ref = db.collection(Models.HOUSEHOLD)
-
-                expect(await firestore.assertFails(ref.doc().delete()))
-            })
-        })
-        
-        describe('Users', async () => {
-
-            it('Unautherized users should not be able to create users', async () => {
-                const db = await setup()
-                const ref = db.collection(Models.USER)
-
-                expect(await firestore.assertFails(ref.add({})))
-            })
-
-            it('Users should not be able to create users', async () => {
-                const db = await setup(testUserDataOne)
-                const ref = db.collection(Models.USER)
-
-                expect(await firestore.assertFails(ref.add({})))
-            })
-
-            it('Users should be able to update data about themselves', async () => {
-                const db = await setup(testHouseDataOne, {
-                    [`${Models.USER}/${testHouseDataOne.uid}`] : {
-                        id : testHouseDataOne.uid
-                    }
-                })
-
-                const ref = db.collection(Models.USER)
-
-                expect(await firestore.assertSucceeds(ref.doc(testHouseDataOne.uid).update({
-                    randomData : true
-                })))
-            })
-
-            it('Users should be able to update their name', async () => {
-                const db = await setup(testUserDataOne, {
-                    [`${Models.USER}/${testUserDataOne.uid}`] : {
-                        id : testUserDataOne.uid,
-                    }
-                })
-
-                const ref = db.collection(Models.USER)
-
-                expect(await firestore.assertSucceeds(ref.doc(testUserDataOne.uid).update({
-                    name : testUserDataOne.name
-                })))
-            })
-
-            it('Users should be able to update data on the relation to a household', async () => {
-                const db = await setup(testUserDataOne, {
-                    [`${Models.USER}/${testUserDataOne.uid}`] : {
-                        [Models.HOUSEHOLD] : {
-                            
-                        }
-                    }
-                })
-
-                const ref = db.collection(Models.USER)
-
-                expect(await firestore.assertSucceeds(ref.doc(testUserDataOne.uid).update({
-                    [Models.HOUSEHOLD]: {
-                        pivot : {
-                            randomData : true
-                        }
-                    }
-                })))
-            })
-
-            it('Users should not be able to change their role in relation to a household', async () => {
-                const db = await setup(testUserDataOne, {
-                    [`${Models.USER}/${testUserDataOne.uid}`] : {
-                        [Models.HOUSEHOLD] : {
-                            pivot : {
-                                role : 'res'
-                            }
-                        }
-                    }
-                })
-
-                const ref = db.collection(Models.USER)
-
-                expect(await firestore.assertFails(ref.doc(testUserDataOne.uid).update({
-                    [Models.HOUSEHOLD]: {
-                        pivot : {
-                            role : Roles.ADMIN
-                        }
-                    }
-                })))
-            })
-
-            it('Users should not be able to change the accecpted property in relation to a household to false', async () => {
-                const db = await setup(testUserDataOne, {
-                    [`${Models.USER}/${testUserDataOne.uid}`] : {
-                        [Models.HOUSEHOLD] : true
-                    }
-                })
-
-                const ref = db.collection(Models.USER)
-
-                expect(await firestore.assertFails(ref.doc(testUserDataOne.uid).update({
-                    [Models.HOUSEHOLD]: {
-                        pivot : {
-                            accepted: false
-                        }
-                    }
-                })))
-            })
-
-            it('Users should be able to change the accecpted property in relation to a household to true', async () => {
-                const db = await setup(testUserDataOne, {
-                    [`${Models.USER}/${testUserDataOne.uid}`] : {
-                        [Models.HOUSEHOLD] : true
-                    }
-                })
-
-                const ref = db.collection(Models.USER)
-
-                expect(await firestore.assertSucceeds(ref.doc(testUserDataOne.uid).update({
-                    [Models.HOUSEHOLD]: {
-                        pivot : {
-                            accepted: true
-                        }
-                    }
-                })))
-            })
-
-            it('Unautherized users should not be able the delete users', async () => {
-                const db = await setup()
-
-                const ref = db.collection(Models.USER)
-
-                expect(await firestore.assertFails(ref.doc().delete()))
-            })
-
-            it('Users should not be able the delete users', async () => {
-                const db = await setup(testHouseDataOne)
-
-                const ref = db.collection(Models.USER)
 
                 expect(await firestore.assertFails(ref.doc().delete()))
             })

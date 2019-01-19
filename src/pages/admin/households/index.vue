@@ -128,7 +128,7 @@ export default {
         return {
             householdsDetailDrawer: false,
             households: [],
-            activeHousehold : null
+            activeHousehold : null,
         }
     },
     components : {

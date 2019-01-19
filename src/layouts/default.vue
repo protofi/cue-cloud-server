@@ -173,25 +173,6 @@
 				<v-list>
 				
 					<v-list-tile
-						to="/admin/households"
-						router
-						exact
-					>
-						<v-list-tile-action>
-					
-							<v-icon>home</v-icon>
-					
-						</v-list-tile-action>
-
-						<v-list-tile-content>
-					
-							<v-list-tile-title>Households</v-list-tile-title>
-					
-						</v-list-tile-content>
-
-					</v-list-tile>
-
-					<v-list-tile
 						to="/admin/users"
 						router
 						exact
@@ -228,6 +209,45 @@
 						</v-list-tile-content>
 
 					</v-list-tile>
+
+					<v-list-tile
+						to="/admin/households"
+						router
+						exact
+					>
+						<v-list-tile-action>
+					
+							<v-icon>home</v-icon>
+					
+						</v-list-tile-action>
+
+						<v-list-tile-content>
+					
+							<v-list-tile-title>Households</v-list-tile-title>
+					
+						</v-list-tile-content>
+
+					</v-list-tile>
+
+					<v-list-tile
+						to="/admin/sensors"
+						router
+						exact
+					>
+						<v-list-tile-action>
+					
+							<v-icon>settings_remote</v-icon>
+					
+						</v-list-tile-action>
+
+						<v-list-tile-content>
+					
+							<v-list-tile-title>Sensors</v-list-tile-title>
+					
+						</v-list-tile-content>
+
+					</v-list-tile>
+
 
 				</v-list>
 
@@ -268,6 +288,7 @@
 
 		</div>
 
+		<!-- SPLASH -->
 		<v-container
 			v-show="$store.getters['auth/loading']"
 			fill-height
@@ -320,3 +341,7 @@
 	}
 	  
 </script>
+
+<style>
+
+</style>

@@ -2,6 +2,7 @@ import { auth } from '~/plugins/firebase.js'
 
 const { isEmpty } = require('lodash')
 const jwt_decode = require('jwt-decode')
+const moment = require('moment')
 
 export const state = () => ({
     user: null,
@@ -14,7 +15,7 @@ export const state = () => ({
 
 export const getters = {
 
-	get: state => {
+	user: state => {
 		return state.user
     },
     
@@ -30,6 +31,21 @@ export const getters = {
 		catch(e) {
 			return false
 		}
+    },
+
+    token: state => {
+        return state.token  
+    },
+
+    hasExpired: state => {
+        if(!state.token) return true
+
+        const tokenExpirationTime = state.token.exp
+        const now = moment().unix().valueOf()
+
+        const hasExpired = moment.unix(tokenExpirationTime).isBefore(now)
+        
+        return hasExpired
     },
     
     isSuperAdmin: state => {
@@ -56,7 +72,7 @@ export const getters = {
 }
 
 export const mutations = {
-	set (state, payload)
+	user (state, payload)
 	{
         state.user = payload
         state.loading = false

@@ -23,6 +23,7 @@
     "firebase": "^5.7.2",
     "jwt-decode": "^2.2.0",
     "lodash": "^4.17.11",
+    "moment": "^2.23.0",
     "nuxt": "^2.3.4",
     "nuxt-validate": "^0.1.2",
     "vuetify": "^1.4.1"
