@@ -24,6 +24,22 @@
 
 				<v-spacer></v-spacer>
 
+				<v-btn
+					flat
+					href="https://www.cue-home.com"
+				>
+					Shop
+				</v-btn>
+
+				<v-btn
+					flat
+					v-show="$store.getters['auth/isGuest']"
+					@click="signIn.showDialog = true"
+				>
+					Sign in
+				</v-btn>
+
+
 				<v-menu
 					offset-y
 					v-show="!$store.getters['auth/isGuest']"
@@ -48,7 +64,7 @@
 					<v-list>
 			
 						<v-list-tile
-							to="/home"
+							to="/"
 							router
 							exact
 						>
@@ -128,14 +144,6 @@
 					</v-list>
 
 				</v-menu>
-
-				<v-btn
-					flat
-					v-show="$store.getters['auth/isGuest']"
-					@click="signIn.showDialog = true"
-				>
-					Sign in
-				</v-btn>
 
 			</v-toolbar>
 
@@ -301,6 +309,14 @@
 					<img src="~/../static/cue_temp_logo.png">
 
 				</v-avatar>
+				
+				<br>
+				
+				<v-progress-linear
+					:indeterminate="true"
+					color="grey"
+					height="3"
+				></v-progress-linear>
 				
 			</v-layout>
 

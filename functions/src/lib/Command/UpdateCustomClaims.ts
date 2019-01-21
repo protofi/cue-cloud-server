@@ -5,8 +5,8 @@ export default class UpdateCustomClaims implements IActionableFieldCommand {
     
     async execute(user: User, changes: any, claims: any): Promise<void>
     {
-        // await auth().setCustomUserClaims(user.getId(), claims)
-        return auth().revokeRefreshTokens(user.getId())
+        return await auth().setCustomUserClaims(user.getId(), claims)
+        // return auth().revokeRefreshTokens(user.getId())
     }
     
     undo(): Promise<void> {

@@ -35,10 +35,10 @@ export default {
     created () {
     
 		firestore.collection('households')
-			.onSnapshot(snapshot => {
+			.onSnapshot(({ docs }) => {
 				const households = []
 			
-				snapshot.docs.forEach(doc => {
+				docs.forEach(doc => {
 				
 					const household = {
 						id    : doc.id,
@@ -67,20 +67,4 @@ export default {
 </script>
 
 <style>
-	.manual-v-layout {
-		display: -webkit-box;
-		display: -ms-flexbox;
-		display: flex;
-		-webkit-box-flex: 1;
-		-ms-flex: 1 1 auto;
-		flex: 1 1 auto;
-		-ms-flex-wrap: wrap;
-		flex-wrap: wrap;
-		-webkit-box-orient: horizontal;
-		-webkit-box-direction: normal;
-		-ms-flex-direction: row;
-		flex-direction: row;
-		padding-bottom: 8px !important;
-		padding-top: 8px !important;
-	}
 </style>
