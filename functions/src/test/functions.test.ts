@@ -8,8 +8,9 @@ import { FeaturesList } from 'firebase-functions-test/lib/features'
 import { Models } from './lib/ORM/Models'
 import { OfflineDocumentSnapshotStub } from './stubs'
 import { Change } from 'firebase-functions'
-import { unflatten } from 'flat'
-import { Relations, Roles } from './lib/const'
+import { unflatten, flatten } from 'flat'
+import { Relations, Roles, Errors } from './lib/const'
+import * as fakeUUID from 'uuid/v1'
 import * as _ from 'lodash'
 
 const test: FeaturesList = require('firebase-functions-test')()
@@ -54,7 +55,7 @@ describe('OFFLINE', () => {
                         return {
                             id: (id) ? id : uniqid(),
                             set: (data, {merge}) => {
-    
+
                                 if(merge)
                                 {
                                     firestoreMockData = _.merge(firestoreMockData, {
@@ -76,22 +77,63 @@ describe('OFFLINE', () => {
                                         }
                                         catch(e)
                                         {
-                                            throw Error(`Mock data is missing: ${e} [${`${col}/${id}`}]`)
+                                            console.error(`Mock data is missing: ${e.message} [${`${col}/${id}`}]`)
+                                            return undefined
                                         }
-                                    }
+                                    },
+                                    exists : (!_.isUndefined(firestoreMockData[`${col}/${id}`]))
                                 }
                             },
                             update: (data) => {
+                                
                                 if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${`${col}/${id}`}]`)
-    
+
+                                //Handle field deletion
+                                const flattenData = flatten(data)
+                                
+                                _.forOwn(flattenData, (value, key) => {
+                                    if(value !== admin.firestore.FieldValue.delete()) return
+                                    
+                                    _.unset(data, key)
+                                    _.unset(firestoreMockData[`${col}/${id}`], key)
+                                })
+
                                 firestoreMockData = _.merge(firestoreMockData, {
                                     [`${col}/${id}`] : unflatten(data)
                                 })
     
                                 return null
                             },
+
                             delete: () => {
-                                delete firestoreMockData[`${col}/${id}`]
+                                _.unset(firestoreMockData, `${col}/${id}`)
+                            }
+                        }
+                    },
+                    where: (field: string, operator: string, value: string) => {
+                        return {
+                            get: () => {
+
+                                const docs: Array<Object> = new Array<Object>()
+
+                                _.forOwn(firestoreMockData, (collection, path) => {
+
+                                    if(!path.includes(col)) return
+
+                                    if(!_.has(collection, field)) return
+                                    
+                                    if(_.get(collection, field) !== value) return
+
+                                    docs.push(_.merge(firestoreMockData[path], {
+                                        ref: {
+                                            delete: () => {
+                                                _.unset(firestoreMockData, path)
+                                            }
+                                        }
+                                    }))
+                                })
+
+                                return docs
                             }
                         }
                     }
@@ -388,7 +430,7 @@ describe('OFFLINE', () => {
                     before : new OfflineDocumentSnapshotStub(),
                     after : afterDocSnap
                 }
-    
+
                 await wrappedSensorsUsersOnUpdate(change)
                 
                 const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
@@ -406,8 +448,174 @@ describe('OFFLINE', () => {
             })
         })
 
-        // describe('Pub/Sub', () => {
+        describe.only('Pub/Sub', () => {
             
+            const nullBuffer = new Buffer('')
+            const householdId       = uniqid()
+    
+            const baseStationId     = uniqid()
+            const baseStationUUID   = fakeUUID()
+            const sensorUUID        = fakeUUID()
+
+            describe('Topic: New Sensor', () => {
+
+                it.only('Sending a message with no Base Station UUID should fail', async () => {
+
+                    const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
+                    let error = null
+                 
+                    try{
+
+                        await wrappedPubsubBaseStationNewSensor({
+                                data: nullBuffer,
+                                attributes: {
+                                    sensor_UUID: sensorUUID
+                                }}
+                            )
+                    }
+                    catch(e) {
+                        error = e.message
+                    }
+
+                    expect(error).to.be.equal(Errors.MODEL_NOT_FOUND)
+
+                    expect(firestoreMockData[`${Models.SENSOR}/${undefined}`]).to.not.exist
+                    expect(firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`]).to.not.exist
+                    expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
+                })
+
+                it.only('Sending a message with no Sensor UUID should fail', async () => {
+
+                    // mock data
+                    firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    }
+
+                    const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
+                    let error = null
+                    
+                    try{
+
+                        await wrappedPubsubBaseStationNewSensor({
+                                data: nullBuffer,
+                                attributes: {
+                                    base_station_UUID : baseStationUUID
+                                }}
+                            )
+                    }
+                    catch(e) {
+                        error = e.message
+                    }
+
+                    expect(error).to.be.equal(Errors.NO_SENSOR_UUID)
+
+                    expect(firestoreMockData[`${Models.SENSOR}/${undefined}`]).to.not.exist
+                    expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
+                })
+
+                it.only('Sending a message with no attributes should fail', async () => {
+
+                    // mock data
+                    firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    }
+
+                    const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
+                    
+                    try{
+
+                        await wrappedPubsubBaseStationNewSensor({
+                                data: nullBuffer
+                            })
+                    }
+                    catch(e) { }
+
+                    expect(firestoreMockData[`${Models.SENSOR}/${undefined}`]).to.not.exist
+                    expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
+                })
+
+                it.only('Sending a message with a Base Station UUID not found in the database should fail', async () => {
+
+                    const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
+                    let error = null
+                  
+                    try{
+
+                        await wrappedPubsubBaseStationNewSensor({
+                                data: nullBuffer,
+                                attributes: {
+                                    base_station_UUID : baseStationUUID,
+                                    sensor_UUID: sensorUUID
+                                }}
+                            )
+                    }
+                    catch(e) {
+                        error = e.message
+                    }
+
+                    expect(error).to.be.equal(Errors.MODEL_NOT_FOUND)
+
+                    expect(firestoreMockData[`${Models.SENSOR}/${undefined}`]).to.not.exist
+                    expect(firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`]).to.not.exist
+                    expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
+                })
+
+                it.only('Sending a message with a Base Station UUID of Base Station not claimed should fail', async () => {
+
+                    // mock data
+                    firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`] = {}
+
+                    const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
+                    let error = null
+                    try{
+
+                        await wrappedPubsubBaseStationNewSensor({
+                                data: nullBuffer,
+                                attributes: {
+                                    base_station_UUID : baseStationUUID,
+                                    sensor_UUID: sensorUUID
+                                }}
+                            )
+                    }
+                    catch(e) {
+                        error = e.message
+                    }
+
+                    expect(error).to.be.equal(Errors.BASE_STATION_NOT_CLAIMED)
+
+                    expect(firestoreMockData[`${Models.SENSOR}/${undefined}`]).to.not.exist
+                    expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
+
+                    expect(firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`]).to.exist
+                })
+
+                it('New Sensor Topic', async () => {
+
+                    // mock data
+                    firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    }
+
+                    const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
+
+                    await wrappedPubsubBaseStationNewSensor({
+                            data: nullBuffer,
+                            attributes: {
+                                base_station_UUID : baseStationUUID,
+                                sensor_UUID: sensorUUID
+                            }}
+                        )
+
+                    console.log(JSON.stringify(firestoreMockData, undefined, 4))
+
+                })
+            })
         //     it('Notification Topic', async () => {
                 
         //         const userId        = uniqid()
@@ -441,6 +649,8 @@ describe('OFFLINE', () => {
         //         console.error(messagingSendToDeviceSpy.args)
         //         expect(messagingSendToDeviceSpy.called).to.be.true
         //     })
-        // })
+        
+            
+        })
     })
 })

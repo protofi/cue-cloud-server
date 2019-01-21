@@ -345,7 +345,7 @@ describe('STAGE', () => {
                 expect(carName).to.be.equal(fetchedName)
             })
 
-            it('GetField should return undefined id field does not exist', async () => {
+            it('GetField should return undefined if field does not exist', async () => {
                 const carId = uniqid()
 
                 const car = new Car(stubFs, null, carId)

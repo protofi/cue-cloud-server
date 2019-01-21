@@ -3,6 +3,7 @@ import { Change } from "firebase-functions";
 import * as flatten from 'flat'
 import { difference, asyncForEach } from "../../util";
 import { IActionableFieldCommand, IModelCommand } from "../../Command";
+import { Errors } from "../../const";
 
 export enum Models {
     BASE_STATION = 'base_stations',
@@ -110,6 +111,13 @@ export default class ModelImpl implements Model {
     {
         const docRef: FirebaseFirestore.DocumentReference = this.getDocRef(id)
         this.docSnap = await docRef.get()
+        return this
+    }
+
+    async findOrFail(id: string): Promise<ModelImpl>
+    {
+        await this.find(id)
+        if(!this.docSnap.exists) throw Error(Errors.MODEL_NOT_FOUND)
         return this
     }
 
