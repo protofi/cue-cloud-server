@@ -27,6 +27,9 @@ describe('OFFLINE', () => {
     let myFunctions
     let firestoreStub
 
+    let idIterator = 0
+    let injectionIds = []
+    
     let firestoreMockData: any = {}
 
     const testUserDataOne = {
@@ -47,6 +50,15 @@ describe('OFFLINE', () => {
 
         adminInitStub = sinon.stub(admin, 'initializeApp')
 
+        function nextIdInjection()
+        {
+            const _nextInjectionId = injectionIds[idIterator]
+
+            idIterator++
+
+            return (_nextInjectionId) ? _nextInjectionId : uniqid()
+        }
+
         firestoreStub = {
             settings: () => { return null },
             collection: (col) => {
@@ -55,14 +67,16 @@ describe('OFFLINE', () => {
                         return {
                             id: (id) ? id : uniqid(),
                             set: (data, {merge}) => {
+                                
+                                const _id = (id) ? id : nextIdInjection()
 
                                 if(merge)
                                 {
                                     firestoreMockData = _.merge(firestoreMockData, {
-                                        [`${col}/${id}`] : unflatten(data)
+                                        [`${col}/${_id}`] : unflatten(data)
                                     })
                                 }
-                                else firestoreMockData[`${col}/${id}`] = unflatten(data)
+                                else firestoreMockData[`${col}/${_id}`] = unflatten(data)
     
                                 return null
                             },
@@ -165,6 +179,8 @@ describe('OFFLINE', () => {
         adminInitStub.restore()
         adminFirestoreStub.restore()
         firestoreMockData = {}
+        injectionIds = []
+        idIterator = 0
     })
 
     describe('Functions', async () => {
@@ -448,18 +464,19 @@ describe('OFFLINE', () => {
             })
         })
 
-        describe.only('Pub/Sub', () => {
+        describe('Pub/Sub', () => {
             
             const nullBuffer = new Buffer('')
             const householdId       = uniqid()
     
             const baseStationId     = uniqid()
             const baseStationUUID   = fakeUUID()
+            const sensorId          = uniqid()
             const sensorUUID        = fakeUUID()
 
             describe('Topic: New Sensor', () => {
 
-                it.only('Sending a message with no Base Station UUID should fail', async () => {
+                it('Sending a message with no Base Station UUID should fail', async () => {
 
                     const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
                     let error = null
@@ -484,7 +501,7 @@ describe('OFFLINE', () => {
                     expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
                 })
 
-                it.only('Sending a message with no Sensor UUID should fail', async () => {
+                it('Sending a message with no Sensor UUID should fail', async () => {
 
                     // mock data
                     firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`] = {
@@ -515,7 +532,7 @@ describe('OFFLINE', () => {
                     expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
                 })
 
-                it.only('Sending a message with no attributes should fail', async () => {
+                it('Sending a message with no attributes should fail', async () => {
 
                     // mock data
                     firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`] = {
@@ -538,7 +555,7 @@ describe('OFFLINE', () => {
                     expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
                 })
 
-                it.only('Sending a message with a Base Station UUID not found in the database should fail', async () => {
+                it('Sending a message with a Base Station UUID not found in the database should fail', async () => {
 
                     const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
                     let error = null
@@ -564,13 +581,14 @@ describe('OFFLINE', () => {
                     expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
                 })
 
-                it.only('Sending a message with a Base Station UUID of Base Station not claimed should fail', async () => {
+                it('Sending a message with a Base Station UUID of Base Station not claimed should fail', async () => {
 
                     // mock data
                     firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`] = {}
 
                     const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
                     let error = null
+
                     try{
 
                         await wrappedPubsubBaseStationNewSensor({
@@ -578,8 +596,8 @@ describe('OFFLINE', () => {
                                 attributes: {
                                     base_station_UUID : baseStationUUID,
                                     sensor_UUID: sensorUUID
-                                }}
-                            )
+                                }
+                            })
                     }
                     catch(e) {
                         error = e.message
@@ -593,7 +611,7 @@ describe('OFFLINE', () => {
                     expect(firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`]).to.exist
                 })
 
-                it('New Sensor Topic', async () => {
+                it('Sending a message should create a Sensor related to the claiming Household', async () => {
 
                     // mock data
                     firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`] = {
@@ -601,6 +619,12 @@ describe('OFFLINE', () => {
                             id : householdId
                         }
                     }
+
+                    injectionIds = [
+                        sensorId,
+                        sensorId,
+                        sensorId
+                    ]
 
                     const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
 
@@ -611,9 +635,24 @@ describe('OFFLINE', () => {
                                 sensor_UUID: sensorUUID
                             }}
                         )
+                    
+                    const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
+                    const expectedSensorDoc = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        },
+                        UUID: sensorUUID
+                    }
 
-                    console.log(JSON.stringify(firestoreMockData, undefined, 4))
+                    const householdDoc = firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]
+                    const expectedHouseholdDoc = {
+                        [Models.SENSOR] : {
+                            [sensorId] : true
+                        }
+                    }
 
+                    expect(householdDoc).to.be.deep.equal(expectedHouseholdDoc)
+                    expect(sensorDoc).to.be.deep.equal(expectedSensorDoc)
                 })
             })
         //     it('Notification Topic', async () => {
