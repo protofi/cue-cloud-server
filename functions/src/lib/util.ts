@@ -8,6 +8,10 @@ export async function asyncForEach(array: Array<any>, callback: (item: any, inde
     }
 }
 
+export function printFormattedJson(json) {
+	console.log(JSON.stringify(json, null, 4))
+}
+
 /**
  * Deep diff between two object, using lodash
  * @param  {Object} object Object compared

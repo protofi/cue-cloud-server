@@ -4,6 +4,7 @@ import DataORMImpl from '../../lib/ORM'
 import Household from '../../lib/ORM/Models/Household'
 import BaseStation from '../../lib/ORM/Models/BaseStation'
 import { Errors } from '../../lib/const';
+import { Models } from '../../lib/ORM/Models';
 
 try {admin.initializeApp()} catch(e) {}
 
@@ -23,6 +24,21 @@ exports = module.exports = functions.pubsub
     const household = await baseStation.household().get() as Household
    
     if(!household) throw Error(Errors.BASE_STATION_NOT_CLAIMED)
+
+    const sensors: FirebaseFirestore.QuerySnapshot = await db.sensor().where('UUID', '==', sensorUUID).get()
+
+    let alreadyExistingSensor: boolean = false
+
+    if(sensors.size > 0)
+    {
+        sensors.docs.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+            const householdId: string = doc.get(Models.HOUSEHOLD).id
+            
+            alreadyExistingSensor = (householdId === household.getId()) ? true : alreadyExistingSensor
+        })
+    }
+
+    if(alreadyExistingSensor) throw Error(Errors.SENSOR_ALREADY_PAIRED) 
 
     const sensor = await db.sensor().create({
         UUID : sensorUUID

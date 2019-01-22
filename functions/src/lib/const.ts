@@ -12,5 +12,6 @@ export enum Errors {
     NOT_RELATED     = 'No relation found.',
     NO_BASE_STATION = 'No Base Station was found.',
     BASE_STATION_NOT_CLAIMED = 'Base Station has not been claimed.',
-    NO_SENSOR_UUID  = 'Sensor UUID cannot be undefined or null.'
+    NO_SENSOR_UUID  = 'Sensor UUID cannot be undefined or null.',
+    SENSOR_ALREADY_PAIRED = 'The sensor UUID is already paired.'
 }

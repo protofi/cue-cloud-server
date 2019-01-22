@@ -12,6 +12,7 @@ import { unflatten, flatten } from 'flat'
 import { Relations, Roles, Errors } from './lib/const'
 import * as fakeUUID from 'uuid/v1'
 import * as _ from 'lodash'
+import * as util from './lib/util'
 
 const test: FeaturesList = require('firebase-functions-test')()
 
@@ -29,7 +30,7 @@ describe('OFFLINE', () => {
 
     let idIterator = 0
     let injectionIds = []
-    
+
     let firestoreMockData: any = {}
 
     const testUserDataOne = {
@@ -54,6 +55,8 @@ describe('OFFLINE', () => {
         {
             const _nextInjectionId = injectionIds[idIterator]
 
+            // console.log('NEXT ID', idIterator, _nextInjectionId)
+
             idIterator++
 
             return (_nextInjectionId) ? _nextInjectionId : uniqid()
@@ -65,9 +68,9 @@ describe('OFFLINE', () => {
                 return {
                     doc: (id) => {
                         return {
-                            id: (id) ? id : uniqid(),
+                            id: (id) ? id : nextIdInjection(),
                             set: (data, {merge}) => {
-                                
+    
                                 const _id = (id) ? id : nextIdInjection()
 
                                 if(merge)
@@ -99,28 +102,16 @@ describe('OFFLINE', () => {
                                 }
                             },
                             update: (data) => {
-                                
                                 if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${`${col}/${id}`}]`)
-
-                                //Handle field deletion
-                                const flattenData = flatten(data)
-                                
-                                _.forOwn(flattenData, (value, key) => {
-                                    if(value !== admin.firestore.FieldValue.delete()) return
-                                    
-                                    _.unset(data, key)
-                                    _.unset(firestoreMockData[`${col}/${id}`], key)
-                                })
-
+    
                                 firestoreMockData = _.merge(firestoreMockData, {
                                     [`${col}/${id}`] : unflatten(data)
                                 })
     
                                 return null
                             },
-
                             delete: () => {
-                                _.unset(firestoreMockData, `${col}/${id}`)
+                                delete firestoreMockData[`${col}/${id}`]
                             }
                         }
                     },
@@ -138,16 +129,22 @@ describe('OFFLINE', () => {
                                     
                                     if(_.get(collection, field) !== value) return
 
-                                    docs.push(_.merge(firestoreMockData[path], {
+                                    docs.push(_.merge({
                                         ref: {
                                             delete: () => {
                                                 _.unset(firestoreMockData, path)
                                             }
+                                        },
+                                        get: (f: string) => {
+                                            return firestoreMockData[path][f]
                                         }
-                                    }))
+                                    }, firestoreMockData[path]))
                                 })
 
-                                return docs
+                                return {
+                                    size : docs.length,
+                                    docs : docs,
+                                }
                             }
                         }
                     }
@@ -179,14 +176,14 @@ describe('OFFLINE', () => {
         adminInitStub.restore()
         adminFirestoreStub.restore()
         firestoreMockData = {}
-        injectionIds = []
-        idIterator = 0
     })
 
     describe('Functions', async () => {
         
         beforeEach(() => {
             firestoreMockData = {}
+            injectionIds = []
+            idIterator = 0
         })
 
         describe('Auth', () => {
@@ -446,7 +443,7 @@ describe('OFFLINE', () => {
                     before : new OfflineDocumentSnapshotStub(),
                     after : afterDocSnap
                 }
-
+    
                 await wrappedSensorsUsersOnUpdate(change)
                 
                 const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
@@ -468,11 +465,17 @@ describe('OFFLINE', () => {
             
             const nullBuffer = new Buffer('')
             const householdId       = uniqid()
+            const householdTwoId    = uniqid()
     
             const baseStationId     = uniqid()
             const baseStationUUID   = fakeUUID()
+            const baseStationTwoUUID   = fakeUUID()
+
             const sensorId          = uniqid()
             const sensorUUID        = fakeUUID()
+
+            const sensorTwoId       = uniqid()
+            const sensorTwoUUID     = fakeUUID()
 
             describe('Topic: New Sensor', () => {
 
@@ -581,6 +584,73 @@ describe('OFFLINE', () => {
                     expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
                 })
 
+                it('Sending a message with a Sensor UUID already paired with the Base Staion UUID should not create a new sensor', async () => {
+
+                    // mock data
+                    firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    }
+
+                    firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
+                        [Models.SENSOR] : {
+                            [sensorId] : true
+                        }
+                    }
+
+                    firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        },
+                        UUID : sensorUUID
+                    }
+                    
+                    injectionIds = [
+                        sensorTwoId,
+                        sensorTwoId,
+                        sensorTwoId,
+                    ]
+
+                    const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
+                    let error = null
+                    
+                    try{
+
+                        await wrappedPubsubBaseStationNewSensor({
+                                data: nullBuffer,
+                                attributes: {
+                                    base_station_UUID : baseStationUUID,
+                                    sensor_UUID: sensorUUID
+                                }}
+                            )
+                    }
+                    catch(e) {
+                        error = e.message
+                    }
+
+                    const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
+                    const expectedSensorDoc = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        },
+                        UUID: sensorUUID
+                    }
+
+                    const householdDoc = firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]
+                    const expectedHouseholdDoc = {
+                        [Models.SENSOR] : {
+                            [sensorId] : true
+                        }
+                    }
+
+                    expect(error).to.be.equal(Errors.SENSOR_ALREADY_PAIRED)
+
+                    expect(firestoreMockData[`${Models.SENSOR}/${sensorTwoId}`]).to.not.exist
+                    expect(householdDoc).to.be.deep.equal(expectedHouseholdDoc)
+                    expect(sensorDoc).to.be.deep.equal(expectedSensorDoc)
+                })
+
                 it('Sending a message with a Base Station UUID of Base Station not claimed should fail', async () => {
 
                     // mock data
@@ -609,6 +679,76 @@ describe('OFFLINE', () => {
                     expect(firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
 
                     expect(firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`]).to.exist
+                })
+
+                it('Sending a message with a Sensor UUID identical with another Sensor UUID paired with another Base Staion UUID should create a new sensor', async () => {
+
+                    // mock data
+                    firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    }
+
+                    firestoreMockData[`${Models.BASE_STATION}/${baseStationTwoUUID}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdTwoId
+                        }
+                    }
+
+                    firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
+                        [Models.SENSOR] : {
+                            [sensorId] : true
+                        }
+                    }
+
+                    firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        },
+                        UUID : sensorUUID
+                    }
+                    
+                    injectionIds = [
+                        sensorTwoId,
+                        sensorTwoId,
+                        sensorTwoId,
+                    ]
+
+                    const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
+                    let error = null
+                    
+                    try{
+
+                        await wrappedPubsubBaseStationNewSensor({
+                                data: nullBuffer,
+                                attributes: {
+                                    base_station_UUID : baseStationTwoUUID,
+                                    sensor_UUID: sensorUUID
+                                }}
+                            )
+                    }
+                    catch(e) {
+                        error = e.message
+                    }
+
+                    const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
+                    const expectedSensorDoc = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        },
+                        UUID: sensorUUID
+                    }
+
+                    const householdDoc = firestoreMockData[`${Models.HOUSEHOLD}/${householdTwoId}`]
+                    const expectedHouseholdDoc = {
+                        [Models.SENSOR] : {
+                            [sensorTwoId] : true
+                        }
+                    }
+
+                    expect(householdDoc).to.be.deep.equal(expectedHouseholdDoc)
+                    expect(sensorDoc).to.be.deep.equal(expectedSensorDoc)
                 })
 
                 it('Sending a message should create a Sensor related to the claiming Household', async () => {
