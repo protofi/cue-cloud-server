@@ -6,7 +6,7 @@ import User from '../../lib/ORM/Models/User'
 
 exports = module.exports = functions.firestore
 .document(`${Models.USER}/{userId}`)
-.onUpdate(async (change: functions.Change<FirebaseFirestore.DocumentSnapshot>, context) => {
+.onUpdate((change: functions.Change<FirebaseFirestore.DocumentSnapshot>, context) => {
     
     let user: User
 
@@ -19,8 +19,7 @@ exports = module.exports = functions.firestore
     }
     catch(e)
     {
-        console.error(e)
-        return
+        return Promise.reject(e).catch(console.error)
     }
 
     return Promise.all([

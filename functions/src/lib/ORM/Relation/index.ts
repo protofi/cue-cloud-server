@@ -77,8 +77,8 @@ export default class RelationImpl implements Relation{
                         .replace(Relations.PIVOT, `${this.propertyModelName}.${Relations.PIVOT}`) // prepend relevant model name to pivot field path
                         .replace(Models.SECURE_SURFIX,'') // remove secure surfix
 
-            const cachableFieldBefore = get(beforeData, fieldPath, null) // retrieve data associated with the cached field before update
-            const cachableFieldAfter  = get(afterData, fieldPath, null) // retrieve data associated with the cached field after update
+            const cachableFieldBefore = get(beforeData, fieldPath, firestore.FieldValue.delete()) // retrieve data associated with the cached field before update
+            const cachableFieldAfter  = get(afterData, fieldPath, firestore.FieldValue.delete()) // retrieve data associated with the cached field after update
             if(cachableFieldBefore === cachableFieldAfter) return //if the field have not been updated continue to next iteration and do not include it in the data to be cached
 
             if(includes(field, Models.SECURE_SURFIX))
@@ -272,6 +272,8 @@ export class Many2ManyRelation extends N2ManyRelation {
         const beforeData: FirebaseFirestore.DocumentData = change.before.data()
         const afterData: FirebaseFirestore.DocumentData = change.after.data()
 
+        // console.log('BEFORE DATA', beforeData, 'AFTER DATA', afterData)
+
         if(this.cacheOnToProperty)
         {
             const { newCacheData, newSecureCacheData } = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
@@ -301,7 +303,6 @@ export class Many2ManyRelation extends N2ManyRelation {
             }
         }
         
-
         if(this.cacheFromPivot)
         {
             const newCacheData = {}
@@ -315,6 +316,8 @@ export class Many2ManyRelation extends N2ManyRelation {
 
                 const cachableFieldBefore = get(beforeData, fieldPath, null) // retrieve data associated with the cached field before update
                 const cachableFieldAfter  = get(afterData, fieldPath, null) // retrieve data associated with the cached field after update
+
+                // console.log('BEFORE', cachableFieldBefore, 'AFTER', cachableFieldAfter)
 
                 if(!cachableFieldAfter && !cachableFieldBefore) return // if the field havn't been updated return and do not include it in the data to be cached
                 
@@ -603,7 +606,7 @@ export class N2OneRelation extends RelationImpl {
         if(!isEmpty(newCacheData)) await property.update(newCacheData)
         // if(!isEmpty(newSecureCacheData)) await property.secure().update(newSecureCacheData)
 
-        return property.update(newCacheData)
+        return property
     }
 
     async set(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
@@ -619,8 +622,8 @@ export class N2OneRelation extends RelationImpl {
     {
         const property = await this.get()
 
-        if(!property)
-            console.log('PROPERTY DOES NOT EXIST')
+        // if(!property)
+            // console.log('PROPERTY DOES NOT EXIST')
 
         await property.update({
             [this.owner.name] : {

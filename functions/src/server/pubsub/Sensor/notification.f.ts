@@ -47,6 +47,7 @@ exports = module.exports = pubsub
 				clickAction : 'FLUTTER_NOTIFICATION_CLICK',
 				android_channel_id : 'distinct vibration'
 			},
+			// IOS
 			// notification : {
 			// 	title : capitalize(notificationTitle),
 			// 	sound : 'default',

@@ -7,7 +7,7 @@ import { FeaturesList } from 'firebase-functions-test/lib/features'
 import * as uniqid from 'uniqid'
 
 import DataORMImpl from "./lib/ORM"
-import { asyncForEach } from './lib/util'
+import * as util from './lib/util'
 import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
@@ -170,7 +170,7 @@ describe('STAGE', () => {
         })
 
         afterEach(async () => {
-            await asyncForEach(docsToBeDeleted, async (path: string) => {
+            await util.asyncForEach(docsToBeDeleted, async (path: string) => {
                 await adminFs.doc(path).delete()
             })
         })
@@ -3244,445 +3244,597 @@ describe('STAGE', () => {
                 //     expect(cachedOnPivot).to.be.equal(cachableFields)
                 // })
 
-                it('Fields to be cached from the pivot to the owner should be definable on the relation between the owner and the property', async () => {
+                describe('Cache Layer', () => {
 
-                    const driver = new Driver(stubFs)
-                    const car = new Car(adminFs)
+                    it('Fields to be cached from the pivot to the owner should be definable on the relation between the owner and the property', async () => {
+
+                        const car = new Car(stubFs)
+                        
+                        class Many2ManyRelationStub extends Many2ManyRelation
+                        {
+                            constructor(owner: ModelImpl, propertyModelName: string, _db)
+                            {
+                                super(owner, propertyModelName, _db)
+                            }
+
+                            getCachableFields()
+                            {
+                                return this.cacheFromPivot
+                            }
+                        }
+
+                        const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs)
+
+                        const cachedFromPivot = [
+                            'brand',
+                            'year'
+                        ]
+
+                        rel.defineCachableFields(null, cachedFromPivot)
+
+                        const cache = rel.getCachableFields()
+
+                        expect(cachedFromPivot).to.be.equal(cache)
+                    })
+
+                    describe('From owner to property model', () => {
+
+                        it('Fields to be cached should be definable on the relation between the owner and the property', async () => {
+    
+                            const car = new Car(stubFs)
+                            
+                            class Many2ManyRelationStub extends Many2ManyRelation
+                            {
+                                constructor(owner: ModelImpl, propertyModelName: string, _db)
+                                {
+                                    super(owner, propertyModelName, _db)
+                                }
+    
+                                getCachableFields()
+                                {
+                                    return this.cacheOnToProperty
+                                }
+                            }
+    
+                            const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs)
+    
+                            const cachedToProperty = [
+                                'brand',
+                                'year'
+                            ]
+    
+                            rel.defineCachableFields(cachedToProperty)
+    
+                            const cache = rel.getCachableFields()
+    
+                            expect(cachedToProperty).to.be.equal(cache)
+                        })
+    
+                        it('Fields defined as cachable should be cached when new field is added', async () => {
+    
+                            class CarM extends Car {
+                                drivers(): Many2ManyRelation
+                                {
+                                    return this.belongsToMany('drivers')
+                                            .defineCachableFields([
+                                                'name'
+                                            ])
+                                }
+                            }
+    
+                            const carId = uniqid()
+                            const driverId = uniqid()
+    
+                            const car = new CarM(stubFs, null, carId)
+                            const driver = new Driver(stubFs, null, driverId)
+    
+                            await car.drivers().attach(driver)
+    
+                            const before = test.firestore.makeDocumentSnapshot({}, '')
+    
+                            const data = {
+                                name : 'Mustang'
+                            }
+    
+                            const after = test.firestore.makeDocumentSnapshot(data, '')
+    
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                            await car.drivers().updateCache(change)
+    
+                            const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                            const expectedCarDoc = {
+                                [Stubs.CAR] : {
+                                    [carId] : {
+                                        name : data.name
+                                    }
+                                }
+                            }
+    
+                            expect(driverDoc).to.deep.equal(expectedCarDoc)
+                        })
+
+                        it('When fields defined as cachable is deleted the cached data should be deleted', async () => {
+
+                            class CarM extends Car {
+                                drivers(): Many2ManyRelation
+                                {
+                                    return this.belongsToMany('drivers')
+                                            .defineCachableFields([
+                                                'name'
+                                            ])
+                                }
+                            }
+    
+                            const carId = uniqid()
+                            const driverId = uniqid()
+    
+                            const car = new CarM(stubFs, null, carId)
+                            const driver = new Driver(stubFs, null, driverId)
+    
+                            await car.drivers().attach(driver)
+    
+                            const data = {
+                                name : 'Mustang'
+                            }
+    
+                            const before = test.firestore.makeDocumentSnapshot({}, '')
+    
+                            const after = test.firestore.makeDocumentSnapshot(data, '')
+    
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                            await car.drivers().updateCache(change)
+    
+                            const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                            const expectedCarDoc = {
+                                [Stubs.CAR] : {
+                                    [carId] : {
+                                        name : data.name
+                                    }
+                                }
+                            }
+    
+                            expect(driverDoc).to.deep.equal(expectedCarDoc)
+    
+                            const change2 = new Change<FirebaseFirestore.DocumentSnapshot>(after, before)
+    
+                            await car.drivers().updateCache(change2)
+    
+                            expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
+                                .to.be.undefined
+                        })
+
+                        it('Cached fields should not be updated if no changes has happend to origin', async () => {
+                            class CarM extends Car {
+                                drivers(): Many2ManyRelation
+                                {
+                                    return this.belongsToMany('drivers')
+                                            .defineCachableFields([
+                                                'name'
+                                            ])
+                                }
+                            }
+    
+                            const carId = uniqid()
+                            const driverId = uniqid()
+    
+                            const car = new CarM(stubFs, null, carId)
+                            const driver = new Driver(stubFs, null, driverId)
+    
+                            await car.drivers().attach(driver)
+    
+                            const data = {
+                                name : 'Mustang'
+                            }
+    
+                            const before = test.firestore.makeDocumentSnapshot(data, '')
+    
+                            const after = test.firestore.makeDocumentSnapshot(data, '')
+    
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                            await car.drivers().updateCache(change)
+    
+                            expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][`${Stubs.CAR}.${carId}.name`]).to.be.undefined
+                        })
+                    })
                     
-                    class Many2ManyRelationStub extends Many2ManyRelation
-                    {
-                        constructor(owner: ModelImpl, propertyModelName: string, _db)
-                        {
-                            super(owner, propertyModelName, _db)
-                        }
+                    // it('Fields defined as cachable with a SECURE surfix from the owner to property should be cached when new field is added', async () => {
 
-                        getCachableFields()
-                        {
-                            return this.cacheFromPivot
-                        }
-                    }
+                    //     class CarM extends Car {
+                    //         drivers(): Many2ManyRelation
+                    //         {
+                    //             return this.belongsToMany('drivers')
+                    //                     .defineCachableFields([
+                    //                         `name${Models.SECURE_SURFIX}`
+                    //                     ])
+                    //         }
+                    //     }
+    
+                    //     const carId = uniqid()
+                    //     const driverId = uniqid()
+    
+                    //     const car = new CarM(stubFs, null, carId)
+                    //     const driver = new Driver(stubFs, null, driverId)
+    
+                    //     await car.drivers().attach(driver)
+    
+                    //     firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {}
+    
+                    //     const before = test.firestore.makeDocumentSnapshot({}, '')
+    
+                    //     const data = {
+                    //         name : 'Mustang'
+                    //     }
+    
+                    //     const after = test.firestore.makeDocumentSnapshot(data, '')
+    
+                    //     const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                    //     await car.drivers().updateCache(change)
+    
+                    //     const driverSecureDoc = firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
+                    //     const expectedDriverSecureDoc = {
+                    //         [Stubs.CAR] : {
+                    //             [carId] : {
+                    //                 name : data.name
+                    //             }
+                    //         }
+                    //     }
 
-                    const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs)
+                    //     expect(driverSecureDoc).to.deep.equal(expectedDriverSecureDoc)
+                    // })
 
-                    const cachedFromPivot = [
-                        'brand',
-                        'year'
-                    ]
+                    // it('Fields defined as cachable with a SECURE surfix from the owner to property the cache should be deleted when field of origin is deleted', async () => {
 
-                    rel.defineCachableFields(null, cachedFromPivot)
+                    //     class CarM extends Car {
+                    //         drivers(): Many2ManyRelation
+                    //         {
+                    //             return this.belongsToMany('drivers')
+                    //                     .defineCachableFields([
+                    //                         `name${Models.SECURE_SURFIX}`
+                    //                     ])
+                    //         }
+                    //     }
+    
+                    //     const carId = uniqid()
+                    //     const driverId = uniqid()
+    
+                    //     const car = new CarM(stubFs, null, carId)
+                    //     const driver = new Driver(stubFs, null, driverId)
+    
+                    //     await car.drivers().attach(driver)
+    
+                    //     const data = {
+                    //         name : 'Mustang'
+                    //     }
 
-                    const cache = rel.getCachableFields()
+                    //     firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {
+                    //         [Stubs.CAR] : {
+                    //             [carId] : {
+                    //                 name : data.name
+                    //             }
+                    //         }
+                    //     }
+ 
+                    //     const beforeUserDoc = test.firestore.makeDocumentSnapshot(data, '')
+                    //     const afterUserDoc = test.firestore.makeDocumentSnapshot({}, '')
+    
+                    //     const change = new Change<FirebaseFirestore.DocumentSnapshot>(beforeUserDoc, afterUserDoc)
+    
+                    //     await car.drivers().updateCache(change)
+    
+                    //     const driverSecureDoc = firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
+                    //     const expectedDriverSecureDoc = {
+                    //         [Stubs.CAR] : {
+                    //             [carId] : {}
+                    //         }
+                    //     }
+                        
+                    //     util.printFormattedJson(firestoreMockData)
 
-                    expect(cachedFromPivot).to.be.equal(cache)
-                })
-                
-                it('Fields to be cached from the owner to the property should be definable on the relation between the owner and the property', async () => {
+                    //     expect(driverSecureDoc).to.deep.equal(expectedDriverSecureDoc)
+                    // })
 
-                    const driver = new Driver(stubFs)
-                    const car = new Car(adminFs)
-                    class Many2ManyRelationStub extends Many2ManyRelation
-                    {
-                        constructor(owner: ModelImpl, propertyModelName: string, _db)
-                        {
-                            super(owner, propertyModelName, _db)
-                        }
+                    // it('Nested fields defined as cachable with a SECURE surfix from the owner to property the cache should be deleted when nested field of origin is deleted', async () => {
 
-                        getCachableFields()
-                        {
-                            return this.cacheOnToProperty
-                        }
-                    }
+                    //     class CarM extends Car {
+                    //         drivers(): Many2ManyRelation
+                    //         {
+                    //             return this.belongsToMany('drivers')
+                    //                     .defineCachableFields([
+                    //                         `service${Models.SECURE_SURFIX}`
+                    //                     ])
+                    //         }
+                    //     }
 
-                    const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs)
+                    //     const carId = uniqid()
+                    //     const driverId = uniqid()
 
-                    const cachedFromPivot = [
-                        'brand',
-                        'year'
-                    ]
+                    //     const car = new CarM(stubFs, null, carId)
+                    //     const driver = new Driver(stubFs, null, driverId)
 
-                    rel.defineCachableFields(cachedFromPivot)
+                    //     await car.drivers().attach(driver)
 
-                    const cache = rel.getCachableFields()
+                    //     const data = {
+                    //         service : {
+                    //             '2004' : true
+                    //         }
+                    //     }
 
-                    expect(cachedFromPivot).to.be.equal(cache)
-                })
+                    //     firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {
+                    //         [Stubs.CAR] : {
+                    //             [carId] : data
+                    //         }
+                    //     }
 
-                it('Fields to be cached from the owner on to the property should be definable on the relation between the owner and the property', async () => {
+                    //     const beforeUserDoc = test.firestore.makeDocumentSnapshot(data, '')
+                    //     const afterUserDoc = test.firestore.makeDocumentSnapshot({}, '')
 
-                    const driver = new Driver(stubFs)
-                    const car = new Car(adminFs)
+                    //     const change = new Change<FirebaseFirestore.DocumentSnapshot>(beforeUserDoc, afterUserDoc)
+
+                    //     await car.drivers().updateCache(change)
+
+                    //     const driverSecureDoc = firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
+                    //     const expectedDriverSecureDoc = {
+                    //         [Stubs.CAR] : {
+                    //             [carId] : {}
+                    //         }
+                    //     }
+                        
+                    //     expect(driverSecureDoc).to.deep.equal(expectedDriverSecureDoc)
+                    // })
+
+                    // it('When specific nested fields defined as cachable with a SECURE surfix from the owner to property is deleted only these should be deleted in the cache', async () => {
+
+                    //     class CarM extends Car {
+                    //         drivers(): Many2ManyRelation
+                    //         {
+                    //             return this.belongsToMany('drivers')
+                    //                     .defineCachableFields([
+                    //                         `service${Models.SECURE_SURFIX}`
+                    //                     ])
+                    //         }
+                    //     }
+
+                    //     const carId = uniqid()
+                    //     const driverId = uniqid()
+
+                    //     const car = new CarM(stubFs, null, carId)
+                    //     const driver = new Driver(stubFs, null, driverId)
+
+                    //     await car.drivers().attach(driver)
+
+                    //     const data = {
+                    //         service : {
+                    //             '2004' : true,
+                    //             '2012' : true
+                    //         }
+                    //     }
+
+                    //     firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {
+                    //         [Stubs.CAR] : {
+                    //             [carId] : data
+                    //         }
+                    //     }
+
+                    //     const beforeUserDoc = test.firestore.makeDocumentSnapshot(data, '')
+                    //     const afterUserDoc = test.firestore.makeDocumentSnapshot({
+                    //         service : {
+                    //             '2004' : true
+                    //         }
+                    //     }, '')
+
+                    //     const change = new Change<FirebaseFirestore.DocumentSnapshot>(beforeUserDoc, afterUserDoc)
+
+                    //     await car.drivers().updateCache(change)
+
+                    //     const driverSecureDoc = firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
+                    //     const expectedDriverSecureDoc = {
+                    //         [Stubs.CAR] : {
+                    //             [carId] : {
+                    //                 '2004' : true
+                    //             }
+                    //         }
+                    //     }
+                        
+                    //     util.printFormattedJson(firestoreMockData)
+
+                    //     // expect(driverSecureDoc).to.deep.equal(expectedDriverSecureDoc)
+                    // })
+
+                    describe('From pivot to owner model', () => {
+
+                        it.only('Fields to be cached should be definable on the relation between the owner and the property', async () => {
+
+                            const car = new Car(stubFs)
+                            class Many2ManyRelationStub extends Many2ManyRelation
+                            {
+                                constructor(owner: ModelImpl, propertyModelName: string, _db)
+                                {
+                                    super(owner, propertyModelName, _db)
+                                }
+    
+                                getCachableFields()
+                                {
+                                    return this.cacheFromPivot
+                                }
+                            }
+    
+                            const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs)
+    
+                            const cachedFromPivot = [
+                                'brand',
+                                'year'
+                            ]
+    
+                            rel.defineCachableFields(null, cachedFromPivot)
+    
+                            const cache = rel.getCachableFields()
+    
+                            expect(cachedFromPivot).to.be.equal(cache)
+                        })
+
+                        it('Fields defined as cachable should be cached when new field is added', async () => {
+
+                            const cachedField = 'crashes'
+
+                            const driverId = uniqid()
+                            const driver = new Driver(stubFs, null, driverId)
+
+                            class CarM extends Car {
+                                drivers(): Many2ManyRelation
+                                {
+                                    return this.belongsToMany(Stubs.DRIVER)
+                                            .defineCachableFields(null, [
+                                                cachedField
+                                            ])
+                                }
+                            }
+
+                            const carId = uniqid()
+                            const car = new CarM(stubFs, null, carId)
+
+                            await car.drivers().attach(driver)
+
+                            const before = test.firestore.makeDocumentSnapshot({}, '')
+
+                            const pivotData = {
+                                [Relations.PIVOT] : {
+                                    [cachedField] : 3
+                                }
+                            }
+
+                            const after = test.firestore.makeDocumentSnapshot(pivotData, '')
+
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                            await car.drivers().updateCache(change)
+
+                            const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                            const expectedCarDoc = {
+                                [Stubs.DRIVER] : {
+                                    [driverId] : {
+                                        [Relations.PIVOT] : {
+                                            [cachedField] : 3
+                                        }
+                                    }
+                                }
+                            }
+
+                            expect(carDoc).to.deep.equal(expectedCarDoc)
+                        })
+
+                        it('Fields defined as cachable should be cached on field update', async () => {
+
+                            const cachedField = 'crashes'
+
+                            const driverId = uniqid()
+                            const carId = uniqid()
+
+                            const driver = new Driver(stubFs, null, driverId)
+
+                            class CarM extends Car {
+                                drivers(): Many2ManyRelation
+                                {
+                                    return this.belongsToMany(Stubs.DRIVER)
+                                            .defineCachableFields(null, [
+                                                cachedField
+                                            ])
+                                }
+                            }
+
+                            const car = new CarM(stubFs, null, carId)
+
+                            await car.drivers().attach(driver)
+
+                            const pivotData = {
+                                [Relations.PIVOT]: {
+                                    [cachedField] : 2
+                                }
+                            }
+
+                            const before = test.firestore.makeDocumentSnapshot(pivotData, '')
+
+                            pivotData[Relations.PIVOT].crashes = 3 // change
+
+                            const after = test.firestore.makeDocumentSnapshot(pivotData, '')
+
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                            await car.drivers().updateCache(change)
+
+                            const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                            const expectedCarDoc = {
+                                [Stubs.DRIVER] : {
+                                    [driverId] : {
+                                        [Relations.PIVOT] : {
+                                            [cachedField] : 3
+                                        }
+                                    }
+                                }
+                            }
+
+                            expect(carDoc).to.deep.equal(expectedCarDoc)
+                        })
+                    })
                     
-                    class Many2ManyRelationStub extends Many2ManyRelation
-                    {
-                        constructor(owner: ModelImpl, propertyModelName: string, _db)
-                        {
-                            super(owner, propertyModelName, _db)
-                        }
 
-                        getCachableFields()
-                        {
-                            return this.cacheOnToProperty
-                        }
-                    }
+                    // it('Fields defined as cachable from the pivot on to the owner SECURE COLLECTION should be cached on field update', async () => {
 
-                    const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs)
+                    //     const cachedField = 'crashes'
 
-                    const cachedToProperty = [
-                        'brand',
-                        'year'
-                    ]
+                    //     const driverId = uniqid()
+                    //     const carId = uniqid()
 
-                    rel.defineCachableFields(cachedToProperty)
+                    //     firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
 
-                    const cache = rel.getCachableFields()
+                    //     const driver = new Driver(stubFs, null, driverId)
 
-                    expect(cachedToProperty).to.be.equal(cache)
-                })
+                    //     class CarM extends Car {
+                    //         drivers(): Many2ManyRelation
+                    //         {
+                    //             return this.belongsToMany(Stubs.DRIVER)
+                    //                     .defineCachableFields(null, [
+                    //                         `${cachedField}${Models.SECURE_SURFIX}`
+                    //                     ])
+                    //         }
+                    //     }
 
-                it('Fields defined as cachable from the owner to property should be cached when new field is added', async () => {
+                    //     const car = new CarM(stubFs, null, carId)
 
-                    class CarM extends Car {
-                        drivers(): Many2ManyRelation
-                        {
-                            return this.belongsToMany('drivers')
-                                    .defineCachableFields([
-                                        'name'
-                                    ])
-                        }
-                    }
+                    //     await car.drivers().attach(driver)
 
-                    const carId = uniqid()
-                    const driverId = uniqid()
+                    //     const pivotData = {
+                    //         [Relations.PIVOT]: {
+                    //             [cachedField] : 2
+                    //         }
+                    //     }
 
-                    const car = new CarM(stubFs, null, carId)
-                    const driver = new Driver(stubFs, null, driverId)
+                    //     const before = test.firestore.makeDocumentSnapshot(pivotData, '')
 
-                    await car.drivers().attach(driver)
+                    //     pivotData[Relations.PIVOT].crashes = 3 // change
 
-                    const before = test.firestore.makeDocumentSnapshot({}, '')
+                    //     const after = test.firestore.makeDocumentSnapshot(pivotData, '')
 
-                    const data = {
-                        name : 'Mustang'
-                    }
+                    //     const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
 
-                    const after = test.firestore.makeDocumentSnapshot(data, '')
+                    //     await car.drivers().updateCache(change)
 
-                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+                    //     const carDoc = firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
+                    //     const expectedCarDoc = {
+                    //         [Stubs.DRIVER] : {
+                    //             [driverId] : {
+                    //                 [Relations.PIVOT] : {
+                    //                     [cachedField] : 3
+                    //                 }
+                    //             }
+                    //         }
+                    //     }
 
-                    await car.drivers().updateCache(change)
-
-                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
-                    const expectedCarDoc = {
-                        [Stubs.CAR] : {
-                            [carId] : {
-                                name : data.name
-                            }
-                        }
-                    }
-
-                    expect(driverDoc).to.deep.equal(expectedCarDoc)
-                })
-
-                it('Fields defined as cachable from the owner to property should be cached when new field is added', async () => {
-
-                    class CarM extends Car {
-                        drivers(): Many2ManyRelation
-                        {
-                            return this.belongsToMany('drivers')
-                                    .defineCachableFields([
-                                        `name${Models.SECURE_SURFIX}`,
-                                        'name'
-                                    ])
-                        }
-                    }
-
-                    const carId = uniqid()
-                    const driverId = uniqid()
-
-                    const car = new CarM(stubFs, null, carId)
-                    const driver = new Driver(stubFs, null, driverId)
-
-                    await car.drivers().attach(driver)
-
-                    firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {}
-
-                    const before = test.firestore.makeDocumentSnapshot({}, '')
-
-                    const data = {
-                        name : 'Mustang'
-                    }
-
-                    const after = test.firestore.makeDocumentSnapshot(data, '')
-
-                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
-
-                    await car.drivers().updateCache(change)
-
-                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
-                    const expectedDriverDoc = {
-                        [Stubs.CAR] : {
-                            [carId] : {
-                                name : data.name
-                            }
-                        }
-                    }
-
-                    expect(driverDoc).to.deep.equal(expectedDriverDoc)
-
-                    const driverSecureDoc = firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
-                    const expectedDriverSecureDoc = {
-                        [Stubs.CAR] : {
-                            [carId] : {
-                                name : data.name
-                            }
-                        }
-                    }
-
-                    expect(driverSecureDoc).to.deep.equal(expectedDriverSecureDoc)
-                })
-
-                it('Fields defined as cachable from the owner to property should not be cached data has not changed', async () => {
-
-                    class CarM extends Car {
-                        drivers(): Many2ManyRelation
-                        {
-                            return this.belongsToMany('drivers')
-                                    .defineCachableFields([
-                                        'name'
-                                    ])
-                        }
-                    }
-
-                    const carId = uniqid()
-                    const driverId = uniqid()
-
-                    const car = new CarM(stubFs, null, carId)
-                    const driver = new Driver(stubFs, null, driverId)
-
-                    await car.drivers().attach(driver)
-
-                    const data = {
-                        name : 'Mustang'
-                    }
-
-                    const before = test.firestore.makeDocumentSnapshot(data, '')
-
-                    const after = test.firestore.makeDocumentSnapshot(data, '')
-
-                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
-
-                    await car.drivers().updateCache(change)
-
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][`${Stubs.CAR}.${carId}.name`]).to.be.undefined
-                })
-
-                it('Fields defined as cachable from the owner to property should not be cached as null when deleted', async () => {
-
-                    class CarM extends Car {
-                        drivers(): Many2ManyRelation
-                        {
-                            return this.belongsToMany('drivers')
-                                    .defineCachableFields([
-                                        'name'
-                                    ])
-                        }
-                    }
-
-                    const carId = uniqid()
-                    const driverId = uniqid()
-
-                    const car = new CarM(stubFs, null, carId)
-                    const driver = new Driver(stubFs, null, driverId)
-
-                    await car.drivers().attach(driver)
-
-                    const data = {
-                        name : 'Mustang'
-                    }
-
-                    const before = test.firestore.makeDocumentSnapshot({}, '')
-
-                    const after = test.firestore.makeDocumentSnapshot(data, '')
-
-                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
-
-                    await car.drivers().updateCache(change)
-
-                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
-                    const expectedCarDoc = {
-                        [Stubs.CAR] : {
-                            [carId] : {
-                                name : data.name
-                            }
-                        }
-                    }
-
-                    expect(driverDoc).to.deep.equal(expectedCarDoc)
-
-                    const change2 = new Change<FirebaseFirestore.DocumentSnapshot>(after, before)
-
-                    await car.drivers().updateCache(change2)
-
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
-                        .to.be.null
-                })
-
-                it('Fields defined as cachable on to the owner from the pivot should be cached when new field is added', async () => {
-
-                    const cachedField = 'crashes'
-
-                    const driverId = uniqid()
-                    const driver = new Driver(stubFs, null, driverId)
-
-                    class CarM extends Car {
-                        drivers(): Many2ManyRelation
-                        {
-                            return this.belongsToMany(Stubs.DRIVER)
-                                    .defineCachableFields(null, [
-                                        cachedField
-                                    ])
-                        }
-                    }
-
-                    const carId = uniqid()
-                    const car = new CarM(stubFs, null, carId)
-
-                    await car.drivers().attach(driver)
-
-                    const before = test.firestore.makeDocumentSnapshot({}, '')
-
-                    const pivotData = {
-                        [Relations.PIVOT] : {
-                            [cachedField] : 3
-                        }
-                    }
-
-                    const after = test.firestore.makeDocumentSnapshot(pivotData, '')
-
-                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
-
-                    await car.drivers().updateCache(change)
-
-                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
-                    const expectedCarDoc = {
-                        [Stubs.DRIVER] : {
-                            [driverId] : {
-                                [Relations.PIVOT] : {
-                                    [cachedField] : 3
-                                }
-                            }
-                        }
-                    }
-
-                    expect(carDoc).to.deep.equal(expectedCarDoc)
-                })
-
-                it('Fields defined as cachable from the pivot on to the owner should be cached on field update', async () => {
-
-                    const cachedField = 'crashes'
-
-                    const driverId = uniqid()
-                    const carId = uniqid()
-
-                    const driver = new Driver(stubFs, null, driverId)
-
-                    class CarM extends Car {
-                        drivers(): Many2ManyRelation
-                        {
-                            return this.belongsToMany(Stubs.DRIVER)
-                                    .defineCachableFields(null, [
-                                        cachedField
-                                    ])
-                        }
-                    }
-
-                    const car = new CarM(stubFs, null, carId)
-
-                    await car.drivers().attach(driver)
-
-                    const pivotData = {
-                        [Relations.PIVOT]: {
-                            [cachedField] : 2
-                        }
-                    }
-
-                    const before = test.firestore.makeDocumentSnapshot(pivotData, '')
-
-                    pivotData[Relations.PIVOT].crashes = 3 // change
-
-                    const after = test.firestore.makeDocumentSnapshot(pivotData, '')
-
-                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
-
-                    await car.drivers().updateCache(change)
-
-                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
-                    const expectedCarDoc = {
-                        [Stubs.DRIVER] : {
-                            [driverId] : {
-                                [Relations.PIVOT] : {
-                                    [cachedField] : 3
-                                }
-                            }
-                        }
-                    }
-
-                    expect(carDoc).to.deep.equal(expectedCarDoc)
-                })
-
-                it('Fields defined as cachable from the pivot on to the owner ECURE COLLECTION should be cached on field update', async () => {
-
-                    const cachedField = 'crashes'
-
-                    const driverId = uniqid()
-                    const carId = uniqid()
-
-                    firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
-
-                    const driver = new Driver(stubFs, null, driverId)
-
-                    class CarM extends Car {
-                        drivers(): Many2ManyRelation
-                        {
-                            return this.belongsToMany(Stubs.DRIVER)
-                                    .defineCachableFields(null, [
-                                        `${cachedField}${Models.SECURE_SURFIX}`
-                                    ])
-                        }
-                    }
-
-                    const car = new CarM(stubFs, null, carId)
-
-                    await car.drivers().attach(driver)
-
-                    const pivotData = {
-                        [Relations.PIVOT]: {
-                            [cachedField] : 2
-                        }
-                    }
-
-                    const before = test.firestore.makeDocumentSnapshot(pivotData, '')
-
-                    pivotData[Relations.PIVOT].crashes = 3 // change
-
-                    const after = test.firestore.makeDocumentSnapshot(pivotData, '')
-
-                    const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
-
-                    await car.drivers().updateCache(change)
-
-                    const carDoc = firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
-                    const expectedCarDoc = {
-                        [Stubs.DRIVER] : {
-                            [driverId] : {
-                                [Relations.PIVOT] : {
-                                    [cachedField] : 3
-                                }
-                            }
-                        }
-                    }
-
-                    expect(carDoc).to.deep.equal(expectedCarDoc)
+                    //     expect(carDoc).to.deep.equal(expectedCarDoc)
+                    // })
                 })
 
                 it('GetName of Pivot model should return a correct formatted name', async () => {

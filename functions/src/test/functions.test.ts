@@ -322,6 +322,63 @@ describe('OFFLINE', () => {
 
                     expect(householdDoc).to.deep.equal(expectedHouseholdDoc)  
                 })
+
+                it('Changes to FCM_tokens should be cached onto Sensors_secure', async () => {
+        
+                    const cacheField = 'FCM_tokens'
+                    const FCMToken = uniqid()
+                    const sensorId = uniqid()
+
+                    firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {}
+                    
+                    const beforeUserDocSnap = new OfflineDocumentSnapshotStub({
+                        data : {
+                            [Models.SENSOR] : {
+                                [sensorId] : true
+                            }
+                        },
+                        ref : {
+                            id : testUserDataOne.uid,
+                        }
+                    })
+
+                    const afterUserDocSnap = new OfflineDocumentSnapshotStub({
+                        data : {
+                            [cacheField] : {
+                                [FCMToken] : true
+                            },
+                            [Models.SENSOR] : {
+                                [sensorId] : true
+                            }
+                        },
+                        ref : {
+                            id : testUserDataOne.uid,
+                        }
+                    })
+
+                    const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+
+                    const change = {
+                        before : beforeUserDocSnap,
+                        after : afterUserDocSnap
+                    }
+
+                    await wrappedUsersOnUpdate(change)
+                    
+                    const sensorSecureDoc = firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`]
+                    
+                    const expectedSensorSecureDoc = {
+                        [Models.USER]: {
+                            [testUserDataOne.uid] : {
+                                [cacheField] : {
+                                    [FCMToken] : true
+                                }
+                            }
+                        }
+                    }
+
+                    expect(sensorSecureDoc).to.deep.equal(expectedSensorSecureDoc)
+                })
             })
         })
 
