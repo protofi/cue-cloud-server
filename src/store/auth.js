@@ -11,6 +11,7 @@ export const state = () => ({
     loading: true,
     redirect: null,
     processing: false,
+    now : moment().unix(),
 })
 
 export const getters = {
@@ -22,7 +23,7 @@ export const getters = {
     error: state => {
         return state.error
     },
-
+ 
 	isAdmin: state => {
 	
 		try{
@@ -37,14 +38,16 @@ export const getters = {
         return state.token  
     },
 
+    expiration : state => {
+        if(!state.token) return null
+        return state.token.exp
+    },
+
     hasExpired: state => {
-        if(!state.token) return true
+        if(!state.token) return null
 
-        const tokenExpirationTime = state.token.exp
-        const now = moment().unix().valueOf()
-
-        const hasExpired = moment.unix(tokenExpirationTime).isBefore(now)
-        
+        const now = moment().add(45, 'm').unix()
+        const hasExpired = moment(now).isAfter(state.token.exp)
         return hasExpired
     },
     
@@ -141,5 +144,26 @@ export const actions = {
             
             console.log(error)
         })
+    },
+
+    refresh({ state}, payload)
+    {
+        state.processing = true
+
+        auth.currentUser.getIdToken(true).then((token) => {
+
+            try{
+                state.token = jwt_decode(token)
+                this.$axios.setHeader('Authorization', token)
+            }
+            catch(e) {
+                return false
+            } 
+        }).catch(error => {
+
+        }).finally(() => {
+            state.processing = false
+        })
+          
     }
 }

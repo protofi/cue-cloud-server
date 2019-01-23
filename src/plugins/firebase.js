@@ -10,20 +10,20 @@ if (!firebase.apps.length)
 
     const config = {
         // STAGING
-        apiKey: "AIzaSyBSOLIAOif1jZ80ukoTjsfTwQ9BEBXcmkc",
-        authDomain: "staging-cue-iot-cloud.firebaseapp.com",
-        databaseURL: "https://staging-cue-iot-cloud.firebaseio.com",
-        projectId: "staging-cue-iot-cloud",
-        storageBucket: "staging-cue-iot-cloud.appspot.com",
-        messagingSenderId: "511550860680"
+        // apiKey: "AIzaSyBSOLIAOif1jZ80ukoTjsfTwQ9BEBXcmkc",
+        // authDomain: "staging-cue-iot-cloud.firebaseapp.com",
+        // databaseURL: "https://staging-cue-iot-cloud.firebaseio.com",
+        // projectId: "staging-cue-iot-cloud",
+        // storageBucket: "staging-cue-iot-cloud.appspot.com",
+        // messagingSenderId: "511550860680"
 
-        // // DEVELOPMENT
-        // apiKey: "AIzaSyDPgCEAX23d17Afs3fYIR23qcfzglaWbHM",
-        // authDomain: "cue-app-a2c23.firebaseapp.com",
-        // databaseURL: "https://cue-app-a2c23.firebaseio.com",
-        // projectId: "cue-app-a2c23",
-        // storageBucket: "cue-app-a2c23.appspot.com",
-        // messagingSenderId: "265759843946"
+        // DEVELOPMENT
+        apiKey: "AIzaSyDPgCEAX23d17Afs3fYIR23qcfzglaWbHM",
+        authDomain: "cue-app-a2c23.firebaseapp.com",
+        databaseURL: "https://cue-app-a2c23.firebaseio.com",
+        projectId: "cue-app-a2c23",
+        storageBucket: "cue-app-a2c23.appspot.com",
+        messagingSenderId: "265759843946"
         
         // // PRODUCTION
         // apiKey: "AIzaSyCM7iqZavlhCwxRBd5FLoS48OQ46T7nbx0",

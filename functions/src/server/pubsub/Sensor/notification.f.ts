@@ -44,14 +44,13 @@ exports = module.exports = pubsub
 			data : {
 				sensor_id : sensorId,
 				title : capitalize(notificationTitle),
-				clickAction : 'FLUTTER_NOTIFICATION_CLICK',
+				click_action : 'FLUTTER_NOTIFICATION_CLICK',
 				android_channel_id : 'distinct vibration'
 			},
 			// IOS
 			// notification : {
 			// 	title : capitalize(notificationTitle),
 			// 	sound : 'default',
-			// 	clickAction : 'FLUTTER_NOTIFICATION_CLICK'
 			// }
 		}
 

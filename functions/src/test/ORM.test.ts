@@ -3646,7 +3646,7 @@ describe('STAGE', () => {
 
                     describe('From pivot to owner model', () => {
 
-                        it.only('Fields to be cached should be definable on the relation between the owner and the property', async () => {
+                        it('Fields to be cached should be definable on the relation between the owner and the property', async () => {
 
                             const car = new Car(stubFs)
                             class Many2ManyRelationStub extends Many2ManyRelation

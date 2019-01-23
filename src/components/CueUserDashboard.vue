@@ -130,7 +130,7 @@ export default {
                     id      : doc.id,
                     path    : `/sensors/${doc.id}`,
                     data    : data,
-                    muted   : data.users[this.userId].pivot.muted
+                    muted   : (data.users[this.userId].pivot && data.users[this.userId].pivot.muted) ? true : false
                 }
     
                 sensors.push(sensor)

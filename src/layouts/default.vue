@@ -322,6 +322,42 @@
 
 		</v-container>
 
+		<v-card>
+			
+			<v-snackbar
+				:timeout="authSession.timeout"
+				v-model="showAuthSessionError"
+				bottom
+				color="error"
+				multi-line
+				right
+			>
+
+			<v-icon size="40" left dark>warning</v-icon>
+			<v-spacer></v-spacer>
+			{{ authSession.expirationText }}
+			
+				<v-btn
+					@click="$store.dispatch('auth/refresh')"
+					:loading="$store.getters['auth/processing']"
+					ripple
+					dark
+				>
+					Re-authenticate
+				</v-btn>
+
+				<v-btn
+					flat
+					ripple
+					@click="authSession.dismissed = true"
+				>
+					Dismiss
+				</v-btn>
+
+			</v-snackbar>
+
+		</v-card>
+
 	</v-app>
 
 </template>
@@ -330,19 +366,45 @@
 
 	import { auth } from '~/plugins/firebase.js'
 	import SignInForm from '~/components/SignInForm.vue'
+	import { setInterval } from 'timers';
+	const moment = require('moment')
 
 	export default {
 		created () {
 			this.$store.watch((state) => this.$store.getters['auth/isGuest'], () => {
 				this.signIn.showDialog = false
 			})
+
+			setInterval(() => {
+				this.now = moment().add(1, 'm').unix().valueOf()
+			}, 5*1000)
 		},
 		data() {
 			return {
+				now : 0,
 				drawer: null,
+				sessionExpiredInterval : null,
 				signIn: {
 					showDialog : false,
-				}
+				},
+				authSession : {
+					timeout: 0,
+					dismissed : false,
+					hasExpired : false,
+					expirationText : 'Your authentication session has expired.'
+				},
+			}
+		},
+		computed : {
+			authSessionHasExpired() {
+				const expiration = this.$store.getters['auth/expiration']
+
+				const hasExpired = moment(this.now).isAfter(expiration)
+
+				return hasExpired
+			},
+			showAuthSessionError() {
+				return !this.authSession.dismissed && this.authSessionHasExpired && !this.$store.getters['auth/isGuest']
 			}
 		},
 		methods : {
@@ -351,6 +413,7 @@
 				this.$store.dispatch('auth/signOut')
 			}
 		},
+
 		components : {
 			SignInForm
 		}
