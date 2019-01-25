@@ -48,10 +48,11 @@ exports = module.exports = pubsub
 				android_channel_id : 'distinct vibration'
 			},
 			// IOS
-			// notification : {
-			// 	title : capitalize(notificationTitle),
-			// 	sound : 'default',
-			// }
+			notification : {
+				title : capitalize(notificationTitle),
+				sound : 'default',
+				click_action : 'FLUTTER_NOTIFICATION_CLICK',
+			}
 		}
 
 		if(!(FCM_tokens.length > 0)) return

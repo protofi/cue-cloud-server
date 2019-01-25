@@ -334,7 +334,7 @@
 			>
 
 			<v-icon size="40" left dark>warning</v-icon>
-			<v-spacer></v-spacer>
+			
 			{{ authSession.expirationText }}
 			
 				<v-btn
@@ -391,7 +391,7 @@
 					timeout: 0,
 					dismissed : false,
 					hasExpired : false,
-					expirationText : 'Your authentication session has expired.'
+					expirationText : 'Your session has expired.'
 				},
 			}
 		},

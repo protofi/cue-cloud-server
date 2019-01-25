@@ -63,12 +63,12 @@ describe('STAGE', () => {
 
         stubFs = {
             settings: () => { return null },
-            collection: (col) => {
+            collection: (col: string) => {
                 return {
-                    doc: (id) => {
+                    doc: (id: string) => {
                         return {
                             id: (id) ? id : uniqid(),
-                            set: (data, {merge}) => {
+                            set: (data: any, {merge}) => {
 
                                 if(merge)
                                 {
@@ -82,7 +82,7 @@ describe('STAGE', () => {
                             },
                             get: () => {
                                 return {
-                                    get: (data) => {
+                                    get: (data: any) => {
                                         try{
                                             if(data)
                                                 return firestoreMockData[`${col}/${id}`][data]
@@ -98,24 +98,23 @@ describe('STAGE', () => {
                                     exists : (!_.isUndefined(firestoreMockData[`${col}/${id}`]))
                                 }
                             },
-                            update: (data) => {
+                            update: (data: any) => {
                                 
-                                if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${`${col}/${id}`}]`)
+                                if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${col}/${id}]`)
 
                                 //Handle field deletion
                                 const flattenData = flatten(data)
                                 
                                 _.forOwn(flattenData, (value, key) => {
                                     if(value !== admin.firestore.FieldValue.delete()) return
-                                    
-                                    _.unset(data, key)
                                     _.unset(firestoreMockData[`${col}/${id}`], key)
+                                    _.unset(data, key)
                                 })
 
                                 firestoreMockData = _.merge(firestoreMockData, {
                                     [`${col}/${id}`] : unflatten(data)
                                 })
-    
+
                                 return null
                             },
 
@@ -129,7 +128,7 @@ describe('STAGE', () => {
                             get: () => {
 
                                 const docs: Array<Object> = new Array<Object>()
-
+ 
                                 _.forOwn(firestoreMockData, (collection, path) => {
 
                                     if(!path.includes(col)) return
@@ -3326,9 +3325,18 @@ describe('STAGE', () => {
                             const driverId = uniqid()
     
                             const car = new CarM(stubFs, null, carId)
-                            const driver = new Driver(stubFs, null, driverId)
-    
-                            await car.drivers().attach(driver)
+                            
+                            firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                                [`${Stubs.DRIVER}`] : {
+                                    [driverId] : true
+                                }
+                            }
+
+                            firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                                [`${Stubs.CAR}`] : {
+                                    [carId] : true
+                                }
+                            }
     
                             const before = test.firestore.makeDocumentSnapshot({}, '')
     
@@ -3354,7 +3362,7 @@ describe('STAGE', () => {
                             expect(driverDoc).to.deep.equal(expectedCarDoc)
                         })
 
-                        it('When fields defined as cachable is deleted the cached data should be deleted', async () => {
+                        it('When fields defined are cachable is deleted the cached data should be deleted', async () => {
 
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
@@ -3370,10 +3378,19 @@ describe('STAGE', () => {
                             const driverId = uniqid()
     
                             const car = new CarM(stubFs, null, carId)
-                            const driver = new Driver(stubFs, null, driverId)
-    
-                            await car.drivers().attach(driver)
-    
+
+                            firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                                [`${Stubs.DRIVER}`] : {
+                                    [driverId] : true
+                                }
+                            }
+
+                            firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                                [`${Stubs.CAR}`] : {
+                                    [carId] : true
+                                }
+                            }
+
                             const data = {
                                 name : 'Mustang'
                             }
@@ -3405,6 +3422,134 @@ describe('STAGE', () => {
                                 .to.be.undefined
                         })
 
+                        it('When the nested field of origin is deleted the cached field should be deleted', async () => {
+                            
+                            const cachedField = 'crached'
+                            class CarM extends Car {
+                                drivers(): Many2ManyRelation
+                                {
+                                    return this.belongsToMany('drivers')
+                                            .defineCachableFields([
+                                                cachedField,
+                                            ])
+                                }
+                            }
+    
+                            const carId = uniqid()
+                            const driverId = uniqid()
+    
+                            const car = new CarM(stubFs, null, carId)
+
+                            firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                                [`${Stubs.DRIVER}`] : {
+                                    [driverId] : true
+                                }
+                            }
+
+                            firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                                [`${Stubs.CAR}`] : {
+                                    [carId] : true
+                                }
+                            }
+    
+                            const dataBefore = {
+                                [cachedField] : {
+                                    marts : true,
+                                    april : true
+                                }
+                            }
+    
+                            const dataAfter = {
+                                [cachedField] : {
+                                    marts : true,
+                                }
+                            }
+
+                            const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+    
+                            const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+    
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                            await car.drivers().updateCache(change)
+    
+                            const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                            const expectedCarDoc = {
+                                [Stubs.CAR] : {
+                                    [carId] : dataAfter
+                                }
+                            }
+
+                            expect(driverDoc).to.deep.equal(expectedCarDoc)
+                          
+                            expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
+                                .to.be.undefined
+                        })
+
+                        it('Cache layer should handle if one nested field is updated and another is deleted', async () => {
+                            
+                            const cachedField = 'crached'
+                            class CarM extends Car {
+                                drivers(): Many2ManyRelation
+                                {
+                                    return this.belongsToMany('drivers')
+                                            .defineCachableFields([
+                                                cachedField,
+                                            ])
+                                }
+                            }
+    
+                            const carId = uniqid()
+                            const driverId = uniqid()
+    
+                            const car = new CarM(stubFs, null, carId)
+
+                            firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                                [`${Stubs.DRIVER}`] : {
+                                    [driverId] : true
+                                }
+                            }
+
+                            firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                                [`${Stubs.CAR}`] : {
+                                    [carId] : true
+                                }
+                            }
+    
+                            const dataBefore = {
+                                [cachedField] : {
+                                    marts : true,
+                                    april : true
+                                }
+                            }
+    
+                            const dataAfter = {
+                                [cachedField] : {
+                                    marts : false,
+                                }
+                            }
+
+                            const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+    
+                            const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+    
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                            await car.drivers().updateCache(change)
+    
+                            const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                            const expectedCarDoc = {
+                                [Stubs.CAR] : {
+                                    [carId] : dataAfter
+                                }
+                            }
+
+                            expect(driverDoc).to.deep.equal(expectedCarDoc)
+                          
+                            expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
+                                .to.be.undefined
+                        })
+
                         it('Cached fields should not be updated if no changes has happend to origin', async () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
@@ -3429,7 +3574,6 @@ describe('STAGE', () => {
                             }
     
                             const before = test.firestore.makeDocumentSnapshot(data, '')
-    
                             const after = test.firestore.makeDocumentSnapshot(data, '')
     
                             const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
@@ -3437,6 +3581,7 @@ describe('STAGE', () => {
                             await car.drivers().updateCache(change)
     
                             expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][`${Stubs.CAR}.${carId}.name`]).to.be.undefined
+                        
                         })
                     })
                     

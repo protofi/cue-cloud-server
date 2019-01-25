@@ -13,6 +13,7 @@ import { Relations, Roles, Errors } from './lib/const'
 import * as fakeUUID from 'uuid/v1'
 import * as _ from 'lodash'
 import * as util from './lib/util'
+import User from './lib/ORM/Models/User';
 
 const test: FeaturesList = require('firebase-functions-test')()
 
@@ -247,11 +248,12 @@ describe('OFFLINE', () => {
         
                 it('Id should be cached on related sensors', async () => {
 
-                    const cacheField = 'id'
+                    const cacheField = User.f.ID
                     const sensorsId = uniqid()
                     const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
                     
                     firestoreMockData[`${Models.SENSOR}/${sensorsId}`] = {}
+                    firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorsId}`] = {}
 
                     const afterDocSnap = new OfflineDocumentSnapshotStub({
                         data : {
@@ -285,7 +287,7 @@ describe('OFFLINE', () => {
         
                 it('Name should be cached on related household', async () => {
         
-                    const cacheField = 'name'
+                    const cacheField = User.f.NAME
                     const householdId = uniqid()
         
                     firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {}
@@ -325,7 +327,7 @@ describe('OFFLINE', () => {
 
                 it('Changes to FCM_tokens should be cached onto Sensors_secure', async () => {
         
-                    const cacheField = 'FCM_tokens'
+                    const cacheField = User.f.FCM_TOKENS
                     const FCMToken = uniqid()
                     const sensorId = uniqid()
 
@@ -524,7 +526,6 @@ describe('OFFLINE', () => {
             const householdId       = uniqid()
             const householdTwoId    = uniqid()
     
-            const baseStationId     = uniqid()
             const baseStationUUID   = fakeUUID()
             const baseStationTwoUUID   = fakeUUID()
 
@@ -532,7 +533,6 @@ describe('OFFLINE', () => {
             const sensorUUID        = fakeUUID()
 
             const sensorTwoId       = uniqid()
-            const sensorTwoUUID     = fakeUUID()
 
             describe('Topic: New Sensor', () => {
 
@@ -619,7 +619,7 @@ describe('OFFLINE', () => {
 
                     const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
                     let error = null
-                  
+
                     try{
 
                         await wrappedPubsubBaseStationNewSensor({
@@ -666,7 +666,7 @@ describe('OFFLINE', () => {
                     injectionIds = [
                         sensorTwoId,
                         sensorTwoId,
-                        sensorTwoId,
+                        sensorTwoId
                     ]
 
                     const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
@@ -769,7 +769,7 @@ describe('OFFLINE', () => {
                     injectionIds = [
                         sensorTwoId,
                         sensorTwoId,
-                        sensorTwoId,
+                        sensorTwoId
                     ]
 
                     const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)

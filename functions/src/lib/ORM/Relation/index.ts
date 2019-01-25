@@ -1,10 +1,10 @@
 import { Change } from "firebase-functions"
-import { asyncForEach, difference } from "../../util"
+import { asyncForEach, difference, printFormattedJson } from "../../util"
 import { Relations } from "../../const"
 import { singular } from "pluralize"
 import ModelImpl, { Models } from "../Models"
 import { Pivot } from "./Pivot"
-import { get, capitalize, isEmpty, includes } from "lodash"
+import { isPlainObject, intersection, keys, omit, get, capitalize, merge, isEmpty, includes, mapValues } from "lodash"
 import { IActionableFieldCommand } from "../../Command";
 import { firestore } from "firebase-admin";
 
@@ -77,14 +77,41 @@ export default class RelationImpl implements Relation{
                         .replace(Relations.PIVOT, `${this.propertyModelName}.${Relations.PIVOT}`) // prepend relevant model name to pivot field path
                         .replace(Models.SECURE_SURFIX,'') // remove secure surfix
 
-            const cachableFieldBefore = get(beforeData, fieldPath, firestore.FieldValue.delete()) // retrieve data associated with the cached field before update
-            const cachableFieldAfter  = get(afterData, fieldPath, firestore.FieldValue.delete()) // retrieve data associated with the cached field after update
+            const deleteFlag = (firestore.FieldValue) ? firestore.FieldValue.delete() : undefined //For testing purposes. Is to be fixed
+
+            const cachableFieldBefore = get(beforeData, fieldPath, deleteFlag) // retrieve data associated with the cached field before update
+            let cachableFieldAfter  = get(afterData, fieldPath, deleteFlag) // retrieve data associated with the cached field after update
+            
+            // if field is nested
+            if(isPlainObject(cachableFieldBefore) && isPlainObject(cachableFieldAfter))
+            {
+                const nestedChange = difference(cachableFieldBefore, cachableFieldAfter)
+                // console.log('nested change', nestedChange)
+
+                const nestedPotentialDeletions = difference(cachableFieldAfter, cachableFieldBefore)
+
+                // console.log('deleted field', nestedPotentialDeletions)
+
+                const notForDeletion = intersection(keys(nestedPotentialDeletions), keys(nestedChange))
+
+                const nestedDeletions = omit(nestedPotentialDeletions, notForDeletion)
+
+                // console.log('nested deletions', nestedDeletions)
+
+                // console.log(mapValues(nestedDeletions, () => { return firestore.FieldValue.delete() }))
+
+                cachableFieldAfter = merge(cachableFieldAfter, mapValues(nestedDeletions, () => { return firestore.FieldValue.delete() }))
+            }
+
             if(cachableFieldBefore === cachableFieldAfter) return //if the field have not been updated continue to next iteration and do not include it in the data to be cached
 
             if(includes(field, Models.SECURE_SURFIX))
                 newSecureCacheData[`${this.owner.name}.${ownerId}.${field.replace(Models.SECURE_SURFIX,'')}`] = cachableFieldAfter
             else
                 newCacheData[`${this.owner.name}.${ownerId}.${field}`] = cachableFieldAfter
+
+            // printFormattedJson(newCacheData)
+
         })
 
         return {
@@ -206,7 +233,7 @@ export abstract class N2ManyRelation extends RelationImpl implements IN2ManyRela
         const properties: Object = await this.owner.getField(this.propertyModelName)
 
         if(!properties) return new Array()
-        return Object.keys(properties)
+        return keys(properties)
     }
 
     abstract updatePivot(propertyId: string, data: object): Promise<ModelImpl>
@@ -272,12 +299,10 @@ export class Many2ManyRelation extends N2ManyRelation {
         const beforeData: FirebaseFirestore.DocumentData = change.before.data()
         const afterData: FirebaseFirestore.DocumentData = change.after.data()
 
-        // console.log('BEFORE DATA', beforeData, 'AFTER DATA', afterData)
-
         if(this.cacheOnToProperty)
         {
             const { newCacheData, newSecureCacheData } = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
-            
+
             let properties: Array<ModelImpl>
 
             if(!isEmpty(newCacheData))
@@ -336,6 +361,7 @@ export class Many2ManyRelation extends N2ManyRelation {
 
             if(!isEmpty(newSecureCacheData))
             {
+                console.log(newSecureCacheData)
                 await this.owner.secure().update(newSecureCacheData)
             }
         }
@@ -558,7 +584,7 @@ export class N2OneRelation extends RelationImpl {
         
         const pivotDataChanges = (beforePivotData) ? difference(beforePivotData, afterPivotData) : afterPivotData
 
-        await asyncForEach(Object.keys(pivotDataChanges),
+        await asyncForEach(keys(pivotDataChanges),
             async (field) => {
 
                 const action: IActionableFieldCommand = this.actionableFields.get(field)

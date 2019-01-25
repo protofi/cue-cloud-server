@@ -14,6 +14,8 @@ import Household from './lib/ORM/Models/Household';
 import { Relations, Roles, Errors } from './lib/const';
 import { GrandOneUserHouseholdAdminPrivileges } from './lib/Command/GrandOneUserHouseholdAdminPrivileges';
 import UpdateCustomClaims from './lib/Command/UpdateCustomClaims';
+import UpdateFCMTokenSecureCache from './lib/Command/UpdateFCMTokenSecureCache';
+import { printFormattedJson } from './lib/util';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -385,6 +387,51 @@ describe('OFFLINE', () => {
                 })
             })
 
+            describe('Update FCM Token Secure Cache', () => {
+                const command       = new UpdateFCMTokenSecureCache()
+
+                const userId        = uniqid()
+                const sensorOneId   = uniqid()
+                const FCMToken      = uniqid()
+                const sensorTwoId   = uniqid()
+                const user : User   = new User(firestoreStub, null, userId)
+    
+                it('When a new sensor is added to the User, FCM token cache should ', async () => {
+
+                    firestoreMockData[`${Models.USER}/${userId}`] = {
+                        [Models.SENSOR] : {
+                            [sensorOneId] : true
+                        },
+                        FCM_tokens : {
+                            [FCMToken] : true
+                        }
+                    }
+
+                    firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`] = {}
+
+                    const changes = {
+                        [sensorOneId] : true
+                    }
+
+                    await command.execute(user, changes)
+
+                    const sensorSecureDoc = firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`]
+                    const expectedSensorSecureDoc = {
+                        [Models.USER] : {
+                            [userId] : {
+                                [User.f.FCM_TOKENS] : {
+                                    [FCMToken] : true      
+                                }
+                            }
+                        }
+                    }
+
+                    // printFormattedJson(firestoreMockData)
+                    
+                    expect(sensorSecureDoc).to.be.deep.equal(expectedSensorSecureDoc)                    
+                })
+            })
+            
             // describe('Update Custom Claims', () => {
 
             //     const command       = new UpdateCustomClaims()

@@ -1,6 +1,7 @@
 <template>
 
 	<div>
+		
 		<v-list>
 								
 			<div v-if="activeHousehold != null">
@@ -559,7 +560,7 @@ export default {
 				await firestore.collection('sensors').doc(this.sensorIdToBeConfigured).set({
 					name : this.sensorName,
 					location : this.sensorLocation,
-					string_icon : this.sensorIcon
+					icon_string : this.sensorIcon
 				}, {
 					merge : true
 				}).catch(e => {

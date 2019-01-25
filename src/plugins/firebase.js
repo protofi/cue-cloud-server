@@ -33,7 +33,7 @@ if (!firebase.apps.length)
         // storageBucket: "production-cue-iot-cloud.appspot.com",
         // messagingSenderId: "41932209423"
     }
-    
+
     firebase.initializeApp(config)
     firebase.firestore().settings({timestampsInSnapshots: true})
 }
