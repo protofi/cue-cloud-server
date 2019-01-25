@@ -134,7 +134,7 @@ describe('OFFLINE', () => {
                                         ref: {
                                             delete: () => {
                                                 _.unset(firestoreMockData, path)
-                                            }
+                                            },
                                         },
                                         get: (f: string) => {
                                             return firestoreMockData[path][f]
@@ -143,8 +143,13 @@ describe('OFFLINE', () => {
                                 })
 
                                 return {
+                                    empty : !(docs.length > 0),  
                                     size : docs.length,
                                     docs : docs,
+                                    update: () => {
+                                        console.log('UPDATE')
+                                        return null
+                                    }
                                 }
                             }
                         }
@@ -462,6 +467,31 @@ describe('OFFLINE', () => {
                             }
                         })
                 })
+            })
+        })
+
+        describe('Sensors', () => {
+
+            it  ('When Sensor is delete the secure data should also be deleted', async () => {
+                const sensorId      = uniqid()
+                const wrappedSensorsOnDelete = test.wrap(myFunctions.ctrlSensorsOnDelete)
+
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {}
+
+                const sensorSnap = new OfflineDocumentSnapshotStub({
+                    ref: {
+                        id : sensorId,
+                        update : () => {
+                            return
+                        }
+                    }
+                })
+
+                await wrappedSensorsOnDelete(sensorSnap)
+
+                const sensorSecureDoc = firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`]
+
+                expect(sensorSecureDoc).to.be.undefined
             })
         })
 

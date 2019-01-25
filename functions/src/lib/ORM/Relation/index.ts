@@ -8,6 +8,8 @@ import { isPlainObject, intersection, keys, omit, get, capitalize, merge, isEmpt
 import { IActionableFieldCommand } from "../../Command";
 import { firestore } from "firebase-admin";
 
+const deleteFlag = (firestore.FieldValue) ? firestore.FieldValue.delete() : undefined //For testing purposes. Is to be fixed
+
 export interface ModelImportStategy {
     import(db: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl>
 }
@@ -77,8 +79,6 @@ export default class RelationImpl implements Relation{
                         .replace(Relations.PIVOT, `${this.propertyModelName}.${Relations.PIVOT}`) // prepend relevant model name to pivot field path
                         .replace(Models.SECURE_SURFIX,'') // remove secure surfix
 
-            const deleteFlag = (firestore.FieldValue) ? firestore.FieldValue.delete() : undefined //For testing purposes. Is to be fixed
-
             const cachableFieldBefore = get(beforeData, fieldPath, deleteFlag) // retrieve data associated with the cached field before update
             let cachableFieldAfter  = get(afterData, fieldPath, deleteFlag) // retrieve data associated with the cached field after update
             
@@ -98,9 +98,9 @@ export default class RelationImpl implements Relation{
 
                 // console.log('nested deletions', nestedDeletions)
 
-                // console.log(mapValues(nestedDeletions, () => { return firestore.FieldValue.delete() }))
+                // console.log(mapValues(nestedDeletions, () => { return deleteFlag }))
 
-                cachableFieldAfter = merge(cachableFieldAfter, mapValues(nestedDeletions, () => { return firestore.FieldValue.delete() }))
+                cachableFieldAfter = merge(cachableFieldAfter, mapValues(nestedDeletions, () => { return deleteFlag }))
             }
 
             if(cachableFieldBefore === cachableFieldAfter) return //if the field have not been updated continue to next iteration and do not include it in the data to be cached
@@ -209,7 +209,7 @@ export abstract class N2ManyRelation extends RelationImpl implements IN2ManyRela
     async detach(): Promise<void>
     {
         await this.owner.update({
-            [this.propertyModelName] : firestore.FieldValue.delete()
+            [this.propertyModelName] : deleteFlag
         })
     }
 
@@ -430,7 +430,7 @@ export class Many2ManyRelation extends N2ManyRelation {
         await asyncForEach(properties, async (property: ModelImpl) => {
             await property.update({
                 [this.owner.name] : {
-                    [this.owner.getId()] : firestore.FieldValue.delete()
+                    [this.owner.getId()] : deleteFlag
                 }
             })
         })
@@ -439,15 +439,18 @@ export class Many2ManyRelation extends N2ManyRelation {
 
         const querySnap: FirebaseFirestore.QuerySnapshot = await this.db.collection(pivotName).where(`${this.owner.name}.id`, '==', this.owner.getId()).get()
 
-        const docs = new Array<FirebaseFirestore.QueryDocumentSnapshot>()
+        if(!querySnap.empty)
+        {
+            const docs = new Array<FirebaseFirestore.QueryDocumentSnapshot>()
 
-        querySnap.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
-            docs.push(doc)
-        })
+            querySnap.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+                docs.push(doc)
+            })
 
-        await asyncForEach(docs, async (doc: FirebaseFirestore.QueryDocumentSnapshot) => {
-            await doc.ref.delete()
-        })
+            await asyncForEach(docs, async (doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+                await doc.ref.delete()
+            })
+        }
 
         await super.detach()
     }
@@ -513,7 +516,7 @@ export class One2ManyRelation extends N2ManyRelation {
 
         await asyncForEach(properties, async (property: ModelImpl) => {
             await property.update({
-                [this.owner.name] : firestore.FieldValue.delete()
+                [this.owner.name] : deleteFlag
             })
         })
 
@@ -648,17 +651,16 @@ export class N2OneRelation extends RelationImpl {
     {
         const property = await this.get()
 
-        // if(!property)
-            // console.log('PROPERTY DOES NOT EXIST')
+        if(!property) return
 
         await property.update({
             [this.owner.name] : {
-                [this.owner.getId()] : firestore.FieldValue.delete()
+                [this.owner.getId()] : deleteFlag
             }
         })
 
         await this.owner.update({
-            [this.propertyModelName] : firestore.FieldValue.delete()
+            [this.propertyModelName] : deleteFlag
         })
     }
 

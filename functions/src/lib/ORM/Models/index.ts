@@ -29,12 +29,13 @@ export interface Model{
     defineActionableField(field: string, command: IActionableFieldCommand): void
     takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
     addOnCreateAction(command: IModelCommand): void
-    addOnDeleteAction(command: IModelCommand): void
     onCreate(): Promise<void>
+    onDelete(): Promise<void>
 }
 
 export default class ModelImpl implements Model {
 
+    protected hasSecureData: Boolean = false
     private ref: FirebaseFirestore.DocumentReference
     private docSnap: FirebaseFirestore.DocumentSnapshot
     readonly name: string
@@ -255,6 +256,11 @@ export default class ModelImpl implements Model {
         })
     }
 
+    secure() : ModelImpl
+    {
+        return new ModelImpl(`${this.name}${Models.SECURE_SURFIX}`, this.db, null, this.getId())
+    }
+
     addOnCreateAction(command: IModelCommand): void 
     {
         this.onCreateAction = command
@@ -266,19 +272,8 @@ export default class ModelImpl implements Model {
         await this.onCreateAction.execute(this)
     }
 
-    addOnDeleteAction(command: IModelCommand): void 
-    {
-        this.onDeleteAction = command
-    }
-
     async onDelete(): Promise<void>
     {
-        if(!this.onDeleteAction) return
-        await this.onDeleteAction.execute(this)
-    }
-
-    secure() : ModelImpl
-    {
-        return new ModelImpl(`${this.name}${Models.SECURE_SURFIX}`, this.db, null, this.getId())
+        if(this.hasSecureData) this.secure().delete()
     }
 }

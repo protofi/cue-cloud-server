@@ -176,324 +176,386 @@ describe('STAGE', () => {
 
         describe('CRUD', async () => {
 
-            it('Create doc new ref', async () => {
-                const docRef = db.user().getDocRef()
+            describe('Create', async () => {
 
-                expect(docRef).exist
-                expect(docRef.id).exist
-                expect(docRef.path).exist
+                it('Create doc new ref', async () => {
+                    const docRef = db.user().getDocRef()
 
-                expect(docRef.path).to.equals(`${Models.USER}/${docRef.id}`)
-            })
+                    expect(docRef).exist
+                    expect(docRef.id).exist
+                    expect(docRef.path).exist
 
-            it('Create doc new ref with certain id', async () => {
-                const uid: string = uniqid()
-
-                const docRef: FirebaseFirestore.DocumentReference = db.user().getDocRef(uid)
-                expect(docRef).exist
-                expect(docRef.id).to.equals(uid)
-                expect(docRef.path).exist
-
-                expect(docRef.path).to.equals(`${Models.USER}/${uid}`)
-            })
-
-            it('Create model based on doc id', async () => {
-                const uid = uniqid()
-
-                const car = new Car(stubFs, null, uid)
-
-                const docRef = car.getDocRef()
-           
-                expect(uid).to.equal(docRef.id)
-            })
-
-            it('Create model based on doc snap', async () => {
-                const snap = test.firestore.exampleDocumentSnapshot()
-           
-                const car = new Car(stubFs, snap)
-                const docRef = car.getDocRef()
-           
-                expect(snap.ref.id).to.equal(docRef.id)
-            })
-
-            it('Get ref returns the same ref after initialization', async () => {
-                const car = new Car(stubFs)
-                const docRef1 = car.getDocRef()
-                const docRef2 = car.getDocRef()
-
-                expect(docRef1.id).to.equals(docRef2.id)
-            })
-
-            it('it should be possible to retrieve the Id of a model though method getId', async () => {
-                const car = new Car(stubFs)
-                const id = car.getId()
-
-                expect(id).exist
-            })
-
-            it('GetId should return the same id a model was created with', async () => {
-                const carId = uniqid()
-                const car = new Car(stubFs, null, carId)
-                const id = car.getId()
-
-                expect(id).to.be.equal(carId)
-            })
-
-            it('Get ID of created docRef', async () => {
-                const carId = uniqid()
-
-                const car = await new Car(stubFs, null, carId).create({
-                    name : 'Mustang'
+                    expect(docRef.path).to.equals(`${Models.USER}/${docRef.id}`)
                 })
 
-                const carId2 = car.getId()
-                
-                expect(carId).to.be.equal(carId2)
-            })
+                it('Create doc new ref with certain id', async () => {
+                    const uid: string = uniqid()
 
-            it('Creating a model with data should be possible', async () => {
-                const carId = uniqid()
-                const carName = 'Mustang'
+                    const docRef: FirebaseFirestore.DocumentReference = db.user().getDocRef(uid)
+                    expect(docRef).exist
+                    expect(docRef.id).to.equals(uid)
+                    expect(docRef.path).exist
 
-                const car = new Car(stubFs, null, carId)
-
-                await car.create({
-                    name: carName
+                    expect(docRef.path).to.equals(`${Models.USER}/${uid}`)
                 })
 
-                const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
-                const expectedCarDoc = {
-                    name : carName
-                }
+                it('Create model based on doc id', async () => {
+                    const uid = uniqid()
 
-                expect(carDoc).to.deep.equals(expectedCarDoc)
-            })
+                    const car = new Car(stubFs, null, uid)
 
-            it('Creating a model using Batch should be possible', async () => {
-                const carId = uniqid()
-                const carName = 'Mustang'
-
-                const batch = adminFs.batch()
-                const car = new Car(adminFs, null, carId)
-
-                //Clean up
-                docsToBeDeleted.push(car.getDocRef().path)
-
-                await car.create({
-                    name: carName
-                }, batch)
-
-                await batch.commit()
-
-                const carDoc = await adminFs.collection(Stubs.CAR).doc(carId).get()
-                const carData = carDoc.data()
-                const expectedCarData = {
-                    name : carName
-                }
-
-                expect(carData).to.deep.equals(expectedCarData)
-            })
-
-            it('Creating a model using Batch should fail if Batch is not commited', async () => {
-                const carId = uniqid()
-                const carName = 'Mustang'
-
-                const batch = adminFs.batch()
-                const car = new Car(adminFs, null, carId)
-
-                await car.create({
-                    name: carName
-                }, batch)
-
-                const carDoc = await adminFs.collection(Stubs.CAR).doc(carId).get()
-
-                expect(carDoc.exists).to.false
-            })
-
-            it('Method Find should be able to retrive one particular model by id', async () => {
-                const carId = uniqid()
-                const carId2 = uniqid()
-                const car = new Car(stubFs, null, carId)
-
-                const car2 = await car.find(carId2)
-
-                expect(car2.getId()).to.be.equal(carId2)
-            })
-
-            it('Method Find should be able to set the Id of an already instantiated model', async () => {
-                const carId = uniqid()
-                const car = new Car(stubFs)
-
-                await car.find(carId)
-
-                expect(car.getId()).to.be.equal(carId)
-            })
-
-            it('Single data fields on a model should be retrievable through method getField', async () => {
-                const carId = uniqid()
-                const carName = 'Mustang'
-
-                firestoreMockData[`${Stubs.CAR}/${carId}`] = {
-                    name : carName
-                }
-
-                const car = new Car(stubFs, null, carId)
-
-                const fetchedName = await car.getField('name')
-
-                expect(carName).to.be.equal(fetchedName)
-            })
-
-            it('GetField should return undefined if field does not exist', async () => {
-                const carId = uniqid()
-
-                const car = new Car(stubFs, null, carId)
-
-                const fetchedName = await car.getField('name')
-
-                expect(fetchedName).to.be.undefined
-            })
-
-            it('It should be possible to update data on an already existing model', async () => {
-                const carId = uniqid()
-                const car = new Car(stubFs, null, carId)
-
-                firestoreMockData[`${Stubs.CAR}/${carId}`] = {
-                    name : 'Mustang'
-                }
-
-                await car.update({
-                    name : 'Fiesta'
+                    const docRef = car.getDocRef()
+            
+                    expect(uid).to.equal(docRef.id)
                 })
 
-                const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
-                const expectedCarDoc = {
-                    name : 'Fiesta'
-                }
-                expect(carDoc).to.be.deep.equal(expectedCarDoc)
-            })
-
-            it('It should be possible to update data on an already existing model in batch', async () => {
-                const carId = uniqid()
-
-                await adminFs.collection(Stubs.CAR).doc(carId).create({
-                    name : 'Mustang'
+                it('Create model based on doc snap', async () => {
+                    const snap = test.firestore.exampleDocumentSnapshot()
+            
+                    const car = new Car(stubFs, snap)
+                    const docRef = car.getDocRef()
+            
+                    expect(snap.ref.id).to.equal(docRef.id)
                 })
 
-                const car = await new Car(adminFs, null, carId)
-                
-                //Clean up
-                docsToBeDeleted.push((car.getDocRef()).path)
-
-                const batch = adminFs.batch()
-
-                await car.update({
-                    name : 'Fiesta'
-                }, batch)
-
-                await batch.commit()
-
-                const carDoc = await adminFs.collection(Stubs.CAR).doc(carId).get()
-
-                const expectedCarDocData = {
-                    name : 'Fiesta'
-                }
-                expect(carDoc.data()).to.be.deep.equal(expectedCarDocData)
-            })
-
-            it('If batch commit is not invoked not data should be updated on the model', async () => {
-                const carId = uniqid()
-
-                await adminFs.collection(Stubs.CAR).doc(carId).create({
-                    name : 'Mustang'
-                })
-
-                const car = await new Car(adminFs, null, carId)
-                
-                //Clean up
-                docsToBeDeleted.push((car.getDocRef()).path)
-
-                const batch = adminFs.batch()
-
-                await car.update({
-                    name : 'Fiesta'
-                }, batch)
-
-                const carDoc = await adminFs.collection(Stubs.CAR).doc(carId).get()
-
-                const expectedCarDocData = {
-                    name : 'Mustang'
-                }
-                expect(carDoc.data()).to.be.deep.equal(expectedCarDocData)
-            })
-
-            it('It should be possible to delete a model', async () => {
-                const carId = uniqid()
-                const car = new Car(stubFs, null, carId)
-
-                firestoreMockData[`${Stubs.CAR}/${carId}`] = {
-                    name : 'Mustang'
-                }
-
-                await car.delete()
-
-                const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
-
-                expect(carDoc).to.not.exist
-            })
-
-            it('It should be possible to define actions to be executed onCreate', async () => {
-
-                const command = new ModelCommandStub()
-                const commandSpy = sinon.spy(command, 'execute')
-                class ModelStub extends ModelImpl
-                {
-                    getModelAction()
-                    {
-                        return this.onCreateAction
+                it('Creating a model with data should be possible', async () => {
+                    const carId = uniqid()
+                    const carName = 'Mustang'
+    
+                    const car = new Car(stubFs, null, carId)
+    
+                    await car.create({
+                        name: carName
+                    })
+    
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedCarDoc = {
+                        name : carName
                     }
-                }
+    
+                    expect(carDoc).to.deep.equals(expectedCarDoc)
+                })
+    
+                it('Creating a model using Batch should be possible', async () => {
+                    const carId = uniqid()
+                    const carName = 'Mustang'
+    
+                    const batch = adminFs.batch()
+                    const car = new Car(adminFs, null, carId)
+    
+                    //Clean up
+                    docsToBeDeleted.push(car.getDocRef().path)
+    
+                    await car.create({
+                        name: carName
+                    }, batch)
+    
+                    await batch.commit()
+    
+                    const carDoc = await adminFs.collection(Stubs.CAR).doc(carId).get()
+                    const carData = carDoc.data()
+                    const expectedCarData = {
+                        name : carName
+                    }
+    
+                    expect(carData).to.deep.equals(expectedCarData)
+                })
+    
+                it('Creating a model using Batch should fail if Batch is not commited', async () => {
+                    const carId = uniqid()
+                    const carName = 'Mustang'
+    
+                    const batch = adminFs.batch()
+                    const car = new Car(adminFs, null, carId)
+    
+                    await car.create({
+                        name: carName
+                    }, batch)
+    
+                    const carDoc = await adminFs.collection(Stubs.CAR).doc(carId).get()
+    
+                    expect(carDoc.exists).to.false
+                })
 
-                const model = new ModelStub('', stubFs)
+                it('It should be possible to define actions to be executed onCreate', async () => {
 
-                model.addOnCreateAction(command)
-                
-                const modelAction = model.getModelAction()
-                
-                expect(modelAction).to.not.be.null
-                expect(modelAction).equal(command)
-                await modelAction.execute(model)
-                expect(commandSpy.callCount).to.equals(1)
+                    const command = new ModelCommandStub()
+                    const commandSpy = sinon.spy(command, 'execute')
+                    class ModelStub extends ModelImpl
+                    {
+                        getModelAction()
+                        {
+                            return this.onCreateAction
+                        }
+                    }
+    
+                    const model = new ModelStub('', stubFs)
+    
+                    model.addOnCreateAction(command)
+                    
+                    const modelAction = model.getModelAction()
+                    
+                    expect(modelAction).to.not.be.null
+                    expect(modelAction).equal(command)
+                    await modelAction.execute(model)
+                    expect(commandSpy.callCount).to.equals(1)
+                })
+    
+                it('onCreate actions should be executed when .onCreate on Model is invoked', async () => {
+    
+                    const command = new ModelCommandStub()
+                    const commandSpy = sinon.spy(command, 'execute')
+    
+                    const model = new ModelImpl('', stubFs)
+    
+                    model.addOnCreateAction(command)
+                    
+                    model.onCreate()
+                    
+                    expect(commandSpy.callCount).to.equals(1)
+                })
+    
+                it('If no action is defined invokation of .onCreate should be ignored', async () => {
+    
+                    const model = new ModelImpl('', stubFs)
+                    let error
+    
+                    try{
+                        await model.onCreate()
+                    }
+                    catch(e)
+                    {
+                        error = e
+                    }
+    
+                    expect(error).is.undefined
+                })    
             })
 
-            it('onCreate actions should be executed when .created on Model is invoked', async () => {
+            describe('Read', () => {
 
-                const command = new ModelCommandStub()
-                const commandSpy = sinon.spy(command, 'execute')
+                it('Get ref returns the same ref after initialization', async () => {
+                    const car = new Car(stubFs)
+                    const docRef1 = car.getDocRef()
+                    const docRef2 = car.getDocRef()
+    
+                    expect(docRef1.id).to.equals(docRef2.id)
+                })
+    
+                it('it should be possible to retrieve the Id of a model though method getId', async () => {
+                    const car = new Car(stubFs)
+                    const id = car.getId()
+    
+                    expect(id).exist
+                })
+    
+                it('GetId should return the same id a model was created with', async () => {
+                    const carId = uniqid()
+                    const car = new Car(stubFs, null, carId)
+                    const id = car.getId()
+    
+                    expect(id).to.be.equal(carId)
+                })
+    
+                it('Get ID of created docRef', async () => {
+                    const carId = uniqid()
+    
+                    const car = await new Car(stubFs, null, carId).create({
+                        name : 'Mustang'
+                    })
+    
+                    const carId2 = car.getId()
+                    
+                    expect(carId).to.be.equal(carId2)
+                })
+    
+                it('Method Find should be able to retrive one particular model by id', async () => {
+                    const carId = uniqid()
+                    const carId2 = uniqid()
+                    const car = new Car(stubFs, null, carId)
+    
+                    const car2 = await car.find(carId2)
+    
+                    expect(car2.getId()).to.be.equal(carId2)
+                })
+    
+                it('Method Find should be able to set the Id of an already instantiated model', async () => {
+                    const carId = uniqid()
+                    const car = new Car(stubFs)
+    
+                    await car.find(carId)
+    
+                    expect(car.getId()).to.be.equal(carId)
+                })
+    
+                it('Single data fields on a model should be retrievable through method getField', async () => {
+                    const carId = uniqid()
+                    const carName = 'Mustang'
+    
+                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                        name : carName
+                    }
+    
+                    const car = new Car(stubFs, null, carId)
+    
+                    const fetchedName = await car.getField('name')
+    
+                    expect(carName).to.be.equal(fetchedName)
+                })
+    
+                it('GetField should return undefined if field does not exist', async () => {
+                    const carId = uniqid()
+    
+                    const car = new Car(stubFs, null, carId)
+    
+                    const fetchedName = await car.getField('name')
+    
+                    expect(fetchedName).to.be.undefined
+                })
 
-                const model = new ModelImpl('', stubFs)
-
-                model.addOnCreateAction(command)
-                
-                model.onCreate()
-                
-                expect(commandSpy.callCount).to.equals(1)
+                it('If a model is fetch with method find() already existing in the DB the method exists should return true', async () => {
+                    const carId = uniqid()
+                    firestoreMockData[`${Stubs.CAR}/${carId}`] = { id: carId }
+    
+                    const car = await new Car(stubFs).find(carId)
+    
+                    expect(await car.exists()).to.be.true
+                })
+    
+                it('If a model is fetch with method find() not already existing in the DB the method exists should return false', async () => {
+                    const carId = uniqid()
+    
+                    const car = await new Car(stubFs).find(carId)
+    
+                    expect(await car.exists()).to.be.false
+                })
             })
 
-            it('If no action is defined invokation of .created should be ignored', async () => {
+            describe('Update', () => {
 
-                const model = new ModelImpl('', stubFs)
-                let error
+                it('It should be possible to update data on an already existing model', async () => {
+                    const carId = uniqid()
+                    const car = new Car(stubFs, null, carId)
+    
+                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                        name : 'Mustang'
+                    }
 
-                try{
-                    await model.onCreate()
-                }
-                catch(e)
-                {
-                    error = e
-                }
+                    await car.update({
+                        name : 'Fiesta'
+                    })
+    
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedCarDoc = {
+                        name : 'Fiesta'
+                    }
+                    expect(carDoc).to.be.deep.equal(expectedCarDoc)
+                })
+    
+                it('It should be possible to update data on an already existing model in batch', async () => {
+                    const carId = uniqid()
+    
+                    await adminFs.collection(Stubs.CAR).doc(carId).create({
+                        name : 'Mustang'
+                    })
+    
+                    const car = await new Car(adminFs, null, carId)
+                    
+                    //Clean up
+                    docsToBeDeleted.push((car.getDocRef()).path)
+    
+                    const batch = adminFs.batch()
+    
+                    await car.update({
+                        name : 'Fiesta'
+                    }, batch)
+    
+                    await batch.commit()
+    
+                    const carDoc = await adminFs.collection(Stubs.CAR).doc(carId).get()
+    
+                    const expectedCarDocData = {
+                        name : 'Fiesta'
+                    }
+                    expect(carDoc.data()).to.be.deep.equal(expectedCarDocData)
+                })
+    
+                it('If batch commit is not invoked not data should be updated on the model', async () => {
+                    const carId = uniqid()
+    
+                    await adminFs.collection(Stubs.CAR).doc(carId).create({
+                        name : 'Mustang'
+                    })
+    
+                    const car = await new Car(adminFs, null, carId)
+                    
+                    //Clean up
+                    docsToBeDeleted.push((car.getDocRef()).path)
+    
+                    const batch = adminFs.batch()
+    
+                    await car.update({
+                        name : 'Fiesta'
+                    }, batch)
+    
+                    const carDoc = await adminFs.collection(Stubs.CAR).doc(carId).get()
+    
+                    const expectedCarDocData = {
+                        name : 'Mustang'
+                    }
+                    expect(carDoc.data()).to.be.deep.equal(expectedCarDocData)
+                })
+            })
 
-                expect(error).is.undefined
+            describe('Delete', () => {
+
+                it('It should be possible to delete a model', async () => {
+                    const carId = uniqid()
+                    const car = new Car(stubFs, null, carId)
+    
+                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                        name : 'Mustang'
+                    }
+    
+                    await car.delete()
+    
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+    
+                    expect(carDoc).to.not.exist
+                })
+                
+                it('onDelete should delete secure data collection if enabled', async () => {
+                    class CarM extends Car {
+                        hasSecureData = true
+                    }
+
+                    const carId = uniqid()
+
+                    firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
+
+                    const car = new CarM(stubFs, null, carId)
+
+                    await car.onDelete()
+
+                    const carSecureDoc = firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
+
+                    expect(carSecureDoc).to.be.undefined
+                })
+
+                it('onDelete should not delete secure data collection if not enabled', async () => {
+
+                    const carId = uniqid()
+
+                    firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
+
+                    const car = new Car(stubFs, null, carId)
+
+                    await car.onDelete()
+
+                    const carSecureDoc = firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
+
+                    expect(carSecureDoc).to.be.not.undefined
+                })
             })
 
             it('If a model is instatiated not already existing in the DB the method exists should return false', async () => {
@@ -515,28 +577,9 @@ describe('STAGE', () => {
 
                 firestoreMockData[`${Stubs.CAR}/${carId}`] = {}
 
-                // await adminFs.collection(Stubs.CAR).doc(carId).create({})
-
                 const car = new Car(stubFs, null, carId)
 
                 expect(await car.exists()).to.be.true
-            })
-
-            it('If a model is fetch with method find() already existing in the DB the method exists should return true', async () => {
-                const carId = uniqid()
-                firestoreMockData[`${Stubs.CAR}/${carId}`] = { id: carId }
-
-                const car = await new Car(stubFs).find(carId)
-
-                expect(await car.exists()).to.be.true
-            })
-
-            it('If a model is fetch with method find() not already existing in the DB the method exists should return false', async () => {
-                const carId = uniqid()
-
-                const car = await new Car(stubFs).find(carId)
-
-                expect(await car.exists()).to.be.false
             })
 
             describe('Actionable fields', () => {
@@ -3581,7 +3624,6 @@ describe('STAGE', () => {
                             await car.drivers().updateCache(change)
     
                             expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][`${Stubs.CAR}.${carId}.name`]).to.be.undefined
-                        
                         })
                     })
                     
