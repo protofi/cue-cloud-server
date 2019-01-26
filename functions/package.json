@@ -30,7 +30,6 @@
       "test/**/*"
     ],
     "exclude": [
-      "coverage/",
       "test/stubs",
       "test/**.test.js"
     ],
