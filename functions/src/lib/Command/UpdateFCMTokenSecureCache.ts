@@ -1,10 +1,10 @@
-import { IActionableFieldCommand } from ".";
+import { AbstractActionableFieldCommand } from ".";
 import User from "../ORM/Models/User";
 import { asyncForEach } from "../util";
 import ModelImpl, { Models } from "../ORM/Models";
 import { includes, keys } from 'lodash'
 
-export default class UpdateFCMTokenSecureCache implements IActionableFieldCommand {
+export default class UpdateFCMTokenSecureCache extends AbstractActionableFieldCommand {
     
     async execute(user: User, changes: any, after?: any, before?: any): Promise<void>
     {
@@ -23,9 +23,5 @@ export default class UpdateFCMTokenSecureCache implements IActionableFieldComman
                 }
             })
         })
-    }
-    
-    undo(): Promise<void> {
-        throw new Error("Method not implemented.");
     }
 }

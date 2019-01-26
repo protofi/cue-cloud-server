@@ -840,7 +840,7 @@ describe('STAGE', () => {
                     expect(typeof wheels[0].car).to.be.equal(typeof Function)
                 })
 
-                it('The pivot should be updatable trough the relation', async () => {
+                it('The pivot should be updatable through the relation', async () => {
            
                     const car = new Car(adminFs)
                     const wheel = new Wheel(adminFs)
@@ -869,7 +869,7 @@ describe('STAGE', () => {
                     expect(doc.get(`${Stubs.CAR}.${Relations.PIVOT}.name`)).to.be.equal(dataName)
                 })
 
-                it('The pivot should be updatable trough the inverse relation', async () => {
+                it('The pivot should be updatable through the inverse relation', async () => {
                     
                     const carId = uniqid()
                     const wheelId = uniqid()

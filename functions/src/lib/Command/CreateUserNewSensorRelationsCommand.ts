@@ -1,9 +1,9 @@
-import { IActionableFieldCommand } from ".";
+import { AbstractActionableFieldCommand } from ".";
 import { asyncForEach } from "../util";
 import Household from "../ORM/Models/Household";
 import User from "../ORM/Models/User";
 
-export class CreateUserNewSensorRelationsCommand implements IActionableFieldCommand {
+export class CreateUserNewSensorRelationsCommand extends AbstractActionableFieldCommand {
 
     async execute(household: Household, sensorRelLinks: any): Promise<void>
     {
@@ -23,9 +23,5 @@ export class CreateUserNewSensorRelationsCommand implements IActionableFieldComm
         })
 
         return
-    }
-    
-    undo(household: Household): Promise<void> {
-        throw new Error("Method not implemented.");
     }
 }

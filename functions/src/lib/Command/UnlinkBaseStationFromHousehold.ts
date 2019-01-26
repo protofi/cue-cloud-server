@@ -1,16 +1,12 @@
-import { IActionableFieldCommand } from ".";
+import { AbstractActionableFieldCommand } from ".";
 import Household from "../ORM/Models/Household";
 import BaseStation from "../ORM/Models/BaseStation";
 
-export class UnlinkBaseStationFromHousehold implements IActionableFieldCommand {
+export class UnlinkBaseStationFromHousehold extends AbstractActionableFieldCommand {
 
     async execute(baseStation: BaseStation, householdRelLinks: any): Promise<void>
     {
         return
         // return Promise.reject(householdRelLinks)
-    }
-    
-    undo(household: Household): Promise<void> {
-        throw new Error("Method not implemented.");
     }
 }
