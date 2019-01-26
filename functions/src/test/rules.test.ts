@@ -589,9 +589,7 @@ describe('OFFLINE', () => {
                     const ref = db.collection(Models.SENSOR)
 
                     expect(await firestore.assertFails(ref.doc(testSensorDataOne.uid).update({
-                        users : {
-                            
-                        }
+                        users : {}
                     })))
                 })
 

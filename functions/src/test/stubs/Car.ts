@@ -14,7 +14,7 @@ export default class Car extends ModelImpl {
         return this.belongsToMany(Stubs.DRIVER)
     }
 
-    windShield(): N2OneRelation
+    windshield(): N2OneRelation
     {
         return this.belongsTo(Stubs.WIND_SHEILD)
     }

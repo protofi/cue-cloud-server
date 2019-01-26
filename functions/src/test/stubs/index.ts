@@ -8,7 +8,7 @@ export enum Stubs {
     CAR         = 'cars',
     WHEEL       = 'wheels',
     DRIVER      = 'drivers',
-    WIND_SHEILD = 'wind_sheild'
+    WIND_SHEILD = 'windshield'
 }
 
 export interface OfflineDocumentSnapshot {

@@ -28,7 +28,6 @@ export interface Model{
     delete(): Promise<void>
     defineActionableField(field: string, command: IActionableFieldCommand): void
     takeActionOn(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<void>
-    addOnCreateAction(command: IModelCommand): void
     onCreate(): Promise<void>
     onDelete(): Promise<void>
 }
@@ -41,8 +40,6 @@ export default class ModelImpl implements Model {
     readonly name: string
     protected db: FirebaseFirestore.Firestore
 
-    protected onCreateAction: IModelCommand
-    protected onDeleteAction: IModelCommand
     protected actionableFields: Map<string, IActionableFieldCommand> = new Map<string, IActionableFieldCommand>()
     protected relations: Map<string, RelationImpl>
     
@@ -261,19 +258,19 @@ export default class ModelImpl implements Model {
         return new ModelImpl(`${this.name}${Models.SECURE_SURFIX}`, this.db, null, this.getId())
     }
 
-    addOnCreateAction(command: IModelCommand): void 
-    {
-        this.onCreateAction = command
-    }
-
     async onCreate(): Promise<void>
     {
-        if(!this.onCreateAction) return
-        await this.onCreateAction.execute(this)
+        if(this.hasSecureData)
+            await this.secure().create({})
+
+        return
     }
 
     async onDelete(): Promise<void>
     {
-        if(this.hasSecureData) this.secure().delete()
+        if(this.hasSecureData)
+            return this.secure().delete()
+
+        return
     }
 }

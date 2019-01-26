@@ -5,8 +5,9 @@ import { singular } from "pluralize"
 import ModelImpl, { Models } from "../Models"
 import { Pivot } from "./Pivot"
 import { isPlainObject, intersection, keys, omit, get, capitalize, merge, isEmpty, includes, mapValues } from "lodash"
-import { IActionableFieldCommand } from "../../Command";
-import { firestore } from "firebase-admin";
+import { IActionableFieldCommand } from "../../Command"
+import { firestore } from "firebase-admin"
+import * as camelCase from 'camelcase'
 
 const deleteFlag = (firestore.FieldValue) ? firestore.FieldValue.delete() : undefined //For testing purposes. Is to be fixed
 
@@ -638,11 +639,25 @@ export class N2OneRelation extends RelationImpl {
         return property
     }
 
-    async set(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
-    {   
-        //only works for one to many relations
-        const reverseRelation = model[this.owner.name]()
-        await reverseRelation.attach(this.owner, transaction)
+    async set(property: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, loop?: boolean): Promise<ModelImpl>
+    {
+        await this.owner.update({
+            [property.name] : {
+                id : property.getId()
+            }
+        })
+
+        if(loop) return this.owner
+
+        try{
+            const reverseRelation = property[this.owner.name]()
+            await reverseRelation.attach(this.owner, transaction)
+        }
+        catch(e)
+        {
+            const reverseRelation = property[singular(this.owner.name)]()
+            await reverseRelation.set(this.owner, transaction, true)
+        }
 
         return this.owner
     }

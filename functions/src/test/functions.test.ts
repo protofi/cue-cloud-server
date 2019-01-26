@@ -472,26 +472,52 @@ describe('OFFLINE', () => {
 
         describe('Sensors', () => {
 
-            it  ('When Sensor is delete the secure data should also be deleted', async () => {
-                const sensorId      = uniqid()
-                const wrappedSensorsOnDelete = test.wrap(myFunctions.ctrlSensorsOnDelete)
+            describe('On Create', async () => { 
 
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {}
+                it('When Sensor is create the secure data should be created', async () => {
+                    const sensorId      = uniqid()
+                    const wrappedSensorsOnCreate = test.wrap(myFunctions.ctrlSensorsOnCreate)
 
-                const sensorSnap = new OfflineDocumentSnapshotStub({
-                    ref: {
-                        id : sensorId,
-                        update : () => {
-                            return
+                    const sensorSnap = new OfflineDocumentSnapshotStub({
+                        ref: {
+                            id : sensorId,
+                            update : () => {
+                                return
+                            }
                         }
-                    }
+                    })
+
+                    await wrappedSensorsOnCreate(sensorSnap)
+
+                    const sensorSecureDoc = firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`]
+
+                    expect(sensorSecureDoc).to.not.be.undefined
                 })
+            })
 
-                await wrappedSensorsOnDelete(sensorSnap)
+            describe('On Delete', async () => { 
 
-                const sensorSecureDoc = firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`]
+                it('When Sensor is delete the secure data should also be deleted', async () => {
+                    const sensorId      = uniqid()
+                    const wrappedSensorsOnDelete = test.wrap(myFunctions.ctrlSensorsOnDelete)
 
-                expect(sensorSecureDoc).to.be.undefined
+                    firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {}
+
+                    const sensorSnap = new OfflineDocumentSnapshotStub({
+                        ref: {
+                            id : sensorId,
+                            update : () => {
+                                return
+                            }
+                        }
+                    })
+
+                    await wrappedSensorsOnDelete(sensorSnap)
+
+                    const sensorSecureDoc = firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`]
+
+                    expect(sensorSecureDoc).to.be.undefined
+                })
             })
         })
 

@@ -396,7 +396,7 @@ describe('OFFLINE', () => {
                 const sensorTwoId   = uniqid()
                 const user : User   = new User(firestoreStub, null, userId)
     
-                it('When a new sensor is added to the User, FCM token cache should ', async () => {
+                it('When a new sensor is added to the User, FCM token should be cached to the Sensors secure data', async () => {
 
                     firestoreMockData[`${Models.USER}/${userId}`] = {
                         [Models.SENSOR] : {
@@ -426,10 +426,47 @@ describe('OFFLINE', () => {
                         }
                     }
 
-                    // printFormattedJson(firestoreMockData)
-                    
                     expect(sensorSecureDoc).to.be.deep.equal(expectedSensorSecureDoc)                    
                 })
+
+                // it('When a sensor is removed from a User, FCM tokens should be removed from the Sensors secure data', async () => {
+                    
+                //     firestoreMockData[`${Models.USER}/${userId}`] = {
+                //         [Models.SENSOR] : {
+                //             [sensorOneId] : true
+                //         },
+                //         FCM_tokens : {
+                //             [FCMToken] : true
+                //         }
+                //     }
+
+                //     firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`] = {
+                //         [Models.USER] : {
+                //             [userId] : {
+                //                 FCM_tokens : {
+                //                     [FCMToken] : true
+                //                 }       
+                //             }   
+                //         }
+                //     }
+
+                //     const changes = {}
+
+                //     await command.execute(user, changes)
+
+                //     const sensorSecureDoc = firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`]
+                //     const expectedSensorSecureDoc = {
+                //         [Models.USER] : {
+                //             [userId] : {
+                //                 [User.f.FCM_TOKENS] : {
+                //                     [FCMToken] : true      
+                //                 }
+                //             }
+                //         }
+                //     }
+
+                //     expect(sensorSecureDoc).to.be.deep.equal(expectedSensorSecureDoc)                    
+                // })
             })
             
             // describe('Update Custom Claims', () => {

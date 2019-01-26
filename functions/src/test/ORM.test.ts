@@ -22,6 +22,7 @@ import { Relations } from './lib/const'
 import Car from './stubs/Car'
 import Wheel from './stubs/Wheel'
 import Driver from './stubs/Driver'
+import Windshield from './stubs/Windshield';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -277,43 +278,43 @@ describe('STAGE', () => {
                     expect(carDoc.exists).to.false
                 })
 
-                it('It should be possible to define actions to be executed onCreate', async () => {
+                // it('It should be possible to define actions to be executed onCreate', async () => {
 
-                    const command = new ModelCommandStub()
-                    const commandSpy = sinon.spy(command, 'execute')
-                    class ModelStub extends ModelImpl
-                    {
-                        getModelAction()
-                        {
-                            return this.onCreateAction
-                        }
-                    }
+                //     const command = new ModelCommandStub()
+                //     const commandSpy = sinon.spy(command, 'execute')
+                //     class ModelStub extends ModelImpl
+                //     {
+                //         getModelAction()
+                //         {
+                //             return this.onCreateAction
+                //         }
+                //     }
     
-                    const model = new ModelStub('', stubFs)
+                //     const model = new ModelStub('', stubFs)
     
-                    model.addOnCreateAction(command)
+                //     model.addOnCreateAction(command)
                     
-                    const modelAction = model.getModelAction()
+                //     const modelAction = model.getModelAction()
                     
-                    expect(modelAction).to.not.be.null
-                    expect(modelAction).equal(command)
-                    await modelAction.execute(model)
-                    expect(commandSpy.callCount).to.equals(1)
-                })
+                //     expect(modelAction).to.not.be.null
+                //     expect(modelAction).equal(command)
+                //     await modelAction.execute(model)
+                //     expect(commandSpy.callCount).to.equals(1)
+                // })
     
-                it('onCreate actions should be executed when .onCreate on Model is invoked', async () => {
+                // it('onCreate actions should be executed when .onCreate on Model is invoked', async () => {
     
-                    const command = new ModelCommandStub()
-                    const commandSpy = sinon.spy(command, 'execute')
+                //     const command = new ModelCommandStub()
+                //     const commandSpy = sinon.spy(command, 'execute')
     
-                    const model = new ModelImpl('', stubFs)
+                //     const model = new ModelImpl('', stubFs)
     
-                    model.addOnCreateAction(command)
+                //     model.addOnCreateAction(command)
                     
-                    model.onCreate()
+                //     model.onCreate()
                     
-                    expect(commandSpy.callCount).to.equals(1)
-                })
+                //     expect(commandSpy.callCount).to.equals(1)
+                // })
     
                 it('If no action is defined invokation of .onCreate should be ignored', async () => {
     
@@ -329,7 +330,36 @@ describe('STAGE', () => {
                     }
     
                     expect(error).is.undefined
-                })    
+                })
+
+                it('onCreate should create a secure data collection if enabled', async () => {
+                    class CarM extends Car {
+                        hasSecureData = true
+                    }
+
+                    const carId = uniqid()
+
+                    const car = new CarM(stubFs, null, carId)
+
+                    await car.onCreate()
+
+                    const carSecureDoc = firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
+
+                    expect(carSecureDoc).to.not.be.undefined
+                })
+
+                it('onCreate should not create a secure data collection if not enabled', async () => {
+
+                    const carId = uniqid()
+
+                    const car = new Car(stubFs, null, carId)
+
+                    await car.onDelete()
+
+                    const carSecureDoc = firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
+
+                    expect(carSecureDoc).to.be.undefined
+                })
             })
 
             describe('Read', () => {
@@ -733,127 +763,44 @@ describe('STAGE', () => {
 
             describe('One-to-One', async () => {
                 
-                it('Related models method should return the same relation every time', async () => {
+                it('Invoking relation method which return the same relation object', async () => {
+                    const car = new Car(stubFs)
 
-                    const sensor: Sensor = db.sensor()
-
-                    const room1 = sensor.room()
-                    const room2 = sensor.room()
-
-                    expect(room1).to.deep.equals(room2)
+                    const rel1 = car.windshield()
+                    const rel2 = car.windshield()
+                    
+                    expect(rel1).to.be.deep.equal(rel2)
                 })
 
-                it('Save model to an other', async () => {
+                it('Setting one model on another should create correct relational links on each model', async () => {
                     
-                    const sensor: Sensor = db.sensor()
-                    const room: Room = db.room()
+                    const carId    = uniqid()
+                    const windshieldId  = uniqid()
 
-                    await sensor.room().set(room)
+                    const windshield: Windshield = new Windshield(stubFs, null, windshieldId)
+                    const car: Car = new Car(stubFs, null, carId)
 
-                    //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
-                    
-                    const roomId = await room.getId()
-                    
-                    const attRoom = await sensor.getField(room.name)
-                    
-                    expect(roomId).to.deep.equals(attRoom.id)
-                })
+                    firestoreMockData[`${Stubs.WIND_SHEILD}/${windshieldId}`] = {}
+                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {}
 
-                it('Save model to an other inverse I2M', async () => {
-                    
-                    const sensor: Sensor = db.sensor()
-                    const room: Room = db.room()
+                    await windshield.car().set(car)
 
-                    await sensor.room().set(room)
+                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const expectedCarDoc = {
+                        [Stubs.WIND_SHEILD] : {
+                            id : windshieldId
+                        }
+                    }
 
-                    //clean up
-                    docsToBeDeleted.push((await sensor.getDocRef()).path)
-                    docsToBeDeleted.push((await room.getDocRef()).path)
-                    
-                    const roomId = await room.getId()
-                    const sensorId = await sensor.getId()
-                    
-                    const attRoom = await sensor.getField(room.name)
-                    const attSensors = await room.getField(sensor.name)
+                    const windshieldDoc = firestoreMockData[`${Stubs.WIND_SHEILD}/${windshieldId}`]
+                    const expectedWindshieldDoc = {
+                        [Stubs.CAR] : {
+                            id : carId
+                        }
+                    }
 
-                    expect(roomId).to.deep.equals(attRoom.id)
-                    expect(Object.keys(attSensors), 'Foreign key on room').to.include(sensorId)
-                })
-               
-                it('A model can have multiple relations', async () => {
-                    const sensor: Sensor = db.sensor()
-                    const room: Room = db.room()
-                    const event: Event = db.event()
-
-                    await event.sensor().set(sensor)
-                    await room.sensors().attach(sensor)
-
-                    //clean up
-                    docsToBeDeleted.push(sensor.getDocRef().path)
-                    docsToBeDeleted.push(room.getDocRef().path)
-                    docsToBeDeleted.push(event.getDocRef().path)
-                    
-                    const attRoom = await sensor.getField(room.name)
-                    const attEvents = await sensor.getField(event.name)
-
-                    const attSensors = await room.getField(sensor.name)
-                    const attSensor = await event.getField(sensor.name)
-
-                    const sensorId = sensor.getId()
-                    const roomId = room.getId()
-                    const eventId = event.getId()
-
-                    expect(roomId).to.deep.equals(attRoom.id)
-                    expect(sensorId).to.deep.equals(attSensor.id)
-                    expect(Object.keys(attEvents), 'Foreign key on sensor').to.include(eventId)
-                    expect(Object.keys(attSensors), 'Foreign key on room').to.include(sensorId)
-                })
-
-                it('Save model to an other inverse I2M BATCH', async () => {
-                    
-                    const sensor: Sensor = db.sensor()
-                    const room: Room = db.room()
-
-                    const batch = db.batch()
-
-                    await sensor.room().set(room, batch)
-
-                    //clean up
-                    docsToBeDeleted.push(sensor.getDocRef().path)
-                    docsToBeDeleted.push(room.getDocRef().path)
-                    
-                    await batch.commit()
-
-                    const roomId = room.getId()
-                    const sensorId = sensor.getId()
-                    
-                    const attRoom = await sensor.getField(room.name)
-                    const attSensors = await room.getField(sensor.name)
-
-                    expect(roomId).to.deep.equals(attRoom.id)
-                    expect(Object.keys(attSensors), 'Foreign key on room').to.include(sensorId)
-                })
-
-                it('Save model to an other inverse I2M BATCH SHOULD FAIL', async () => {
-                    const sensor: Sensor = db.sensor()
-                    const room: Room = db.room()
-
-                    const batch = db.batch()
-
-                    await sensor.room().set(room, batch)
-
-                    const roomId = room.getId()
-                    const sensorId = sensor.getId()
-                    
-                    const sensorDoc = await adminFs.doc(`${Models.SENSOR}/${sensorId}`).get()
-                    const roomDoc = await adminFs.doc(`${Models.ROOM}/${roomId}`).get()
-                    const attRoom = sensorDoc.get(Models.ROOM)
-                    const attSensors = roomDoc.get(Models.SENSOR)
-
-                    expect(attRoom).not.exist
-                    expect(attSensors).not.exist  
+                    expect(carDoc).to.be.deep.equal(expectedCarDoc)
+                    expect(windshieldDoc).to.be.deep.equal(expectedWindshieldDoc)
                 })
             })
 
@@ -1946,7 +1893,7 @@ describe('STAGE', () => {
                         expect(carDoc).to.be.deep.equal(expectedCarDoc)
                     })
 
-                    it('When property is unset on the owner, only the relation link to the owner on the property should be deleteted', async () => {
+                    it('When property is unset on the owner, the relation link to the owner on the property should be deleteted', async () => {
                         const wheelId = uniqid()
                         const wheelId2 = uniqid()
                         const carId = uniqid()
@@ -3773,7 +3720,7 @@ describe('STAGE', () => {
                     //     expect(driverSecureDoc).to.deep.equal(expectedDriverSecureDoc)
                     // })
 
-                    // it('When specific nested fields defined as cachable with a SECURE surfix from the owner to property is deleted only these should be deleted in the cache', async () => {
+                    // it('When specific nested fields defined as cachable with a SECURE surfix from the owner to property is deleted these should be deleted in the cache', async () => {
 
                     //     class CarM extends Car {
                     //         drivers(): Many2ManyRelation
@@ -4547,7 +4494,7 @@ describe('STAGE', () => {
                     expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`]).to.not.be.empty
                 })
 
-                it('When properties are detached from the owner, only the pivot collection related to properties and owner should be deleteted', async () => {
+                it('When properties are detached from the owner, the pivot collection related to properties and owner should be deleteted', async () => {
                     const driverId  = uniqid()
                     const carId     = uniqid()
                     const carId2    = uniqid()

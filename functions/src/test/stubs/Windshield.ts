@@ -2,7 +2,7 @@ import ModelImpl from "../lib/ORM/Models";
 import { N2OneRelation } from "../lib/ORM/Relation";
 import { Stubs } from ".";
 
-export class WindSheild extends ModelImpl {
+export default class Windshield extends ModelImpl {
 
     constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
