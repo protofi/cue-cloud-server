@@ -27,14 +27,12 @@
   },
   "nyc": {
     "include": [
-      "test/**/*",
-      "lib/**/*"
+      "test/**/*"
     ],
     "exclude": [
       "coverage/",
       "test/stubs",
-      "test/**.test.js",
-      "lib/lib/**"
+      "test/**.test.js"
     ],
     "reporter": [
       "html",
