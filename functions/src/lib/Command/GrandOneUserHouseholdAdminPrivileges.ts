@@ -1,4 +1,4 @@
-import { IModelCommand, AbstractModelCommand } from ".";
+import {AbstractModelCommand } from ".";
 import Household from "../ORM/Models/Household";
 import User from "../ORM/Models/User";
 import { first } from 'lodash'
@@ -8,7 +8,7 @@ import ModelImpl from "../ORM/Models";
 /**
  * When executed the first user of the list of related users on the particular household will be granded ADMIN privileges
  */
-export class GrandOneUserHouseholdAdminPrivileges extends AbstractModelCommand {
+export default class GrandOneUserHouseholdAdminPrivileges extends AbstractModelCommand {
 
     async execute(household: Household): Promise<void>
     {

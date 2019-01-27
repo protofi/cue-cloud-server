@@ -3,7 +3,7 @@ import { asyncForEach } from "../util";
 import Household from "../ORM/Models/Household";
 import User from "../ORM/Models/User";
 
-export class CreateUserNewSensorRelationsCommand extends AbstractActionableFieldCommand {
+export default class CreateUserNewSensorRelationsCommand extends AbstractActionableFieldCommand {
 
     async execute(household: Household, sensorRelLinks: any): Promise<void>
     {

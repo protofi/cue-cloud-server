@@ -4,17 +4,17 @@ import * as mocha from 'mocha'
 import * as functionsTest from 'firebase-functions-test'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
 import * as uniqid from 'uniqid'
-import CreateUserSensorRelationsCommand from './lib/Command/CreateUserSensorRelationsCommand';
 import User from './lib/ORM/Models/User';
 import { Models } from './lib/ORM/Models';
 import * as _ from 'lodash'
 import { unflatten } from 'flat'
-import { CreateUserNewSensorRelationsCommand } from './lib/Command/CreateUserNewSensorRelationsCommand';
 import Household from './lib/ORM/Models/Household';
 import { Relations, Roles, Errors } from './lib/const';
-import { GrandOneUserHouseholdAdminPrivileges } from './lib/Command/GrandOneUserHouseholdAdminPrivileges';
+import GrandOneUserHouseholdAdminPrivileges from './lib/Command/GrandOneUserHouseholdAdminPrivileges';
 import UpdateCustomClaims from './lib/Command/UpdateCustomClaims';
 import UpdateFCMTokenSecureCache from './lib/Command/UpdateFCMTokenSecureCache';
+import CreateUserNewSensorRelationsCommand from './lib/Command/CreateUserNewSensorRelationsCommand';
+import CreateUserSensorRelationsCommand from './lib/Command/CreateUserSensorRelationsCommand';
 import { printFormattedJson } from './lib/util';
 
 const chaiThings = require("chai-things")
@@ -258,6 +258,17 @@ describe('OFFLINE', () => {
                     }
 
                     expect(expectedSensorUserDoc).to.be.deep.equal(sensorUserDoc)
+                })
+
+                it('New sensors added to the Household should not be added to Users not having accepted the Household invitaion' , async () => {
+                    firestoreMockData[`${Models.USER}/${userId}`] = {}
+
+                    await command.execute(household, {[sensorId] : true})
+
+                    const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                    const expectedUserDoc = {}
+
+                    expect(userDoc).to.be.deep.equal(expectedUserDoc)
                 })
             })
         })

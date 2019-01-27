@@ -1,7 +1,7 @@
 import ModelImpl, { Models } from "./";
 import { One2ManyRelation } from "./../Relation";
-import { CreateUserNewSensorRelationsCommand } from "../../Command/CreateUserNewSensorRelationsCommand";
-import { GrandOneUserHouseholdAdminPrivileges } from "../../Command/GrandOneUserHouseholdAdminPrivileges";
+import CreateUserNewSensorRelationsCommand from "../../Command/CreateUserNewSensorRelationsCommand";
+import GrandOneUserHouseholdAdminPrivileges from "../../Command/GrandOneUserHouseholdAdminPrivileges";
 import { IModelCommand } from "../../Command";
 
 export default class Household extends ModelImpl {
