@@ -27,7 +27,7 @@
   },
   "nyc": {
     "include": [
-      "test/**/*"
+      "lib/**/*"
     ],
     "exclude": [
       "test/stubs",
