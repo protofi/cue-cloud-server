@@ -34,12 +34,12 @@ chai.use(chaiAsPromised)
 const assert = chai.assert
 const expect = chai.expect
 
-describe('STAGE', () => {
+describe('Unit_Test', () => {
 
     let test: FeaturesList
     let adminFs: FirebaseFirestore.Firestore
     let db: DataORMImpl
-    let stubFs
+    let stubFs : any
     let firestoreMockData
 
     before(async () => {
@@ -69,7 +69,7 @@ describe('STAGE', () => {
                     doc: (id: string) => {
                         return {
                             id: (id) ? id : uniqid(),
-                            set: (data: any, {merge}) => {
+                            set: (data: any, { merge }) => {
 
                                 if(merge)
                                 {

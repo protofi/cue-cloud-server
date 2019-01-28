@@ -27,7 +27,7 @@ chai.use(chaiAsPromised)
 const assert = chai.assert
 const expect = chai.expect
 
-describe('OFFLINE', () => {
+describe('Integration_Test', () => {
 
     let test: FeaturesList
     let firestoreMockData: any
@@ -96,409 +96,405 @@ describe('OFFLINE', () => {
         test.cleanup()
     })
 
-    describe('Integration_Test', async () => {
+    describe('Actionable Field Commands', async () => {
 
-        describe('Actionable Field Commands', async () => {
+        describe('Create-User-Sensor-Relations-Command', () => {
 
-            describe('Create-User-Sensor-Relations-Command', () => {
+            const userId        = uniqid()
+            const householdId   = uniqid()
+            const sensorId      = uniqid()
+            const command       = new CreateUserSensorRelationsCommand()
+            let user: User
 
-                const userId        = uniqid()
-                const householdId   = uniqid()
-                const sensorId      = uniqid()
-                const command       = new CreateUserSensorRelationsCommand()
-                let user: User
+            beforeEach(() => {
 
-                beforeEach(() => {
+                user = new User(firestoreStub, null, userId)
 
-                    user = new User(firestoreStub, null, userId)
-
-                    firestoreMockData[`${Models.USER}/${userId}`] = {
-                        [Models.HOUSEHOLD] : {
-                            id : householdId
-                        }
+                firestoreMockData[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
                     }
+                }
 
-                    firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                        [Models.HOUSEHOLD] : {
-                            id : householdId
-                        }
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
                     }
+                }
 
-                    firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
-                        [Models.SENSOR] : {
-                            [sensorId] : true
-                        }
-                    }
-                })
-
-                it('Execution with a Value of true should create relations on User to all Sensors attached to the Household', async () => {
-
-                    await command.execute(user, 'true')
-
-                    const userDoc = firestoreMockData[`${Models.USER}/${userId}`][Models.SENSOR]
-
-                    const expectedUserDoc = {
+                firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
+                    [Models.SENSOR] : {
                         [sensorId] : true
                     }
+                }
+            })
 
-                    expect(userDoc).to.deep.equals(expectedUserDoc)
-                })
+            it('Execution with a Value of true should create relations on User to all Sensors attached to the Household', async () => {
 
-                it('Execution with a Value of true should create relations on all Sensors attached to the Household to the User', async () => {
+                await command.execute(user, 'true')
 
-                    await command.execute(user, 'true')
+                const userDoc = firestoreMockData[`${Models.USER}/${userId}`][Models.SENSOR]
 
-                    const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`][Models.USER]
+                const expectedUserDoc = {
+                    [sensorId] : true
+                }
 
-                    const expectedSensorDoc = {
+                expect(userDoc).to.deep.equals(expectedUserDoc)
+            })
+
+            it('Execution with a Value of true should create relations on all Sensors attached to the Household to the User', async () => {
+
+                await command.execute(user, 'true')
+
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`][Models.USER]
+
+                const expectedSensorDoc = {
+                    [userId] : {
+                        id : userId
+                    }
+                }
+
+                expect(sensorDoc).to.deep.equals(expectedSensorDoc)
+            })
+
+            it('Execution with a Value of true should create Pivot Collections between all Sensors attached to the Household to the User', async () => {
+
+                await command.execute(user, 'true')
+
+                const pivotDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
+
+                const expectedPivotDoc = {
+                    [Models.USER] : {
+                        id : userId
+                    },
+                    [Models.SENSOR] : {
+                        id : sensorId
+                    }
+                }
+
+                expect(pivotDoc).to.deep.equals(expectedPivotDoc)
+            })
+        })
+
+        describe('Create-User-New-Sensor-Relations-Command', () => {
+            
+            const userId        = uniqid()
+            const householdId   = uniqid()
+            const sensorId      = uniqid()
+            const command       = new CreateUserNewSensorRelationsCommand()
+            let household: Household
+
+            beforeEach(() => {
+
+                household = new Household(firestoreStub, null, householdId)
+
+                firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
+                    [Models.USER] : {
+                        [userId] : true
+                    }
+                }
+
+                firestoreMockData[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        [Relations.PIVOT] : {
+                            accepted : true
+                        }
+                    }
+                }
+            })
+
+            it('Execution should add relational links from the User to the Sensors of the Household', async () => {
+
+                await command.execute(household, {[sensorId] : true})
+
+                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                const expectedUserDoc = {
+                    [Models.HOUSEHOLD] : {
+                        [Relations.PIVOT] : {
+                            accepted : true
+                        }
+                    },
+                    [Models.SENSOR] : {
+                        [sensorId] : true
+                    }
+                }
+
+                expect(expectedUserDoc).to.be.deep.equal(userDoc)
+            })
+
+            it('Execution should add relational links from the Sensors to the Users of the Household', async () => {
+
+                await command.execute(household, {[sensorId] : true})
+
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
+
+                const expectedSensorDoc = {
+                    [Models.USER] : {
                         [userId] : {
                             id : userId
                         }
                     }
+                }
 
-                    expect(sensorDoc).to.deep.equals(expectedSensorDoc)
-                })
-
-                it('Execution with a Value of true should create Pivot Collections between all Sensors attached to the Household to the User', async () => {
-
-                    await command.execute(user, 'true')
-
-                    const pivotDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
-
-                    const expectedPivotDoc = {
-                        [Models.USER] : {
-                            id : userId
-                        },
-                        [Models.SENSOR] : {
-                            id : sensorId
-                        }
-                    }
-
-                    expect(pivotDoc).to.deep.equals(expectedPivotDoc)
-                })
+                expect(expectedSensorDoc).to.be.deep.equal(sensorDoc)
             })
 
-            describe('Create-User-New-Sensor-Relations-Command', () => {
+            it('Execution should create Pivot collections between Sensors and Users of the Household', async () => {
+
+                await command.execute(household, {[sensorId] : true})
+
+                const sensorUserDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
+
+                const expectedSensorUserDoc = {
+                    [Models.USER] : {
+                        id : userId
+                    },
+                    [Models.SENSOR] : {
+                        id : sensorId
+                    }
+                }
+
+                expect(expectedSensorUserDoc).to.be.deep.equal(sensorUserDoc)
+            })
+
+            it('New sensors added to the Household should not be added to Users not having accepted the Household invitaion' , async () => {
+                firestoreMockData[`${Models.USER}/${userId}`] = {}
+
+                await command.execute(household, {[sensorId] : true})
+
+                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                const expectedUserDoc = {}
+
+                expect(userDoc).to.be.deep.equal(expectedUserDoc)
+            })
+        })
+    })
+
+    describe('Model Commands', async () => {
+
+        describe('Grand One User Household Admin Privileges', () => {
+
+            const householdId   = uniqid()
+            const userId        = uniqid()
+            const command       = new GrandOneUserHouseholdAdminPrivileges()
+            let household : Household
+
+            beforeEach(() => {
+
+                household = new Household(firestoreStub, null, householdId)
+
+                firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
+                    [Models.USER] : {
+                        [userId] : true
+                    }
+                }
+            })
+            
+            it('Execution should not create a Pivot field between the first User and the Household if the User is not member of any household', async () => {
+
+                firestoreMockData[`${Models.USER}/${userId}`] = {}
+
+                let error: Error
+
+                try{
+                    await command.execute(household)
+                }
+                catch(e)
+                {
+                    error = e
+                }
+
+                expect(error).to.exist
+                expect(error.message).to.be.equal(Errors.NOT_RELATED)
+
+                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                const expectedUserDoc = {}
+
+                expect(expectedUserDoc).to.be.deep.equal(userDoc)
+            })
+
+            it('Execution should delete the newly created Household if the User is not member of any household', async () => {
+
+                firestoreMockData[`${Models.USER}/${userId}`] = {}
+
+                let error: Error
+
+                try{
+                    await command.execute(household)
+                }
+                catch(e)
+                {
+                    error = e
+                }
+
+                expect(error).to.exist
+                expect(error.message).to.be.equal(Errors.NOT_RELATED)
+
+                const householdDoc = firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]
+
+                expect(householdDoc).to.not.exist
+            })
+
+            it('Execution should not create a Pivot field between the first User and the Household if the User already are member of another household', async () => {
+
+                const differentHousehold = uniqid()
                 
-                const userId        = uniqid()
-                const householdId   = uniqid()
-                const sensorId      = uniqid()
-                const command       = new CreateUserNewSensorRelationsCommand()
-                let household: Household
+                firestoreMockData[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : differentHousehold
+                    }
+                }
 
-                beforeEach(() => {
+                let error: Error
 
-                    household = new Household(firestoreStub, null, householdId)
+                try{
+                    await command.execute(household)
+                }
+                catch(e)
+                {
+                    error = e
+                }
 
-                    firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
-                        [Models.USER] : {
-                            [userId] : true
+                expect(error.message).to.be.equal(Errors.UNAUTHORIZED)
+
+                const sensorUserDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                const expectedSensorUserDoc = {
+                    [Models.HOUSEHOLD] : {
+                        id : differentHousehold
+                    }
+                }
+
+                expect(expectedSensorUserDoc).to.be.deep.equal(sensorUserDoc)
+            })
+
+                it('Execution should create a Pivot field between the first User and the household', async () => {
+
+                firestoreMockData[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                await command.execute(household)
+
+                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                const expectedUserDoc = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId,
+                        [Relations.PIVOT] : {
+                            role: Roles.ADMIN,
+                            accepted: true
                         }
                     }
+                }
 
-                    firestoreMockData[`${Models.USER}/${userId}`] = {
-                        [Models.HOUSEHOLD] : {
-                            [Relations.PIVOT] : {
-                                accepted : true
-                            }
-                        }
-                    }
-                })
-
-                it('Execution should add relational links from the User to the Sensors of the Household', async () => {
-
-                    await command.execute(household, {[sensorId] : true})
-
-                    const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
-
-                    const expectedUserDoc = {
-                        [Models.HOUSEHOLD] : {
-                            [Relations.PIVOT] : {
-                                accepted : true
-                            }
-                        },
-                        [Models.SENSOR] : {
-                            [sensorId] : true
-                        }
-                    }
-
-                    expect(expectedUserDoc).to.be.deep.equal(userDoc)
-                })
-
-                it('Execution should add relational links from the Sensors to the Users of the Household', async () => {
-
-                    await command.execute(household, {[sensorId] : true})
-
-                    const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
-
-                    const expectedSensorDoc = {
-                        [Models.USER] : {
-                            [userId] : {
-                                id : userId
-                            }
-                        }
-                    }
-
-                    expect(expectedSensorDoc).to.be.deep.equal(sensorDoc)
-                })
-
-                it('Execution should create Pivot collections between Sensors and Users of the Household', async () => {
-
-                    await command.execute(household, {[sensorId] : true})
-
-                    const sensorUserDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
-
-                    const expectedSensorUserDoc = {
-                        [Models.USER] : {
-                            id : userId
-                        },
-                        [Models.SENSOR] : {
-                            id : sensorId
-                        }
-                    }
-
-                    expect(expectedSensorUserDoc).to.be.deep.equal(sensorUserDoc)
-                })
-
-                it('New sensors added to the Household should not be added to Users not having accepted the Household invitaion' , async () => {
-                    firestoreMockData[`${Models.USER}/${userId}`] = {}
-
-                    await command.execute(household, {[sensorId] : true})
-
-                    const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
-                    const expectedUserDoc = {}
-
-                    expect(userDoc).to.be.deep.equal(expectedUserDoc)
-                })
+                expect(expectedUserDoc).to.be.deep.equal(userDoc)
             })
         })
 
-        describe('Model Commands', async () => {
+        describe('Update FCM Token Secure Cache', () => {
+            const command       = new UpdateFCMTokenSecureCache()
 
-            describe('Grand One User Household Admin Privileges', () => {
+            const userId        = uniqid()
+            const sensorOneId   = uniqid()
+            const FCMToken      = uniqid()
+            const sensorTwoId   = uniqid()
+            const user : User   = new User(firestoreStub, null, userId)
 
-                const householdId   = uniqid()
-                const userId        = uniqid()
-                const command       = new GrandOneUserHouseholdAdminPrivileges()
-                let household : Household
+            it('When a new sensor is added to the User, FCM token should be cached to the Sensors secure data', async () => {
 
-                beforeEach(() => {
-
-                    household = new Household(firestoreStub, null, householdId)
-
-                    firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
-                        [Models.USER] : {
-                            [userId] : true
-                        }
-                    }
-                })
-                
-                it('Execution should not create a Pivot field between the first User and the Household if the User is not member of any household', async () => {
-
-                    firestoreMockData[`${Models.USER}/${userId}`] = {}
-
-                    let error: Error
-
-                    try{
-                        await command.execute(household)
-                    }
-                    catch(e)
-                    {
-                        error = e
-                    }
-
-                    expect(error).to.exist
-                    expect(error.message).to.be.equal(Errors.NOT_RELATED)
-
-                    const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
-
-                    const expectedUserDoc = {}
-
-                    expect(expectedUserDoc).to.be.deep.equal(userDoc)
-                })
-
-                it('Execution should delete the newly created Household if the User is not member of any household', async () => {
-
-                    firestoreMockData[`${Models.USER}/${userId}`] = {}
-
-                    let error: Error
-
-                    try{
-                        await command.execute(household)
-                    }
-                    catch(e)
-                    {
-                        error = e
-                    }
-
-                    expect(error).to.exist
-                    expect(error.message).to.be.equal(Errors.NOT_RELATED)
-
-                    const householdDoc = firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]
-
-                    expect(householdDoc).to.not.exist
-                })
-
-                it('Execution should not create a Pivot field between the first User and the Household if the User already are member of another household', async () => {
-
-                    const differentHousehold = uniqid()
-                    
-                    firestoreMockData[`${Models.USER}/${userId}`] = {
-                        [Models.HOUSEHOLD] : {
-                            id : differentHousehold
-                        }
-                    }
-
-                    let error: Error
-
-                    try{
-                        await command.execute(household)
-                    }
-                    catch(e)
-                    {
-                        error = e
-                    }
-
-                    expect(error.message).to.be.equal(Errors.UNAUTHORIZED)
-
-                    const sensorUserDoc = firestoreMockData[`${Models.USER}/${userId}`]
-
-                    const expectedSensorUserDoc = {
-                        [Models.HOUSEHOLD] : {
-                            id : differentHousehold
-                        }
-                    }
-
-                    expect(expectedSensorUserDoc).to.be.deep.equal(sensorUserDoc)
-                })
-
-                 it('Execution should create a Pivot field between the first User and the household', async () => {
-
-                    firestoreMockData[`${Models.USER}/${userId}`] = {
-                        [Models.HOUSEHOLD] : {
-                            id : householdId
-                        }
-                    }
-
-                    await command.execute(household)
-
-                    const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
-
-                    const expectedUserDoc = {
-                        [Models.HOUSEHOLD] : {
-                            id : householdId,
-                            [Relations.PIVOT] : {
-                                role: Roles.ADMIN,
-                                accepted: true
-                            }
-                        }
-                    }
-
-                    expect(expectedUserDoc).to.be.deep.equal(userDoc)
-                })
-            })
-
-            describe('Update FCM Token Secure Cache', () => {
-                const command       = new UpdateFCMTokenSecureCache()
-
-                const userId        = uniqid()
-                const sensorOneId   = uniqid()
-                const FCMToken      = uniqid()
-                const sensorTwoId   = uniqid()
-                const user : User   = new User(firestoreStub, null, userId)
-    
-                it('When a new sensor is added to the User, FCM token should be cached to the Sensors secure data', async () => {
-
-                    firestoreMockData[`${Models.USER}/${userId}`] = {
-                        [Models.SENSOR] : {
-                            [sensorOneId] : true
-                        },
-                        FCM_tokens : {
-                            [FCMToken] : true
-                        }
-                    }
-
-                    firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`] = {}
-
-                    const changes = {
+                firestoreMockData[`${Models.USER}/${userId}`] = {
+                    [Models.SENSOR] : {
                         [sensorOneId] : true
+                    },
+                    FCM_tokens : {
+                        [FCMToken] : true
                     }
+                }
 
-                    await command.execute(user, changes)
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`] = {}
 
-                    const sensorSecureDoc = firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`]
-                    const expectedSensorSecureDoc = {
-                        [Models.USER] : {
-                            [userId] : {
-                                [User.f.FCM_TOKENS] : {
-                                    [FCMToken] : true      
-                                }
+                const changes = {
+                    [sensorOneId] : true
+                }
+
+                await command.execute(user, changes)
+
+                const sensorSecureDoc = firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`]
+                const expectedSensorSecureDoc = {
+                    [Models.USER] : {
+                        [userId] : {
+                            [User.f.FCM_TOKENS] : {
+                                [FCMToken] : true      
                             }
                         }
                     }
+                }
 
-                    expect(sensorSecureDoc).to.be.deep.equal(expectedSensorSecureDoc)                    
-                })
-
-                // it('When a sensor is removed from a User, FCM tokens should be removed from the Sensors secure data', async () => {
-                    
-                //     firestoreMockData[`${Models.USER}/${userId}`] = {
-                //         [Models.SENSOR] : {
-                //             [sensorOneId] : true
-                //         },
-                //         FCM_tokens : {
-                //             [FCMToken] : true
-                //         }
-                //     }
-
-                //     firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`] = {
-                //         [Models.USER] : {
-                //             [userId] : {
-                //                 FCM_tokens : {
-                //                     [FCMToken] : true
-                //                 }       
-                //             }   
-                //         }
-                //     }
-
-                //     const changes = {}
-
-                //     await command.execute(user, changes)
-
-                //     const sensorSecureDoc = firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`]
-                //     const expectedSensorSecureDoc = {
-                //         [Models.USER] : {
-                //             [userId] : {
-                //                 [User.f.FCM_TOKENS] : {
-                //                     [FCMToken] : true      
-                //                 }
-                //             }
-                //         }
-                //     }
-
-                //     expect(sensorSecureDoc).to.be.deep.equal(expectedSensorSecureDoc)                    
-                // })
+                expect(sensorSecureDoc).to.be.deep.equal(expectedSensorSecureDoc)                    
             })
-            
-            // describe('Update Custom Claims', () => {
 
-            //     const command       = new UpdateCustomClaims()
-            //     const userId        = uniqid()
-            //     let user : User
+            // it('When a sensor is removed from a User, FCM tokens should be removed from the Sensors secure data', async () => {
+                
+            //     firestoreMockData[`${Models.USER}/${userId}`] = {
+            //         [Models.SENSOR] : {
+            //             [sensorOneId] : true
+            //         },
+            //         FCM_tokens : {
+            //             [FCMToken] : true
+            //         }
+            //     }
 
-            //     beforeEach(() => {
+            //     firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`] = {
+            //         [Models.USER] : {
+            //             [userId] : {
+            //                 FCM_tokens : {
+            //                     [FCMToken] : true
+            //                 }       
+            //             }   
+            //         }
+            //     }
 
-            //         user = new User(firestoreStub, null, userId)
-            //         firestoreMockData[`${Models.HOUSEHOLD}/${userId}`] = {}
-            //     })
+            //     const changes = {}
 
-            //     it('', async () => {
+            //     await command.execute(user, changes)
 
-            //         await command.execute(user)
-            //         return
-            //     })
+            //     const sensorSecureDoc = firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`]
+            //     const expectedSensorSecureDoc = {
+            //         [Models.USER] : {
+            //             [userId] : {
+            //                 [User.f.FCM_TOKENS] : {
+            //                     [FCMToken] : true      
+            //                 }
+            //             }
+            //         }
+            //     }
+
+            //     expect(sensorSecureDoc).to.be.deep.equal(expectedSensorSecureDoc)                    
             // })
         })
         
+        // describe('Update Custom Claims', () => {
+
+        //     const command       = new UpdateCustomClaims()
+        //     const userId        = uniqid()
+        //     let user : User
+
+        //     beforeEach(() => {
+
+        //         user = new User(firestoreStub, null, userId)
+        //         firestoreMockData[`${Models.HOUSEHOLD}/${userId}`] = {}
+        //     })
+
+        //     it('', async () => {
+
+        //         await command.execute(user)
+        //         return
+        //     })
+        // })
     })
 })
