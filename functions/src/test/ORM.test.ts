@@ -4462,7 +4462,7 @@ describe('STAGE', () => {
                             [driverId] : true
                         }
                     }
-                    
+
                     firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
                         [Stubs.CAR] : {
                             [carId] : true,
@@ -4472,7 +4472,7 @@ describe('STAGE', () => {
 
                     const car = new Car(stubFs, null, carId)
                     const drivers = await car.drivers().get() as Array<Driver>
-                    
+
                     const cars = await drivers[0].cars().get() as Array<Car>
                     const carIds = cars.map((c: Car) => {
                         return c.getId()

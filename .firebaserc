@@ -2,6 +2,7 @@
   "projects": {
     "development": "cue-app-a2c23",
     "staging": "staging-cue-iot-cloud",
-    "production": "production-cue-iot-cloud"
+    "production": "production-cue-iot-cloud",
+    "user-test": "user-test-cue-iot-cloud"
   }
 }
