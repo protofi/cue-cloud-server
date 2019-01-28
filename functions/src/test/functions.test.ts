@@ -56,8 +56,6 @@ describe('OFFLINE', () => {
         {
             const _nextInjectionId = injectionIds[idIterator]
 
-            // console.log('NEXT ID', idIterator, _nextInjectionId)
-
             idIterator++
 
             return (_nextInjectionId) ? _nextInjectionId : uniqid()

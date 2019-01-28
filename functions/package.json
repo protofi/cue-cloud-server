@@ -27,16 +27,21 @@
   },
   "nyc": {
     "include": [
+      "test/**/*",
       "lib/**/*"
     ],
     "exclude": [
-      "test/stubs",
-      "test/**.test.js"
+      "test/helpers/",
+      "test/stubs/",
+      "test/**.test.js",
+      "src/server/lib/**/*"
     ],
     "reporter": [
       "html",
       "text"
     ],
+    "sourceMap": true,
+    "instrument": true,
     "all": true
   },
   "main": "lib/index.js",

@@ -36,12 +36,12 @@ describe('OFFLINE', () => {
 
     firestoreStub = {
         settings: () => { return null },
-        collection: (col) => {
+        collection: (col : any) => {
             return {
-                doc: (id) => {
+                doc: (id : any) => {
                     return {
                         id: (id) ? id : uniqid(),
-                        set: (data, {merge}) => {
+                        set: (data : any, { merge }) => {
 
                             if(merge)
                             {
@@ -55,7 +55,7 @@ describe('OFFLINE', () => {
                         },
                         get: () => {
                             return {
-                                get: (data) => {
+                                get: (data: any) => {
                                     try{
                                         if(data)
                                             return firestoreMockData[`${col}/${id}`][data]
@@ -69,7 +69,7 @@ describe('OFFLINE', () => {
                                 }
                             }
                         },
-                        update: (data) => {
+                        update: (data: any) => {
                             if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${`${col}/${id}`}]`)
 
                             firestoreMockData = _.merge(firestoreMockData, {
@@ -292,31 +292,6 @@ describe('OFFLINE', () => {
                         }
                     }
                 })
-
-                it('Execution should create a Pivot field between the first User and the household', async () => {
-
-                    firestoreMockData[`${Models.USER}/${userId}`] = {
-                        [Models.HOUSEHOLD] : {
-                            id : householdId
-                        }
-                    }
-
-                    await command.execute(household)
-
-                    const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
-
-                    const expectedUserDoc = {
-                        [Models.HOUSEHOLD] : {
-                            id : householdId,
-                            [Relations.PIVOT] : {
-                                role: Roles.ADMIN,
-                                accepted: true
-                            }
-                        }
-                    }
-
-                    expect(expectedUserDoc).to.be.deep.equal(userDoc)
-                })
                 
                 it('Execution should not create a Pivot field between the first User and the Household if the User is not member of any household', async () => {
 
@@ -395,6 +370,31 @@ describe('OFFLINE', () => {
                     }
 
                     expect(expectedSensorUserDoc).to.be.deep.equal(sensorUserDoc)
+                })
+
+                 it('Execution should create a Pivot field between the first User and the household', async () => {
+
+                    firestoreMockData[`${Models.USER}/${userId}`] = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    }
+
+                    await command.execute(household)
+
+                    const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                    const expectedUserDoc = {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId,
+                            [Relations.PIVOT] : {
+                                role: Roles.ADMIN,
+                                accepted: true
+                            }
+                        }
+                    }
+
+                    expect(expectedUserDoc).to.be.deep.equal(userDoc)
                 })
             })
 
@@ -499,5 +499,6 @@ describe('OFFLINE', () => {
             //     })
             // })
         })
+        
     })
 })
