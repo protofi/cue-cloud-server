@@ -9,11 +9,12 @@ import { Models } from './lib/ORM/Models'
 import { OfflineDocumentSnapshotStub } from './stubs'
 import { Change } from 'firebase-functions'
 import { unflatten, flatten } from 'flat'
-import { Relations, Roles, Errors } from './lib/const'
+import { Relations, Roles, Errors, WhereFilterOP } from './lib/const'
 import * as fakeUUID from 'uuid/v1'
 import * as _ from 'lodash'
 import * as util from './lib/util'
 import User from './lib/ORM/Models/User';
+import Sensor from './lib/ORM/Models/Sensor';
 
 const test: FeaturesList = require('firebase-functions-test')()
 
@@ -45,6 +46,13 @@ describe('Integrations_Test', () => {
         uid: "test-user-2",
         name: "Benny",
         email: "Benny@mail.com",
+        token: null
+    }
+
+    const testSensorDataOne = {
+        uid: "test-user-1",
+        name: "Andy",
+        email: "andy@mail.com",
         token: null
     }
     
@@ -93,8 +101,9 @@ describe('Integrations_Test', () => {
                                         }
                                         catch(e)
                                         {
-                                            console.error(`Mock data is missing: ${e.message} [${`${col}/${id}`}]`)
-                                            return undefined
+                                            // console.error(`Mock data is missing: ${e.message} [${`${col}/${id}`}]`)
+                                            throw Error(`Mock data is missing: ${e.message} [${`${col}/${id}`}]`)
+                                            // return undefined
                                         }
                                     },
                                     exists : (!_.isUndefined(firestoreMockData[`${col}/${id}`]))
@@ -118,6 +127,8 @@ describe('Integrations_Test', () => {
                         return {
                             get: () => {
 
+                                if(operator !== WhereFilterOP.EQUAL) throw Error('OPERATOR NOT IMPLEMENTED IN TEST YET')
+                                
                                 const docs: Array<Object> = new Array<Object>()
 
                                 _.forOwn(firestoreMockData, (collection, path) => {
@@ -133,7 +144,9 @@ describe('Integrations_Test', () => {
                                             delete: () => {
                                                 _.unset(firestoreMockData, path)
                                             },
+                                            id: path.split('/')[1],
                                         },
+                                        id: path.split('/')[1],
                                         get: (f: string) => {
                                             return firestoreMockData[path][f]
                                         }
@@ -585,6 +598,10 @@ describe('Integrations_Test', () => {
 
         const sensorTwoId       = uniqid()
 
+        beforeEach(() => {
+            messagingSendToDeviceSpy.resetHistory()
+        })
+
         describe('Topic: New Sensor', () => {
 
             it('Sending a message with no Base Station UUID should fail', async () => {
@@ -896,38 +913,435 @@ describe('Integrations_Test', () => {
                 expect(sensorDoc).to.be.deep.equal(expectedSensorDoc)
             })
         })
-    //     it('Notification Topic', async () => {
+
+        describe('Topic: Notification', async () => {
+
+            const FCMTokenOne  = uniqid()
+            const FCMTokenTwo  = uniqid()
+
+            it('Sending a message with no Sensor UUID should fail', async () => {
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+                
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: { }
+                })
+
+                expect(messagingSendToDeviceSpy.callCount).to.be.equal(0)
+            })
+
+            it('Sending a message with Sensor UUID assigned to more than one Sensor should fail', async () => {
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+                
+                // mock data
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Sensor.f.UUID] : sensorUUID
+                }
+
+                firestoreMockData[`${Models.SENSOR}/${sensorTwoId}`] = {
+                    [Sensor.f.UUID] : sensorUUID
+                }
+
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: {
+                        sensor_UUID : sensorUUID
+                    }
+                })
+
+                expect(messagingSendToDeviceSpy.callCount).to.be.equal(0)
+            })
+
+            it('If user has muted sensor, no notification should be send', async () => {
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+
+                // mock data
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Sensor.f.UUID] : sensorUUID
+                }
+
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                    [Models.USER] : {
+                        [testUserDataOne.uid] : {
+                            [User.f.FCM_TOKENS] : {
+                                [FCMTokenOne] : true
+                            },
+                            [Relations.PIVOT] : {
+                                [Sensor.f[Relations.PIVOT][Models.USER].MUTED] : true
+                            }
+                        }
+                    }
+                }
+
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: {
+                        sensor_UUID : sensorUUID
+                    }
+                })
+
+                expect(messagingSendToDeviceSpy.callCount).to.be.equal(0)
+            })
+
+            it('Should not send notification if FCM tokens are not cached to the Sensor secure data', async () => {
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+
+                // mock data
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Sensor.f.UUID] : sensorUUID
+                }
+
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                    [Models.USER] : {
+                        [testUserDataOne.uid] : {}
+                    }
+                }
+
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: {
+                        sensor_UUID : sensorUUID
+                    }
+                })
+
+                expect(messagingSendToDeviceSpy.callCount).to.be.equal(0)
+            })
+
+            it('Should send notification with title  if sensor has no Name field (Android)', async () => {
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+
+                // mock data
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Sensor.f.UUID] : sensorUUID,
+                    [Sensor.f.LOCATION] : 'living room'
+                }
+
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                    [Models.USER] : {
+                        [testUserDataOne.uid] : {
+                            [User.f.FCM_TOKENS] : {
+                                [FCMTokenOne] : {
+                                    [User.f.CONTEXT._] : User.f.CONTEXT.ANDROID
+                                }
+                            }
+                        }
+                    }
+                }
+
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: {
+                        sensor_UUID : sensorUUID
+                    }
+                })
+
+                const payload = messagingSendToDeviceSpy.args[0][1]
+
+                expect(payload.data.title).is.equal('Unconfigured sensor')
+                expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
+            })
+
+            it('Should send notification with title  if sensor has no Name field (iOS)', async () => {
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+
+                // mock data
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Sensor.f.UUID] : sensorUUID,
+                    [Sensor.f.LOCATION] : 'living room'
+                }
+
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                    [Models.USER] : {
+                        [testUserDataOne.uid] : {
+                            [User.f.FCM_TOKENS] : {
+                                [FCMTokenOne] : {
+                                    [User.f.CONTEXT._] : User.f.CONTEXT.IOS
+                                }
+                            }
+                        }
+                    }
+                }
+
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: {
+                        sensor_UUID : sensorUUID
+                    }
+                })
+
+                const payload = messagingSendToDeviceSpy.args[0][1]
+
+                expect(payload.notification.title).is.equal('Unconfigured sensor')
+                expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
+            })
+
+            it('Should send notification with title  if sensor has no Location field (Android)', async () => {
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+
+                // mock data
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Sensor.f.UUID] : sensorUUID,
+                    [Sensor.f.NAME] : 'sensor'
+                }
+
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                    [Models.USER] : {
+                        [testUserDataOne.uid] : {
+                            [User.f.FCM_TOKENS] : {
+                                [FCMTokenOne] : {
+                                    [User.f.CONTEXT._] : User.f.CONTEXT.ANDROID
+                                }
+                            }
+                        }
+                    }
+                }
+
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: {
+                        sensor_UUID : sensorUUID
+                    }
+                })
+
+                const payload = messagingSendToDeviceSpy.args[0][1]
+
+                expect(payload.data.title).is.equal('Unconfigured sensor')
+                expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
+            })
+
+            it('Should send notification with title  if sensor has no Location field (iOS)', async () => {
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+
+                // mock data
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Sensor.f.UUID] : sensorUUID,
+                    [Sensor.f.NAME] : 'sensor'
+                }
+
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                    [Models.USER] : {
+                        [testUserDataOne.uid] : {
+                            [User.f.FCM_TOKENS] : {
+                                [FCMTokenOne] : {
+                                    [User.f.CONTEXT._] : User.f.CONTEXT.IOS
+                                }
+                            }
+                        }
+                    }
+                }
+
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: {
+                        sensor_UUID : sensorUUID
+                    }
+                })
+
+                const payload = messagingSendToDeviceSpy.args[0][1]
+
+                expect(payload.notification.title).is.equal('Unconfigured sensor')
+                expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
+            })
+
+            it('Should send notification with title `Sensor lyder i stuen` (iOS)', async () => {
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+
+                const sensorName = 'sensor'
+                const sensorLocation = 'stuen'
+
+                // mock data
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Sensor.f.UUID] : sensorUUID,
+                    [Sensor.f.NAME] : sensorName,
+                    [Sensor.f.LOCATION] : sensorLocation
+                }
+
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                    [Models.USER] : {
+                        [testUserDataOne.uid] : {
+                            [User.f.FCM_TOKENS] : {
+                                [FCMTokenOne] : {
+                                    [User.f.CONTEXT._] : User.f.CONTEXT.IOS
+                                }
+                            }
+                        }
+                    }
+                }
+
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: {
+                        sensor_UUID : sensorUUID
+                    }
+                })
+
+                const payload = messagingSendToDeviceSpy.args[0][1]
+
+                const generatedTitle = _.capitalize(`${sensorName} lyder i ${sensorLocation}`)
+
+                expect(payload.notification.title).is.equal(generatedTitle)
+                expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
+            })
+
+            it('Should send notification with title `Sensor lyder i stuen` (Android)', async () => {
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+
+                const sensorName = 'sensor'
+                const sensorLocation = 'stuen'
+
+                // mock data
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Sensor.f.UUID] : sensorUUID,
+                    [Sensor.f.NAME] : sensorName,
+                    [Sensor.f.LOCATION] : sensorLocation
+                }
+
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                    [Models.USER] : {
+                        [testUserDataOne.uid] : {
+                            [User.f.FCM_TOKENS] : {
+                                [FCMTokenOne] : {
+                                    [User.f.CONTEXT._] : User.f.CONTEXT.ANDROID
+                                }
+                            }
+                        }
+                    }
+                }
+
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: {
+                        sensor_UUID : sensorUUID
+                    }
+                })
+
+                const payload = messagingSendToDeviceSpy.args[0][1]
+
+                const generatedTitle = _.capitalize(`${sensorName} lyder i ${sensorLocation}`)
+
+                expect(payload.data.title).is.equal(generatedTitle)
+                expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
+            })
+
+            it('Should send notification with Android payload if FCM_tokens specify the context of Android', async () => {
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+
+                // mock data
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Sensor.f.UUID] : sensorUUID
+                }
+
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                    [Models.USER] : {
+                        [testUserDataOne.uid] : {
+                            [User.f.FCM_TOKENS] : {
+                                [FCMTokenOne] : {
+                                    [User.f.CONTEXT._] : User.f.CONTEXT.ANDROID
+                                }
+                            }
+                        }
+                    }
+                }
+
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: {
+                        sensor_UUID : sensorUUID
+                    }
+                })
+
+                const sendToTokens = messagingSendToDeviceSpy.args[0][0]
+                const payload = messagingSendToDeviceSpy.args[0][1]
+
+                expect(sendToTokens).to.include(FCMTokenOne)
+                expect(_.keys(payload)).to.not.include('notification')
+                expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
+            })
             
-    //         const userId        = uniqid()
-    //         const sensorId      = uniqid()
-    //         const FCMToken      = uniqid()
-            
-    //         // mock data
-    //         firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
-    //             [Models.USER] : {
-    //                 [userId] : {
-    //                     FCM_tokens : {
-    //                         [FCMToken] : true
-    //                     }
-    //                 }
-    //             }
-    //         }
+            it('Should send notification with IOS payload if FCM_tokens specify the context of IOS', async () => {
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
 
-    //         firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-    //             name : 'Doorbell'
-    //         }
+                // mock data
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Sensor.f.UUID] : sensorUUID
+                }
 
-    //         const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
-        
-    //         await wrappedPubsubSensorNotification({
-    //             data: new Buffer(''),
-    //             attributes: {
-    //                 sensor_id: sensorId
-    //             }}
-    //         )
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                    [Models.USER] : {
+                        [testUserDataOne.uid] : {
+                            [User.f.FCM_TOKENS] : {
+                                [FCMTokenOne] : {
+                                    [User.f.CONTEXT._] : User.f.CONTEXT.IOS
+                                }
+                            }
+                        }
+                    }
+                }
 
-    //         console.error(messagingSendToDeviceSpy.args)
-    //         expect(messagingSendToDeviceSpy.called).to.be.true
-    //     })
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: {
+                        sensor_UUID : sensorUUID
+                    }
+                })
+
+                const sendToTokens = messagingSendToDeviceSpy.args[0][0]
+                const payload = messagingSendToDeviceSpy.args[0][1]
+
+                expect(sendToTokens).to.include(FCMTokenOne)
+                expect(_.keys(payload)).to.include('notification')
+                expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
+            })
+
+            it('Should send two notifications if the context of some FCM_tokens specified as IOS and Android', async () => {
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+
+                // mock data
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Sensor.f.UUID] : sensorUUID
+                }
+
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                    [Models.USER] : {
+                        [testUserDataOne.uid] : {
+                            [User.f.FCM_TOKENS] : {
+                                [FCMTokenOne] : {
+                                    [User.f.CONTEXT._] : User.f.CONTEXT.IOS
+                                }
+                            }
+                        },
+                        [testUserDataTwo.uid] : {
+                            [User.f.FCM_TOKENS] : {
+                                [FCMTokenTwo] : {
+                                    [User.f.CONTEXT._] : User.f.CONTEXT.ANDROID
+                                }
+                            }
+                        }
+
+                    }
+                }
+
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: {
+                        sensor_UUID : sensorUUID
+                    }
+                })
+
+                const sendToIOSTokens = messagingSendToDeviceSpy.args[0][0]
+                const iOSpayload = messagingSendToDeviceSpy.args[0][1]
+
+                const sendToAndroidTokens = messagingSendToDeviceSpy.args[1][0]
+                const androidPayload = messagingSendToDeviceSpy.args[1][1]
+
+                expect(sendToIOSTokens).to.include(FCMTokenOne)
+                expect(_.keys(iOSpayload)).to.include('notification')
+
+                expect(sendToAndroidTokens).to.include(FCMTokenTwo)
+                expect(_.keys(androidPayload)).to.not.include('notification')
+
+                expect(messagingSendToDeviceSpy.callCount).to.be.equal(2)
+            })
+        })
     })
 })

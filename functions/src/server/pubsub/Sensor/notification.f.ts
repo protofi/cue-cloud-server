@@ -1,25 +1,33 @@
-import { pubsub, EventContext} from 'firebase-functions'
+import { pubsub } from 'firebase-functions'
 import { firestore, messaging} from 'firebase-admin'
 import DataORMImpl from '../../lib/ORM'
 import Sensor from '../../lib/ORM/Models/Sensor'
 import { Models } from '../../lib/ORM/Models';
-import { forOwn, capitalize } from "lodash"
+import { forOwn, capitalize, isEmpty } from "lodash"
+import { Errors, Env, WhereFilterOP } from '../../lib/const';
+import User from '../../lib/ORM/Models/User';
 
 exports = module.exports = pubsub
-.topic('notification')
-.onPublish(async (message: pubsub.Message, context: EventContext) => {
-	
+.topic('notification').onPublish(async (message: pubsub.Message) => {
+
     try{
 		const db = new DataORMImpl(firestore())
 
-		const sensorId = message.attributes.sensor_id
-		const sensor = await db.sensor().find(sensorId) as Sensor
+		const sensorUUID = message.attributes.sensor_UUID
 
-		const sensorSecureData = await db.sensor().secure().find(sensorId)
+		const sensorQuery = await db.sensor().where(Sensor.f.UUID, WhereFilterOP.EQUAL, sensorUUID).get()
 
-		const users = await sensorSecureData.getField(Models.USER)
+		if(sensorQuery.empty) throw Error(Errors.MODEL_NOT_FOUND)
+		if(sensorQuery.size > 1) throw Error(Errors.GENERAL_ERROR)
+		
+		const sensorSnap: firestore.QueryDocumentSnapshot = sensorQuery.docs[0]
 
-		let FCM_tokens = []
+		const sensor: Sensor = db.sensor(sensorSnap)
+
+		const users = await sensor.secure().getField(Models.USER)
+
+		const iOSTokens = []
+		const androidTokens = []
 
 		forOwn(users, user => {
 			if(!user.FCM_tokens) return
@@ -27,42 +35,62 @@ exports = module.exports = pubsub
 			const sensorIsMuted = (user.pivot && user.pivot.muted)
 			if(sensorIsMuted) return
 
-			const tokens = Object.keys(user.FCM_tokens)
-			FCM_tokens = FCM_tokens.concat(tokens)
+			forOwn(user.FCM_tokens, ({context}, token) => {
+
+				if(context === User.f.CONTEXT.IOS)
+					iOSTokens.push(token)
+				
+				if(context === User.f.CONTEXT.ANDROID)
+					androidTokens.push(token)
+			})
 		})
 
-		const sensorName		= await sensor.getField('name')
-		const sensorLocation 	= await sensor.getField('location')
+		const sensorName		= await sensor.getField(Sensor.f.NAME)
+		const sensorLocation 	= await sensor.getField(Sensor.f.LOCATION)
 
 		const notificationTitle = (sensorName && sensorLocation) ? `${sensorName} lyder i ${sensorLocation}` : 'UNCONFIGURED SENSOR'
-		
-		// const iPhone5s  = 'csMFb2ss3j4:APA91bGAXzHdDYgG0eJSESfQb7lL09le08B7rC1Vvls1gPmXaK7NgGmTESnw5R4xWt622SfPjL8K3Q4UHlhsarR5Mr5GDQonoeGhJ8A8p42J1A-CghpEBxgAB0qFW-QyHtHmkdGVRQ7F'
-		// const iPhoneX   = 'dZq_yPw0h6E:APA91bGeM4hXNJeMJiwWsX5_gVgjMD5R0oUCZPmJeqvETw4BPh32VsTNvP4sxEfDJSZ4IxcJvjs5KjZ-JM19yx4Ky1YIcXVJGdBjXQ4f96oxiRkA5MKW3O67yu80lQvkcGExwopuSvbt'
-		// const Nexus5    = 'fo9CNDze4JM:APA91bGwCyLmPNdID3ur6vZ0dfzVpqj9s1PrTv5SrcEc_5CmJ1rF1PRA7hntHvUhrAStNdjch4YNymzetsQYiaRuyPy9m8gMILhFphSWsSnxTZM2tgn8FtqO47bEWmx59MAbP6CGoZTk'
 
-		const payload = {
+		const androidPayload = {
 			data : {
-				sensor_id : sensorId,
+				sensor_id : sensorUUID,
 				title : capitalize(notificationTitle),
-				click_action : 'FLUTTER_NOTIFICATION_CLICK',
-				android_channel_id : 'distinct vibration'
-			},
-			// IOS
-			notification : {
-				title : capitalize(notificationTitle),
-				sound : 'default',
-				click_action : 'FLUTTER_NOTIFICATION_CLICK',
+				android_channel_id : 'distinct vibration',
+				click_action : 'FLUTTER_NOTIFICATION_CLICK'
 			}
 		}
 
-		if(!(FCM_tokens.length > 0)) return
+		const iOSPayload = {
+			data : {
+				sensor_id : sensorUUID,
+				title : capitalize(notificationTitle),
+				android_channel_id : 'distinct vibration',
+				click_action : 'FLUTTER_NOTIFICATION_CLICK',
+			},
+			notification : {
+				title : capitalize(notificationTitle),
+				sound : 'default'
+			}
+		}
 
-		await messaging().sendToDevice(
-			FCM_tokens,
-			payload
-		)
+		const messengers = []
 
-    } catch(e) { console.error(e) }
+		if(!isEmpty(iOSTokens))
+			messengers.push(messaging().sendToDevice(
+				iOSTokens,
+				iOSPayload
+			))
 
-	return
+		if(!isEmpty(androidTokens))
+			messengers.push(messaging().sendToDevice(
+				androidTokens,
+				androidPayload
+			))
+
+		return Promise.all(messengers).catch(console.error)
+	}
+	catch(e)
+	{
+		if(process.env.GCLOUD_PROJECT !== Env.NOT_A_PROJECT)
+			console.error(e)
+	}
 })

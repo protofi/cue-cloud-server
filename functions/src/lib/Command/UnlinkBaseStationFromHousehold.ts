@@ -1,5 +1,4 @@
 import { AbstractActionableFieldCommand } from ".";
-import Household from "../ORM/Models/Household";
 import BaseStation from "../ORM/Models/BaseStation";
 
 export class UnlinkBaseStationFromHousehold extends AbstractActionableFieldCommand {

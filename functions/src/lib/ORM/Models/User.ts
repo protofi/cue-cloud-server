@@ -9,10 +9,15 @@ export default class User extends ModelImpl {
 
     static readonly f = {
         ID          : 'id',
-        FCM_TOKENS  : 'FCM_tokens',
         NAME        : 'name',
         EMAIL       : 'email',
         CLAIMS      : 'claims',
+        CONTEXT     : {
+            _       : 'context',
+            ANDROID : 'ANDROID',
+            IOS     : 'IOS'
+        },
+        FCM_TOKENS  : 'FCM_tokens',
         [Relations.PIVOT] : {
             [Models.HOUSEHOLD] : {
                 ACCEPTED    : 'accepted',
@@ -20,6 +25,7 @@ export default class User extends ModelImpl {
             }
         }
     }
+
     constructor(db: FirebaseFirestore.Firestore, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
         super(Models.USER, db, snap, id)

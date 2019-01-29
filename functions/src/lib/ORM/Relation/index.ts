@@ -1,5 +1,5 @@
 import { Change } from "firebase-functions"
-import { asyncForEach, difference, printFormattedJson } from "../../util"
+import { asyncForEach, difference } from "../../util"
 import { Relations } from "../../const"
 import { singular } from "pluralize"
 import ModelImpl, { Models } from "../Models"
@@ -7,7 +7,6 @@ import { Pivot } from "./Pivot"
 import { isPlainObject, intersection, keys, omit, get, capitalize, merge, isEmpty, includes, mapValues } from "lodash"
 import { IActionableFieldCommand } from "../../Command"
 import { firestore } from "firebase-admin"
-import * as camelCase from 'camelcase'
 
 const deleteFlag = (firestore.FieldValue) ? firestore.FieldValue.delete() : undefined //For testing purposes. Is to be fixed
 

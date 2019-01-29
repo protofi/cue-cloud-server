@@ -2,7 +2,7 @@ import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from
 import { Change } from "firebase-functions";
 import * as flatten from 'flat'
 import { difference, asyncForEach } from "../../util";
-import { IActionableFieldCommand, IModelCommand } from "../../Command";
+import { IActionableFieldCommand } from "../../Command";
 import { Errors } from "../../const";
 
 export enum Models {
@@ -109,6 +109,7 @@ export default class ModelImpl implements Model {
     {
         const docRef: FirebaseFirestore.DocumentReference = this.getDocRef(id)
         this.docSnap = await docRef.get()
+
         return this
     }
 

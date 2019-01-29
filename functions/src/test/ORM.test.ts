@@ -44,7 +44,7 @@ describe('Unit_Test', () => {
 
     before(async () => {
 
-        const stageProjectId = "staging-cue-iot-cloud"
+        const stageProjectId = 'staging-cue-iot-cloud'
 
         test = functionsTest({
             databaseURL: `https://${stageProjectId}.firebaseio.com`,
@@ -54,7 +54,7 @@ describe('Unit_Test', () => {
         try {
             admin.initializeApp()
         } catch (e) {}
-        
+
         try {
             adminFs = admin.firestore()
             adminFs.settings({ timestampsInSnapshots: true })
@@ -338,13 +338,10 @@ describe('Unit_Test', () => {
                     }
 
                     const carId = uniqid()
-
                     const car = new CarM(stubFs, null, carId)
-
                     await car.onCreate()
 
                     const carSecureDoc = firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
-
                     expect(carSecureDoc).to.not.be.undefined
                 })
 
@@ -371,14 +368,14 @@ describe('Unit_Test', () => {
     
                     expect(docRef1.id).to.equals(docRef2.id)
                 })
-    
+
                 it('it should be possible to retrieve the Id of a model though method getId', async () => {
                     const car = new Car(stubFs)
                     const id = car.getId()
     
                     expect(id).exist
                 })
-    
+
                 it('GetId should return the same id a model was created with', async () => {
                     const carId = uniqid()
                     const car = new Car(stubFs, null, carId)
@@ -386,7 +383,7 @@ describe('Unit_Test', () => {
     
                     expect(id).to.be.equal(carId)
                 })
-    
+
                 it('Get ID of created docRef', async () => {
                     const carId = uniqid()
     
@@ -398,7 +395,7 @@ describe('Unit_Test', () => {
                     
                     expect(carId).to.be.equal(carId2)
                 })
-    
+
                 it('Method Find should be able to retrive one particular model by id', async () => {
                     const carId = uniqid()
                     const carId2 = uniqid()
@@ -408,7 +405,7 @@ describe('Unit_Test', () => {
     
                     expect(car2.getId()).to.be.equal(carId2)
                 })
-    
+
                 it('Method Find should be able to set the Id of an already instantiated model', async () => {
                     const carId = uniqid()
                     const car = new Car(stubFs)
@@ -417,7 +414,7 @@ describe('Unit_Test', () => {
     
                     expect(car.getId()).to.be.equal(carId)
                 })
-    
+
                 it('Single data fields on a model should be retrievable through method getField', async () => {
                     const carId = uniqid()
                     const carName = 'Mustang'
@@ -432,7 +429,7 @@ describe('Unit_Test', () => {
     
                     expect(carName).to.be.equal(fetchedName)
                 })
-    
+
                 it('GetField should return undefined if field does not exist', async () => {
                     const carId = uniqid()
     
