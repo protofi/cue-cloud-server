@@ -145,6 +145,15 @@ describe('Integrations_Test', () => {
                                                 _.unset(firestoreMockData, path)
                                             },
                                             id: path.split('/')[1],
+                                            update: (data: any) => {
+                                                if(!firestoreMockData[path]) throw Error(`Mock data is missing: [${path}]`)
+        
+                                                firestoreMockData = _.merge(firestoreMockData, {
+                                                    [path] : unflatten(data)
+                                                })
+                    
+                                                return null
+                                            }
                                         },
                                         id: path.split('/')[1],
                                         get: (f: string) => {
@@ -157,7 +166,7 @@ describe('Integrations_Test', () => {
                                     empty : !(docs.length > 0),  
                                     size : docs.length,
                                     docs : docs,
-                                    update: () => {
+                                    update: (data) => {
                                         return null
                                     }
                                 }
@@ -586,7 +595,7 @@ describe('Integrations_Test', () => {
 
     describe('Pub/Sub', () => {
         
-        const nullBuffer = new Buffer('')
+        const nullBuffer = new Buffer('')       
         const householdId       = uniqid()
         const householdTwoId    = uniqid()
 
@@ -924,7 +933,7 @@ describe('Integrations_Test', () => {
                 
                 await wrappedPubsubSensorNotification({
                     data: new Buffer(''),
-                    attributes: { }
+                    attributes: {}
                 })
 
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(0)
@@ -1341,6 +1350,43 @@ describe('Integrations_Test', () => {
                 expect(_.keys(androidPayload)).to.not.include('notification')
 
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(2)
+            })
+
+            it('Should send two notifications if the context of some FCM_tokens specified as IOS and Android', async () => {
+                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
+
+                // mock data
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Sensor.f.UUID] : sensorUUID
+                }
+
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                    [Models.USER] : {
+                        [testUserDataOne.uid] : {
+                            [User.f.FCM_TOKENS] : {
+                                [FCMTokenOne] : {
+                                    [User.f.CONTEXT._] : User.f.CONTEXT.IOS
+                                }
+                            }
+                        }
+                    }
+                }
+
+                await wrappedPubsubSensorNotification({
+                    data: new Buffer(''),
+                    attributes: {
+                        sensor_UUID : sensorUUID
+                    }
+                })
+
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
+                const expectedSensorDoc = {
+                    [Sensor.f.UUID] : sensorUUID,
+                    [Sensor.f.EVENT] : true
+                }
+
+                expect(sensorDoc).is.deep.equal(expectedSensorDoc)
+                expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
             })
         })
     })

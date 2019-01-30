@@ -12,6 +12,7 @@ export default class Sensor extends ModelImpl {
         NAME        : 'name',
         LOCATION    : 'location',
         ICON        : 'icon_string',
+        EVENT       : 'event_has_happened',
         [Relations.PIVOT] : {
             [Models.USER] : {
                 MUTED   : 'muted'

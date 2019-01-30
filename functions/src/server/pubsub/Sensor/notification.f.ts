@@ -72,21 +72,26 @@ exports = module.exports = pubsub
 			}
 		}
 
-		const messengers = []
+		const promises = []
+
+		promises.push(sensor.update({
+			[Sensor.f.EVENT] : true
+		}))
 
 		if(!isEmpty(iOSTokens))
-			messengers.push(messaging().sendToDevice(
+			promises.push(messaging().sendToDevice(
 				iOSTokens,
 				iOSPayload
 			))
 
 		if(!isEmpty(androidTokens))
-			messengers.push(messaging().sendToDevice(
+			promises.push(messaging().sendToDevice(
 				androidTokens,
 				androidPayload
 			))
+		
 
-		return Promise.all(messengers).catch(console.error)
+		return Promise.all(promises).catch(console.error)
 	}
 	catch(e)
 	{
