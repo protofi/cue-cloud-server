@@ -933,7 +933,7 @@ describe('Integrations_Test', () => {
                 
                 await wrappedPubsubSensorNotification({
                     data: new Buffer(''),
-                    attributes: {}
+                    attributes: { }
                 })
 
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(0)

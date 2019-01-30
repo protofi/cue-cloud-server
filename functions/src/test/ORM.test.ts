@@ -11,8 +11,7 @@ import * as util from './lib/util'
 import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
-import Event from './lib/ORM/Models/Event'
-import { ActionableFieldCommandStub, Stubs, ModelCommandStub } from './stubs'
+import { ActionableFieldCommandStub, Stubs, FirestoreStub } from './stubs'
 import { Many2ManyRelation, One2ManyRelation, N2OneRelation } from './lib/ORM/Relation'
 import { Pivot } from './lib/ORM/Relation/Pivot'
 import { Change } from 'firebase-functions'
@@ -39,8 +38,7 @@ describe('Unit_Test', () => {
     let test: FeaturesList
     let adminFs: FirebaseFirestore.Firestore
     let db: DataORMImpl
-    let stubFs : any
-    let firestoreMockData
+    const stubFs = new FirestoreStub()
 
     before(async () => {
 
@@ -61,99 +59,6 @@ describe('Unit_Test', () => {
         } catch (e) {}
 
         db = new DataORMImpl(adminFs)
-
-        stubFs = {
-            settings: () => { return null },
-            collection: (col: string) => {
-                return {
-                    doc: (id: string) => {
-                        return {
-                            id: (id) ? id : uniqid(),
-                            set: (data: any, { merge }) => {
-
-                                if(merge)
-                                {
-                                    firestoreMockData = _.merge(firestoreMockData, {
-                                        [`${col}/${id}`] : unflatten(data)
-                                    })
-                                }
-                                else firestoreMockData[`${col}/${id}`] = unflatten(data)
-    
-                                return null
-                            },
-                            get: () => {
-                                return {
-                                    get: (data: any) => {
-                                        try{
-                                            if(data)
-                                                return firestoreMockData[`${col}/${id}`][data]
-                                            else
-                                                return firestoreMockData[`${col}/${id}`]
-                                        }
-                                        catch(e)
-                                        {
-                                            console.error(`Mock data is missing: ${e.message} [${`${col}/${id}`}]`)
-                                            return undefined
-                                        }
-                                    },
-                                    exists : (!_.isUndefined(firestoreMockData[`${col}/${id}`]))
-                                }
-                            },
-                            update: (data: any) => {
-                                
-                                if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${col}/${id}]`)
-
-                                //Handle field deletion
-                                const flattenData = flatten(data)
-                                
-                                _.forOwn(flattenData, (value, key) => {
-                                    if(value !== admin.firestore.FieldValue.delete()) return
-                                    _.unset(firestoreMockData[`${col}/${id}`], key)
-                                    _.unset(data, key)
-                                })
-
-                                firestoreMockData = _.merge(firestoreMockData, {
-                                    [`${col}/${id}`] : unflatten(data)
-                                })
-
-                                return null
-                            },
-
-                            delete: () => {
-                                _.unset(firestoreMockData, `${col}/${id}`)
-                            }
-                        }
-                    },
-                    where: (field: string, operator: string, value: string) => {
-                        return {
-                            get: () => {
-
-                                const docs: Array<Object> = new Array<Object>()
- 
-                                _.forOwn(firestoreMockData, (collection, path) => {
-
-                                    if(!path.includes(col)) return
-
-                                    if(!_.has(collection, field)) return
-                                    
-                                    if(_.get(collection, field) !== value) return
-
-                                    docs.push(_.merge(firestoreMockData[path], {
-                                        ref: {
-                                            delete: () => {
-                                                _.unset(firestoreMockData, path)
-                                            }
-                                        }
-                                    }))
-                                })
-
-                                return docs
-                            }
-                        }
-                    }
-                }
-            }
-        }
     })
 
     after(async () => {
@@ -166,7 +71,7 @@ describe('Unit_Test', () => {
 
         beforeEach(() => {
             docsToBeDeleted = []
-            firestoreMockData = {}
+            stubFs.reset()
         })
 
         afterEach(async () => {
@@ -203,7 +108,7 @@ describe('Unit_Test', () => {
                 it('Create model based on doc id', async () => {
                     const uid = uniqid()
 
-                    const car = new Car(stubFs, null, uid)
+                    const car = new Car(stubFs.get(), null, uid)
 
                     const docRef = car.getDocRef()
             
@@ -213,7 +118,7 @@ describe('Unit_Test', () => {
                 it('Create model based on doc snap', async () => {
                     const snap = test.firestore.exampleDocumentSnapshot()
             
-                    const car = new Car(stubFs, snap)
+                    const car = new Car(stubFs.get(), snap)
                     const docRef = car.getDocRef()
             
                     expect(snap.ref.id).to.equal(docRef.id)
@@ -223,13 +128,13 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const carName = 'Mustang'
     
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
     
                     await car.create({
                         name: carName
                     })
     
-                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
                     const expectedCarDoc = {
                         name : carName
                     }
@@ -290,7 +195,7 @@ describe('Unit_Test', () => {
                 //         }
                 //     }
     
-                //     const model = new ModelStub('', stubFs)
+                //     const model = new ModelStub('', stubFs.get())
     
                 //     model.addOnCreateAction(command)
                     
@@ -307,7 +212,7 @@ describe('Unit_Test', () => {
                 //     const command = new ModelCommandStub()
                 //     const commandSpy = sinon.spy(command, 'execute')
     
-                //     const model = new ModelImpl('', stubFs)
+                //     const model = new ModelImpl('', stubFs.get())
     
                 //     model.addOnCreateAction(command)
                     
@@ -318,7 +223,7 @@ describe('Unit_Test', () => {
     
                 it('If no action is defined invokation of .onCreate should be ignored', async () => {
     
-                    const model = new ModelImpl('', stubFs)
+                    const model = new ModelImpl('', stubFs.get())
                     let error
     
                     try{
@@ -338,10 +243,10 @@ describe('Unit_Test', () => {
                     }
 
                     const carId = uniqid()
-                    const car = new CarM(stubFs, null, carId)
+                    const car = new CarM(stubFs.get(), null, carId)
                     await car.onCreate()
 
-                    const carSecureDoc = firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
+                    const carSecureDoc = stubFs.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
                     expect(carSecureDoc).to.not.be.undefined
                 })
 
@@ -349,11 +254,11 @@ describe('Unit_Test', () => {
 
                     const carId = uniqid()
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.onDelete()
 
-                    const carSecureDoc = firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
+                    const carSecureDoc = stubFs.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
 
                     expect(carSecureDoc).to.be.undefined
                 })
@@ -362,7 +267,7 @@ describe('Unit_Test', () => {
             describe('Read', () => {
 
                 it('Get ref returns the same ref after initialization', async () => {
-                    const car = new Car(stubFs)
+                    const car = new Car(stubFs.get())
                     const docRef1 = car.getDocRef()
                     const docRef2 = car.getDocRef()
     
@@ -370,7 +275,7 @@ describe('Unit_Test', () => {
                 })
 
                 it('it should be possible to retrieve the Id of a model though method getId', async () => {
-                    const car = new Car(stubFs)
+                    const car = new Car(stubFs.get())
                     const id = car.getId()
     
                     expect(id).exist
@@ -378,7 +283,7 @@ describe('Unit_Test', () => {
 
                 it('GetId should return the same id a model was created with', async () => {
                     const carId = uniqid()
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
                     const id = car.getId()
     
                     expect(id).to.be.equal(carId)
@@ -387,7 +292,7 @@ describe('Unit_Test', () => {
                 it('Get ID of created docRef', async () => {
                     const carId = uniqid()
     
-                    const car = await new Car(stubFs, null, carId).create({
+                    const car = await new Car(stubFs.get(), null, carId).create({
                         name : 'Mustang'
                     })
     
@@ -399,7 +304,7 @@ describe('Unit_Test', () => {
                 it('Method Find should be able to retrive one particular model by id', async () => {
                     const carId = uniqid()
                     const carId2 = uniqid()
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
     
                     const car2 = await car.find(carId2)
     
@@ -408,7 +313,7 @@ describe('Unit_Test', () => {
 
                 it('Method Find should be able to set the Id of an already instantiated model', async () => {
                     const carId = uniqid()
-                    const car = new Car(stubFs)
+                    const car = new Car(stubFs.get())
     
                     await car.find(carId)
     
@@ -419,11 +324,11 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const carName = 'Mustang'
     
-                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                         name : carName
                     }
     
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
     
                     const fetchedName = await car.getField('name')
     
@@ -433,7 +338,7 @@ describe('Unit_Test', () => {
                 it('GetField should return undefined if field does not exist', async () => {
                     const carId = uniqid()
     
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
     
                     const fetchedName = await car.getField('name')
     
@@ -442,9 +347,9 @@ describe('Unit_Test', () => {
 
                 it('If a model is fetch with method find() already existing in the DB the method exists should return true', async () => {
                     const carId = uniqid()
-                    firestoreMockData[`${Stubs.CAR}/${carId}`] = { id: carId }
+                    stubFs.data()[`${Stubs.CAR}/${carId}`] = { id: carId }
     
-                    const car = await new Car(stubFs).find(carId)
+                    const car = await new Car(stubFs.get()).find(carId)
     
                     expect(await car.exists()).to.be.true
                 })
@@ -452,7 +357,7 @@ describe('Unit_Test', () => {
                 it('If a model is fetch with method find() not already existing in the DB the method exists should return false', async () => {
                     const carId = uniqid()
     
-                    const car = await new Car(stubFs).find(carId)
+                    const car = await new Car(stubFs.get()).find(carId)
     
                     expect(await car.exists()).to.be.false
                 })
@@ -462,9 +367,9 @@ describe('Unit_Test', () => {
 
                 it('It should be possible to update data on an already existing model', async () => {
                     const carId = uniqid()
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
     
-                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                         name : 'Mustang'
                     }
 
@@ -472,7 +377,7 @@ describe('Unit_Test', () => {
                         name : 'Fiesta'
                     })
     
-                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
                     const expectedCarDoc = {
                         name : 'Fiesta'
                     }
@@ -538,15 +443,15 @@ describe('Unit_Test', () => {
 
                 it('It should be possible to delete a model', async () => {
                     const carId = uniqid()
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
     
-                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                         name : 'Mustang'
                     }
     
                     await car.delete()
     
-                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
     
                     expect(carDoc).to.not.exist
                 })
@@ -558,13 +463,13 @@ describe('Unit_Test', () => {
 
                     const carId = uniqid()
 
-                    firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
+                    stubFs.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
 
-                    const car = new CarM(stubFs, null, carId)
+                    const car = new CarM(stubFs.get(), null, carId)
 
                     await car.onDelete()
 
-                    const carSecureDoc = firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
+                    const carSecureDoc = stubFs.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
 
                     expect(carSecureDoc).to.be.undefined
                 })
@@ -573,27 +478,27 @@ describe('Unit_Test', () => {
 
                     const carId = uniqid()
 
-                    firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
+                    stubFs.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.onDelete()
 
-                    const carSecureDoc = firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
+                    const carSecureDoc = stubFs.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
 
                     expect(carSecureDoc).to.be.not.undefined
                 })
             })
 
             it('If a model is instatiated not already existing in the DB the method exists should return false', async () => {
-                const car = new Car(stubFs)
+                const car = new Car(stubFs.get())
 
                 expect(await car.exists()).to.be.false
             })
 
             it('If a model is instatiated with an ID not already existing in the DB the method exists should return false', async () => {
                 const carId = uniqid()
-                const car = new Car(stubFs, null, carId)
+                const car = new Car(stubFs.get(), null, carId)
 
                 expect(await car.exists()).to.be.false
             })
@@ -602,9 +507,9 @@ describe('Unit_Test', () => {
 
                 const carId = uniqid()
 
-                firestoreMockData[`${Stubs.CAR}/${carId}`] = {}
+                stubFs.data()[`${Stubs.CAR}/${carId}`] = {}
 
-                const car = new Car(stubFs, null, carId)
+                const car = new Car(stubFs.get(), null, carId)
 
                 expect(await car.exists()).to.be.true
             })
@@ -626,7 +531,7 @@ describe('Unit_Test', () => {
                         }
                     }
 
-                    const model = new ModelStub('', stubFs)
+                    const model = new ModelStub('', stubFs.get())
 
                     model.defineActionableField(actionableField, command)
 
@@ -642,7 +547,7 @@ describe('Unit_Test', () => {
                 it('TakeActionOn should be able to react to changes when before snap is empty', async () => {
 
                     const wheelId1 = uniqid()
-                    const wheel = new Wheel(stubFs, null, wheelId1)
+                    const wheel = new Wheel(stubFs.get(), null, wheelId1)
 
                     const actionableField = 'flat'
 
@@ -671,7 +576,7 @@ describe('Unit_Test', () => {
 
                     const actionableField = 'flat'
 
-                    const model = new Wheel(stubFs)
+                    const model = new Wheel(stubFs.get())
 
                     const command = new ActionableFieldCommandStub()
                     const commandSpy = sinon.spy(command, 'execute')
@@ -699,7 +604,7 @@ describe('Unit_Test', () => {
 
                 it('A defined field action should be executed when changes to the particular field are passed to takeActionOn', async () => {
 
-                    const wheel = new Wheel(stubFs)
+                    const wheel = new Wheel(stubFs.get())
                     const actionableField = 'flat'
 
                     const command = new ActionableFieldCommandStub()
@@ -728,7 +633,7 @@ describe('Unit_Test', () => {
 
                 it('Changes made the fields on the owner model with simular names should not course a action on pivot to execute', async () => {
 
-                    const wheel = new Wheel(stubFs)
+                    const wheel = new Wheel(stubFs.get())
 
                     const actionableField = 'flat'
 
@@ -761,7 +666,7 @@ describe('Unit_Test', () => {
             describe('One-to-One', async () => {
                 
                 it('Invoking relation method which return the same relation object', async () => {
-                    const car = new Car(stubFs)
+                    const car = new Car(stubFs.get())
 
                     const rel1 = car.windshield()
                     const rel2 = car.windshield()
@@ -774,22 +679,22 @@ describe('Unit_Test', () => {
                     const carId    = uniqid()
                     const windshieldId  = uniqid()
 
-                    const windshield: Windshield = new Windshield(stubFs, null, windshieldId)
-                    const car: Car = new Car(stubFs, null, carId)
+                    const windshield: Windshield = new Windshield(stubFs.get(), null, windshieldId)
+                    const car: Car = new Car(stubFs.get(), null, carId)
 
-                    firestoreMockData[`${Stubs.WIND_SHEILD}/${windshieldId}`] = {}
-                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {}
+                    stubFs.data()[`${Stubs.WIND_SHEILD}/${windshieldId}`] = {}
+                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {}
 
                     await windshield.car().set(car)
 
-                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
                     const expectedCarDoc = {
                         [Stubs.WIND_SHEILD] : {
                             id : windshieldId
                         }
                     }
 
-                    const windshieldDoc = firestoreMockData[`${Stubs.WIND_SHEILD}/${windshieldId}`]
+                    const windshieldDoc = stubFs.data()[`${Stubs.WIND_SHEILD}/${windshieldId}`]
                     const expectedWindshieldDoc = {
                         [Stubs.CAR] : {
                             id : carId
@@ -805,7 +710,7 @@ describe('Unit_Test', () => {
 
                 it('Retrieving a relation on a Model should return the same Relation every time', async () => {
                     
-                    const car: Car = new Car(stubFs)
+                    const car: Car = new Car(stubFs.get())
 
                     const rel1 = car.wheels()
                     const rel2 = car.wheels()
@@ -818,19 +723,19 @@ describe('Unit_Test', () => {
                     const wheelId = uniqid()
                     const carId = uniqid()
 
-                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.WHEEL] : {
                             [wheelId] : true
                         }
                     }
                     
-                    firestoreMockData[`${Stubs.WHEEL}/${wheelId}`] = {
+                    stubFs.data()[`${Stubs.WHEEL}/${wheelId}`] = {
                         [Stubs.CAR] : {
                             id : wheelId
                         }
                     }
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
                     const wheels = await car.wheels().get() as Array<Wheel>
 
                     expect(wheels[0].car).to.exist
@@ -871,8 +776,8 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const wheelId = uniqid()
 
-                    const car = new Car(stubFs, null, carId)
-                    const wheel = new Wheel(stubFs, null, wheelId)
+                    const car = new Car(stubFs.get(), null, carId)
+                    const wheel = new Wheel(stubFs.get(), null, wheelId)
 
                     const dataName = 'Spare'
 
@@ -882,7 +787,7 @@ describe('Unit_Test', () => {
                         name : dataName
                     })
 
-                    const wheelDoc = firestoreMockData[`${Stubs.WHEEL}/${wheelId}`]
+                    const wheelDoc = stubFs.data()[`${Stubs.WHEEL}/${wheelId}`]
                     const expectedWheelDoc = {
                         [Stubs.CAR] : {
                             id : carId,
@@ -944,13 +849,13 @@ describe('Unit_Test', () => {
                 it('When models are attached by id relation to the property model should be made on the owner', async () => {
           
                     const carId = uniqid()
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
-                    const wheel = new Wheel(stubFs)
+                    const wheel = new Wheel(stubFs.get())
 
                     await car.wheels().attachById(wheel.getId())
                     
-                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
                     const expectedCarDoc = {
                         [Stubs.WHEEL] : { [wheel.getId()] : true }
                     }
@@ -961,13 +866,13 @@ describe('Unit_Test', () => {
                 it('When models are attached by id relation to the owner model should be made on the property model', async () => {
                     
                     const carId = uniqid()
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
-                    const wheel = new Wheel(stubFs)
+                    const wheel = new Wheel(stubFs.get())
 
                     await car.wheels().attachById(wheel.getId())
                     
-                    const wheelDoc = firestoreMockData[`${Stubs.WHEEL}/${wheel.getId()}`]
+                    const wheelDoc = stubFs.data()[`${Stubs.WHEEL}/${wheel.getId()}`]
                     const expectedWheelDoc = {
                         [Stubs.CAR] : { id : carId }
                     }
@@ -1029,17 +934,17 @@ describe('Unit_Test', () => {
                     const wheelId2 = uniqid()
                     const wheelId3 = uniqid()
                     
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.wheels().attachBulk([
-                        new Wheel(stubFs, null, wheelId1),
-                        new Wheel(stubFs, null, wheelId2),
-                        new Wheel(stubFs, null, wheelId3)
+                        new Wheel(stubFs.get(), null, wheelId1),
+                        new Wheel(stubFs.get(), null, wheelId2),
+                        new Wheel(stubFs.get(), null, wheelId3)
                     ])
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
                 })
 
                 it('When models are attached in bulk relations to the owner model should be made on the properties', async () => {
@@ -1050,27 +955,27 @@ describe('Unit_Test', () => {
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.wheels().attachBulk([
-                        new Wheel(stubFs, null, wheelId1),
-                        new Wheel(stubFs, null, wheelId2),
-                        new Wheel(stubFs, null, wheelId3)
+                        new Wheel(stubFs.get(), null, wheelId1),
+                        new Wheel(stubFs.get(), null, wheelId2),
+                        new Wheel(stubFs.get(), null, wheelId3)
                     ])
 
-                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
-                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
-                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
                 })
 
                 it('AttachByIdBulk should not update any collection if id array is empty', async () => {
                     const carId = uniqid()
                     
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.wheels().attachByIdBulk([])
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.not.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`]).to.not.exist
                 })
 
                 it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
@@ -1151,17 +1056,17 @@ describe('Unit_Test', () => {
                     const wheelId2 = uniqid()
                     const wheelId3 = uniqid()
                     
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.wheels().attachBulk([
-                        new Wheel(stubFs, null, wheelId1),
-                        new Wheel(stubFs, null, wheelId2),
-                        new Wheel(stubFs, null, wheelId3)
+                        new Wheel(stubFs.get(), null, wheelId1),
+                        new Wheel(stubFs.get(), null, wheelId2),
+                        new Wheel(stubFs.get(), null, wheelId3)
                     ])
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
                 })
 
                 it('When models are attached in bulk relations to the owner model should be made on the properties', async () => {
@@ -1172,27 +1077,27 @@ describe('Unit_Test', () => {
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.wheels().attachBulk([
-                        new Wheel(stubFs, null, wheelId1),
-                        new Wheel(stubFs, null, wheelId2),
-                        new Wheel(stubFs, null, wheelId3)
+                        new Wheel(stubFs.get(), null, wheelId1),
+                        new Wheel(stubFs.get(), null, wheelId2),
+                        new Wheel(stubFs.get(), null, wheelId3)
                     ])
 
-                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
-                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
-                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
                 })
 
                 it('AttachByIdBulk should not update any collection if id array is empty', async () => {
                     const carId = uniqid()
                     
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.wheels().attachByIdBulk([])
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.not.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`]).to.not.exist
                 })
 
                 it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
@@ -1273,7 +1178,7 @@ describe('Unit_Test', () => {
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
                     
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.wheels().attachByIdBulk([
                         wheelId1,
@@ -1281,9 +1186,9 @@ describe('Unit_Test', () => {
                         wheelId3
                     ])
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
                 })
 
                 it('When models are attached in bulk relations to the owner model should be made on the properties', async () => {
@@ -1294,7 +1199,7 @@ describe('Unit_Test', () => {
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.wheels().attachByIdBulk([
                         wheelId1,
@@ -1302,9 +1207,9 @@ describe('Unit_Test', () => {
                         wheelId3
                     ])
 
-                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
-                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
-                    expect(firestoreMockData[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
                 })
 
                 it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
@@ -1414,19 +1319,19 @@ describe('Unit_Test', () => {
                     const wheelId = uniqid()
                     const carId = uniqid()
 
-                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.WHEEL] : {
                             [wheelId] : true
                         }
                     }
                     
-                    firestoreMockData[`${Stubs.WHEEL}/${wheelId}`] = {
+                    stubFs.data()[`${Stubs.WHEEL}/${wheelId}`] = {
                         [Stubs.CAR] : {
                             id : wheelId
                         }
                     }
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
                     
                     const wheels: Array<Wheel> = await car.wheels().get() as Array<Wheel>
 
@@ -1437,7 +1342,7 @@ describe('Unit_Test', () => {
                     const wheels2 = await car.wheels().get()
                     expect(wheels2[0]).to.not.exist
 
-                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
                     expect(carDoc).to.be.empty
                 })
 
@@ -1445,19 +1350,19 @@ describe('Unit_Test', () => {
                     const wheelId = uniqid()
                     const carId = uniqid()
 
-                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.WHEEL] : {
                             [wheelId] : true
                         }
                     }
                     
-                    firestoreMockData[`${Stubs.WHEEL}/${wheelId}`] = {
+                    stubFs.data()[`${Stubs.WHEEL}/${wheelId}`] = {
                         [Stubs.CAR] : {
                             id : carId
                         }
                     }
 
-                    const wheel = new Wheel(stubFs, null, wheelId)
+                    const wheel = new Wheel(stubFs.get(), null, wheelId)
                     
                     const car: Car = await wheel.car().get() as Car
 
@@ -1474,7 +1379,7 @@ describe('Unit_Test', () => {
 
                     it('Action should be defined on the relation between the owner model and property model', async () => {
 
-                        const car = new Car(stubFs)
+                        const car = new Car(stubFs.get())
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
@@ -1486,7 +1391,7 @@ describe('Unit_Test', () => {
                             }
                         }
 
-                        const rel = new One2ManyRelationStub(car, Stubs.WHEEL, stubFs)
+                        const rel = new One2ManyRelationStub(car, Stubs.WHEEL, stubFs.get())
 
                         rel.defineActionOnUpdate(command)
 
@@ -1501,14 +1406,14 @@ describe('Unit_Test', () => {
                     
                     it('TakeActionOn should be able to react to changes when before snap is empty', async () => {
 
-                        const car = new Car(stubFs)
+                        const car = new Car(stubFs.get())
 
                         const wheelId1 = uniqid()
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
 
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs)
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs.get())
 
                         rel.defineActionOnUpdate(command)
 
@@ -1533,7 +1438,7 @@ describe('Unit_Test', () => {
 
                     it('TakeActionOn should be able to handle if no changes has been made to the relational data', async () => {
 
-                        const rel = new One2ManyRelation(new Car(stubFs), Stubs.WHEEL, stubFs)
+                        const rel = new One2ManyRelation(new Car(stubFs.get()), Stubs.WHEEL, stubFs.get())
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
@@ -1556,9 +1461,9 @@ describe('Unit_Test', () => {
 
                     it('A defined onUpdate action should be executed when changes to the relation link field are passed to takeActionOn', async () => {
 
-                        const car = new Car(stubFs)
+                        const car = new Car(stubFs.get())
 
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs)
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs.get())
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
@@ -1588,9 +1493,9 @@ describe('Unit_Test', () => {
 
                     it('Changes made to the fields on the owner model should not course the onUpdate action to execute', async () => {
 
-                        const car = new Car(stubFs)
+                        const car = new Car(stubFs.get())
 
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs)
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs.get())
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
@@ -1616,9 +1521,9 @@ describe('Unit_Test', () => {
 
                     it('If no changes are made to the relation link it should not course onUpdate action to execute', async () => {
 
-                        const car = new Car(stubFs)
+                        const car = new Car(stubFs.get())
                         const wheelId1 = uniqid()
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs)
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs.get())
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
@@ -1645,10 +1550,10 @@ describe('Unit_Test', () => {
 
                     it('If new relational links are added those should be passes to the action', async () => {
 
-                        const car = new Car(stubFs)
+                        const car = new Car(stubFs.get())
                         const wheelId1 = uniqid()
                         const wheelId2 = uniqid()
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs)
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs.get())
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
@@ -1684,10 +1589,10 @@ describe('Unit_Test', () => {
 
                     it('If relational links are changed those should be passes to the action', async () => {
 
-                        const car = new Car(stubFs)
+                        const car = new Car(stubFs.get())
                         const wheelId1 = uniqid()
                         const wheelId2 = uniqid()
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs)
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs.get())
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
@@ -1733,7 +1638,7 @@ describe('Unit_Test', () => {
 
                     it('Retrieving a relation on a Model should return the same Relation every time', async () => {
                     
-                        const wheel: Wheel = new Wheel(stubFs)
+                        const wheel: Wheel = new Wheel(stubFs.get())
     
                         const rel1 = wheel.car()
                         const rel2 = wheel.car()
@@ -1746,13 +1651,13 @@ describe('Unit_Test', () => {
                         const wheelId = uniqid()
                         const carId = uniqid()
     
-                        firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                        stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                             [Stubs.WHEEL] : {
                                 [wheelId] : true
                             }
                         }
                         
-                        firestoreMockData[`${Stubs.WHEEL}/${wheelId}`] = {
+                        stubFs.data()[`${Stubs.WHEEL}/${wheelId}`] = {
                             [Stubs.CAR] : {
                                 id : wheelId
                             }
@@ -1765,7 +1670,7 @@ describe('Unit_Test', () => {
                             }
                         }
     
-                        const wheel = new Wheel(stubFs, null, wheelId)
+                        const wheel = new Wheel(stubFs.get(), null, wheelId)
                         const car = await wheel.car().get() as Car
     
                         expect(car.wheels).to.exist
@@ -1775,11 +1680,11 @@ describe('Unit_Test', () => {
                     it('Field on the pivot should be accessable through relation', async () => {
 
                         const wheelId = uniqid()
-                        const wheel = new Wheel(stubFs, null, wheelId)
+                        const wheel = new Wheel(stubFs.get(), null, wheelId)
 
                         const pivotField = 'flat'
                         
-                        firestoreMockData[`${wheel.name}/${wheelId}`] = {
+                        stubFs.data()[`${wheel.name}/${wheelId}`] = {
                             [Stubs.CAR] : {
                                 [Relations.PIVOT] : {
                                     [pivotField] : true
@@ -1795,11 +1700,11 @@ describe('Unit_Test', () => {
                     it('If field on pivot does not exist getPivotField should return null', async () => {
 
                         const wheelId = uniqid()
-                        const wheel = new Wheel(stubFs, null, wheelId)
+                        const wheel = new Wheel(stubFs.get(), null, wheelId)
 
                         const pivotField = 'flat'
                         
-                        firestoreMockData[`${wheel.name}/${wheelId}`] = {
+                        stubFs.data()[`${wheel.name}/${wheelId}`] = {
                             [Stubs.CAR] : {
                                 [Relations.PIVOT] : {
                                     id : uniqid()
@@ -1815,9 +1720,9 @@ describe('Unit_Test', () => {
                     it('If relation link does not exist getPivotField should return null', async () => {
 
                         const wheelId = uniqid()
-                        const wheel = new Wheel(stubFs, null, wheelId)
+                        const wheel = new Wheel(stubFs.get(), null, wheelId)
 
-                        firestoreMockData[`${wheel.name}/${wheelId}`] = {}
+                        stubFs.data()[`${wheel.name}/${wheelId}`] = {}
 
                         const fieldValue = await wheel.car().getPivotField('flat')
 
@@ -1828,19 +1733,19 @@ describe('Unit_Test', () => {
                         const wheelId = uniqid()
                         const carId = uniqid()
     
-                        firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                        stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                             [Stubs.WHEEL] : {
                                 [wheelId] : true
                             }
                         }
                         
-                        firestoreMockData[`${Stubs.WHEEL}/${wheelId}`] = {
+                        stubFs.data()[`${Stubs.WHEEL}/${wheelId}`] = {
                             [Stubs.CAR] : {
                                 id : carId
                             }
                         }
     
-                        const wheel = new Wheel(stubFs, null, wheelId)
+                        const wheel = new Wheel(stubFs.get(), null, wheelId)
                         
                         const car = await wheel.car().get() as Car
     
@@ -1851,7 +1756,7 @@ describe('Unit_Test', () => {
                         const car2 = await wheel.car().get() as Car
                         expect(car2).to.not.exist
     
-                        const wheelDoc = firestoreMockData[`${Stubs.WHEEL}/${wheelId}`]
+                        const wheelDoc = stubFs.data()[`${Stubs.WHEEL}/${wheelId}`]
                         expect(wheelDoc).to.be.empty
                     })
     
@@ -1859,19 +1764,19 @@ describe('Unit_Test', () => {
                         const wheelId = uniqid()
                         const carId = uniqid()
     
-                        firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                        stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                             [Stubs.WHEEL] : {
                                 [wheelId] : true
                             }
                         }
                         
-                        firestoreMockData[`${Stubs.WHEEL}/${wheelId}`] = {
+                        stubFs.data()[`${Stubs.WHEEL}/${wheelId}`] = {
                             [Stubs.CAR] : {
                                 id : carId
                             }
                         }
     
-                        const wheel = new Wheel(stubFs, null, wheelId)
+                        const wheel = new Wheel(stubFs.get(), null, wheelId)
                         
                         const car = await wheel.car().get() as Car
     
@@ -1883,7 +1788,7 @@ describe('Unit_Test', () => {
                         
                         expect(wheels).to.be.empty
                         
-                        const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                        const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
                         const expectedCarDoc = {
                             [Stubs.WHEEL] : {}
                         }
@@ -1895,20 +1800,20 @@ describe('Unit_Test', () => {
                         const wheelId2 = uniqid()
                         const carId = uniqid()
     
-                        firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                        stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                             [Stubs.WHEEL] : {
                                 [wheelId] : true,
                                 [wheelId2] : true
                             }
                         }
                         
-                        firestoreMockData[`${Stubs.WHEEL}/${wheelId}`] = {
+                        stubFs.data()[`${Stubs.WHEEL}/${wheelId}`] = {
                             [Stubs.CAR] : {
                                 id : carId
                             }
                         }
     
-                        const wheel = new Wheel(stubFs, null, wheelId)
+                        const wheel = new Wheel(stubFs.get(), null, wheelId)
                         
                         const car = await wheel.car().get() as Car
     
@@ -1924,7 +1829,7 @@ describe('Unit_Test', () => {
 
                         expect(wheelIds).to.be.include(wheelId2)
                         
-                        const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                        const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
                         const expectedCarDoc = {
                             [Stubs.WHEEL] : {
                                 [wheelId2] : true
@@ -1937,7 +1842,7 @@ describe('Unit_Test', () => {
 
                         it('Actionable fields should be defined on the relation between the owner model and property model', async () => {
 
-                            const wheel = new Wheel(stubFs)
+                            const wheel = new Wheel(stubFs.get())
 
                             const actionableField = 'flat'
 
@@ -1952,7 +1857,7 @@ describe('Unit_Test', () => {
                                 }
                             }
 
-                            const rel = new N2OneRelationStub(wheel, Stubs.CAR, stubFs)
+                            const rel = new N2OneRelationStub(wheel, Stubs.CAR, stubFs.get())
 
                             rel.defineActionableField(actionableField, command)
 
@@ -1967,14 +1872,14 @@ describe('Unit_Test', () => {
                         
                         it('TakeActionOn should be able to react to changes when before snap is empty', async () => {
 
-                            const wheel = new Wheel(stubFs)
+                            const wheel = new Wheel(stubFs.get())
 
                             const actionableField = 'flat'
 
                             const command = new ActionableFieldCommandStub()
                             const commandSpy = sinon.spy(command, 'execute')
 
-                            const rel = new N2OneRelation(wheel, Stubs.CAR, stubFs)
+                            const rel = new N2OneRelation(wheel, Stubs.CAR, stubFs.get())
 
                             rel.defineActionableField(actionableField, command)
 
@@ -2003,7 +1908,7 @@ describe('Unit_Test', () => {
 
                             const actionableField = 'flat'
 
-                            const rel = new N2OneRelation(new Wheel(stubFs), Stubs.CAR, stubFs)
+                            const rel = new N2OneRelation(new Wheel(stubFs.get()), Stubs.CAR, stubFs.get())
 
                             const command = new ActionableFieldCommandStub()
                             const commandSpy = sinon.spy(command, 'execute')
@@ -2027,10 +1932,10 @@ describe('Unit_Test', () => {
 
                         it('A defined field action should be executed when changes to the particular field are passed to takeActionOn', async () => {
 
-                            const wheel = new Wheel(stubFs)
+                            const wheel = new Wheel(stubFs.get())
                             const actionableField = 'flat'
 
-                            const rel = new N2OneRelation(wheel, Stubs.CAR, stubFs)
+                            const rel = new N2OneRelation(wheel, Stubs.CAR, stubFs.get())
 
                             const command = new ActionableFieldCommandStub()
                             const commandSpy = sinon.spy(command, 'execute')
@@ -2062,11 +1967,11 @@ describe('Unit_Test', () => {
 
                         it('Changes made the fields on the owner model with simular names should not course a action on pivot to execute', async () => {
 
-                            const wheel = new Wheel(stubFs)
+                            const wheel = new Wheel(stubFs.get())
 
                             const actionableField = 'flat'
 
-                            const rel = new N2OneRelation(wheel, Stubs.CAR, stubFs)
+                            const rel = new N2OneRelation(wheel, Stubs.CAR, stubFs.get())
 
                             const command = new ActionableFieldCommandStub()
                             const commandSpy = sinon.spy(command, 'execute')
@@ -2096,7 +2001,7 @@ describe('Unit_Test', () => {
             describe('Many-to-many', () => {
 
                 it('Related models method should return the same relation every time', async () => {
-                    const car = new Car(stubFs)
+                    const car = new Car(stubFs.get())
 
                     const drivers1 = car.drivers()
                     const drivers2 = car.drivers()
@@ -2107,41 +2012,41 @@ describe('Unit_Test', () => {
                 it('Attaching a model to another should create an owner collection with a relation to the property', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     const driverId = uniqid()
-                    const driver = new Driver(stubFs, null, driverId)
+                    const driver = new Driver(stubFs.get(), null, driverId)
 
                     await car.drivers().attach(driver)
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId], 'Foreign key on owner').to.be.true
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId], 'Foreign key on owner').to.be.true
                 })
                 
                 it('Attaching a model to another should create a Property Collection with a relation to the Owner', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     const driverId = uniqid()
-                    const driver = new Driver(stubFs, null, driverId)
+                    const driver = new Driver(stubFs.get(), null, driverId)
 
                     await car.drivers().attach(driver)
 
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId], 'Foreign key on property').to.be.true
+                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId], 'Foreign key on property').to.be.true
                 })
 
                 it('Attaching a model to another should create a Pivot Collection with a relation to both Owner and Property', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     const driverId = uniqid()
-                    const driver = new Driver(stubFs, null, driverId)
+                    const driver = new Driver(stubFs.get(), null, driverId)
 
                     await car.drivers().attach(driver)
 
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.CAR]['id']).to.be.equals(carId)
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.DRIVER]['id']).to.be.equals(driverId)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.DRIVER]['id']).to.be.equals(driverId)
                 })
 
                 it('Attaching two models should work with batch', async () => {
@@ -2227,11 +2132,11 @@ describe('Unit_Test', () => {
                 it('When attaching models to each other writing data directly to the relation on the Property to the Owner should be possible', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     const driverId = uniqid()
                     const carName = 'Mustang'
-                    const driver = new Driver(stubFs, null, driverId)
+                    const driver = new Driver(stubFs.get(), null, driverId)
 
                     await car.drivers().attach(driver, null, {
                         owner : {
@@ -2239,7 +2144,7 @@ describe('Unit_Test', () => {
                         }
                     })
 
-                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
                     const expectedDriverDoc = {
                         [Stubs.CAR] : {
                             [carId] : {
@@ -2254,11 +2159,11 @@ describe('Unit_Test', () => {
                 it('When attaching models to each other writing data directly to the relation on the Owner to the Property should be possible', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     const driverId = uniqid()
                     const driverName = 'Bob'
-                    const driver = new Driver(stubFs, null, driverId)
+                    const driver = new Driver(stubFs.get(), null, driverId)
 
                     await car.drivers().attach(driver, null, {
                         property : {
@@ -2266,7 +2171,7 @@ describe('Unit_Test', () => {
                         }
                     })
 
-                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
                     const expectedcarDoc = {
                         [Stubs.DRIVER] : {
                             [driverId] : {
@@ -2286,17 +2191,17 @@ describe('Unit_Test', () => {
                     const driverId2 = uniqid()
                     const driverId3 = uniqid()
                     
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.drivers().attachBulk([
-                        new Driver(stubFs, null, driverId1),
-                        new Driver(stubFs, null, driverId2),
-                        new Driver(stubFs, null, driverId3)
+                        new Driver(stubFs.get(), null, driverId1),
+                        new Driver(stubFs.get(), null, driverId2),
+                        new Driver(stubFs.get(), null, driverId3)
                     ])
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]).to.exist
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]).to.exist
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]).to.exist
                 })
 
                 it('When models are attached in bulk relations to the owner model should be made on the property models', async () => {
@@ -2307,17 +2212,17 @@ describe('Unit_Test', () => {
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.drivers().attachBulk([
-                        new Driver(stubFs, null, driverId1),
-                        new Driver(stubFs, null, driverId2),
-                        new Driver(stubFs, null, driverId3)
+                        new Driver(stubFs.get(), null, driverId1),
+                        new Driver(stubFs.get(), null, driverId2),
+                        new Driver(stubFs.get(), null, driverId3)
                     ])
 
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]).to.be.true
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]).to.be.true
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]).to.be.true
                 })
 
                 it('When models are attached in bulk relations to all property models should create pivot collections', async () => {
@@ -2328,31 +2233,31 @@ describe('Unit_Test', () => {
                     const driverId2 = uniqid()
                     const driverId3 = uniqid()
                     
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.drivers().attachBulk([
-                        new Driver(stubFs, null, driverId1),
-                        new Driver(stubFs, null, driverId2),
-                        new Driver(stubFs, null, driverId3)
+                        new Driver(stubFs.get(), null, driverId1),
+                        new Driver(stubFs.get(), null, driverId2),
+                        new Driver(stubFs.get(), null, driverId3)
                     ])
 
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.DRIVER]['id']).to.be.equals(driverId1)
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.DRIVER]['id']).to.be.equals(driverId2)
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.DRIVER]['id']).to.be.equals(driverId3)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.DRIVER]['id']).to.be.equals(driverId1)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.DRIVER]['id']).to.be.equals(driverId2)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.DRIVER]['id']).to.be.equals(driverId3)
 
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.CAR]['id']).to.be.equals(carId)
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.CAR]['id']).to.be.equals(carId)
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.CAR]['id']).to.be.equals(carId)
                 })
 
                 it('AttachBulk should not update any collection if id array is empty', async () => {
                     const carId = uniqid()
                     
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.drivers().attachBulk([])
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.not.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`]).to.not.exist
                 })
 
                 it('When a Write Batch is passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
@@ -2456,22 +2361,22 @@ describe('Unit_Test', () => {
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
                     const carName = 'Bob'
 
                     await car.drivers().attachBulk([
-                        new Driver(stubFs, null, driverId1),
-                        new Driver(stubFs, null, driverId2),
-                        new Driver(stubFs, null, driverId3)
+                        new Driver(stubFs.get(), null, driverId1),
+                        new Driver(stubFs.get(), null, driverId2),
+                        new Driver(stubFs.get(), null, driverId3)
                     ], null, {
                         owner : {
                             name : carName
                         }
                     })
 
-                    const carRelations1 = firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
-                    const carRelations2 = firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
-                    const carRelations3 = firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+                    const carRelations1 = stubFs.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = stubFs.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = stubFs.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
 
                     const expectedCarRelation = {
                         name : carName
@@ -2490,12 +2395,12 @@ describe('Unit_Test', () => {
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.drivers().attachBulk([
-                        new Driver(stubFs, null, driverId1),
-                        new Driver(stubFs, null, driverId2),
-                        new Driver(stubFs, null, driverId3)
+                        new Driver(stubFs.get(), null, driverId1),
+                        new Driver(stubFs.get(), null, driverId2),
+                        new Driver(stubFs.get(), null, driverId3)
                     ], null, {
                         properties : [
                             {
@@ -2510,9 +2415,9 @@ describe('Unit_Test', () => {
                         ]
                     })
 
-                    const driverRelations1 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
-                    const driverRelations2 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
-                    const driverRelations3 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+                    const driverRelations1 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
 
                     const expectedDriverRelation1 = {
                         id : driverId1
@@ -2539,13 +2444,13 @@ describe('Unit_Test', () => {
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
                     const carName = 'Bob'
 
                     await car.drivers().attachBulk([
-                        new Driver(stubFs, null, driverId1),
-                        new Driver(stubFs, null, driverId2),
-                        new Driver(stubFs, null, driverId3)
+                        new Driver(stubFs.get(), null, driverId1),
+                        new Driver(stubFs.get(), null, driverId2),
+                        new Driver(stubFs.get(), null, driverId3)
                     ], null, {
                         owner : {
                             name : carName
@@ -2557,9 +2462,9 @@ describe('Unit_Test', () => {
                         ]
                     })
 
-                    const carRelations1 = firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
-                    const carRelations2 = firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
-                    const carRelations3 = firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+                    const carRelations1 = stubFs.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = stubFs.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = stubFs.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
 
                     const expectedCarRelation = {
                         name : carName
@@ -2569,9 +2474,9 @@ describe('Unit_Test', () => {
                     expect(carRelations2).to.be.deep.equal(expectedCarRelation)
                     expect(carRelations3).to.be.deep.equal(expectedCarRelation)
 
-                    const driverRelations1 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
-                    const driverRelations2 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
-                    const driverRelations3 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+                    const driverRelations1 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
 
                     const expectedDriverRelation1 = {
                         id : driverId1
@@ -2593,41 +2498,41 @@ describe('Unit_Test', () => {
                 it('Attaching a model to another by id should create an owner collection with a relation to the property', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     const driverId = uniqid()
                     // const driver = new Driver(firestoreStub, null, driverId)
 
                     await car.drivers().attachById(driverId)
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId], 'Foreign key on owner').to.be.true
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId], 'Foreign key on owner').to.be.true
                 })
                 
                 it('Attaching a model to another by id should create a Property Collection with a relation to the Owner', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     const driverId = uniqid()
-                    const driver = new Driver(stubFs, null, driverId)
+                    const driver = new Driver(stubFs.get(), null, driverId)
 
                     await car.drivers().attachById(driverId)
 
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId], 'Foreign key on property').to.be.true
+                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId], 'Foreign key on property').to.be.true
                 })
 
                 it('Attaching a model to another by id should create a Pivot Collection with a relation to both Owner and Property', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     const driverId = uniqid()
-                    const driver = new Driver(stubFs, null, driverId)
+                    const driver = new Driver(stubFs.get(), null, driverId)
 
                     await car.drivers().attachById(driverId)
 
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.CAR]['id']).to.be.equals(carId)
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.DRIVER]['id']).to.be.equals(driverId)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.DRIVER]['id']).to.be.equals(driverId)
                 })
 
                 it('Attaching two models by id should work with batch', async () => {
@@ -2689,7 +2594,7 @@ describe('Unit_Test', () => {
                     const driverId2: string = uniqid()
                     const driverId3: string = uniqid()
                     
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.drivers().attachByIdBulk([
                         driverId1,
@@ -2697,9 +2602,9 @@ describe('Unit_Test', () => {
                         driverId3
                     ])
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]).to.exist
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]).to.exist
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]).to.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]).to.exist
                 })
 
                 it('When models are attached in bulk by id relations to the owner model should be made on the property models', async () => {
@@ -2710,7 +2615,7 @@ describe('Unit_Test', () => {
                     const driverId2: string = uniqid()
                     const driverId3: string = uniqid()
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.drivers().attachByIdBulk([
                         driverId1,
@@ -2718,9 +2623,9 @@ describe('Unit_Test', () => {
                         driverId3
                     ])
 
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]).to.be.true
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]).to.be.true
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]).to.be.true
                 })
 
                 it('When models are attached in bulk by id relations to all property models should create pivot collections', async () => {
@@ -2731,7 +2636,7 @@ describe('Unit_Test', () => {
                     const driverId2: string = uniqid()
                     const driverId3: string = uniqid()
                     
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.drivers().attachByIdBulk([
                         driverId1,
@@ -2739,23 +2644,23 @@ describe('Unit_Test', () => {
                         driverId3
                     ])
 
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.DRIVER]['id']).to.be.equals(driverId1)
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.DRIVER]['id']).to.be.equals(driverId2)
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.DRIVER]['id']).to.be.equals(driverId3)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.DRIVER]['id']).to.be.equals(driverId1)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.DRIVER]['id']).to.be.equals(driverId2)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.DRIVER]['id']).to.be.equals(driverId3)
 
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.CAR]['id']).to.be.equals(carId)
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.CAR]['id']).to.be.equals(carId)
-                    expect(firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.CAR]['id']).to.be.equals(carId)
                 })
 
                 it('AttachByIdBulk should not update any collection if id array is empty', async () => {
                     const carId = uniqid()
                     
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.drivers().attachByIdBulk([])
 
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.not.exist
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`]).to.not.exist
                 })
 
                 it('When attaching models in bulk by id to another model writing data directly to the relation on the Properties to the Owner should be possible', async () => {
@@ -2766,7 +2671,7 @@ describe('Unit_Test', () => {
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
                     const carName = 'Bob'
 
                     await car.drivers().attachByIdBulk([
@@ -2779,9 +2684,9 @@ describe('Unit_Test', () => {
                         }
                     })
 
-                    const carRelations1 = firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
-                    const carRelations2 = firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
-                    const carRelations3 = firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+                    const carRelations1 = stubFs.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = stubFs.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = stubFs.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
 
                     const expectedCarRelation = {
                         name : carName
@@ -2800,7 +2705,7 @@ describe('Unit_Test', () => {
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
 
                     await car.drivers().attachByIdBulk([
                         driverId1,
@@ -2814,9 +2719,9 @@ describe('Unit_Test', () => {
                         ]
                     })
 
-                    const driverRelations1 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
-                    const driverRelations2 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
-                    const driverRelations3 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+                    const driverRelations1 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
 
                     const expectedDriverRelation1 = {
                         id : driverId1
@@ -2843,7 +2748,7 @@ describe('Unit_Test', () => {
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
                     const carName = 'Bob'
 
                     await car.drivers().attachByIdBulk([
@@ -2862,9 +2767,9 @@ describe('Unit_Test', () => {
 
                     })
 
-                    const carRelations1 = firestoreMockData[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
-                    const carRelations2 = firestoreMockData[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
-                    const carRelations3 = firestoreMockData[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+                    const carRelations1 = stubFs.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = stubFs.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = stubFs.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
 
                     const expectedCarRelation = {
                         name : carName
@@ -2874,9 +2779,9 @@ describe('Unit_Test', () => {
                     expect(carRelations2).to.be.deep.equal(expectedCarRelation)
                     expect(carRelations3).to.be.deep.equal(expectedCarRelation)
 
-                    const driverRelations1 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
-                    const driverRelations2 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
-                    const driverRelations3 = firestoreMockData[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+                    const driverRelations1 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
 
                     const expectedDriverRelation1 = {
                         id : driverId1
@@ -3234,7 +3139,7 @@ describe('Unit_Test', () => {
 
                     it('Fields to be cached from the pivot to the owner should be definable on the relation between the owner and the property', async () => {
 
-                        const car = new Car(stubFs)
+                        const car = new Car(stubFs.get())
                         
                         class Many2ManyRelationStub extends Many2ManyRelation
                         {
@@ -3249,7 +3154,7 @@ describe('Unit_Test', () => {
                             }
                         }
 
-                        const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs)
+                        const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs.get())
 
                         const cachedFromPivot = [
                             'brand',
@@ -3267,7 +3172,7 @@ describe('Unit_Test', () => {
 
                         it('Fields to be cached should be definable on the relation between the owner and the property', async () => {
     
-                            const car = new Car(stubFs)
+                            const car = new Car(stubFs.get())
                             
                             class Many2ManyRelationStub extends Many2ManyRelation
                             {
@@ -3282,7 +3187,7 @@ describe('Unit_Test', () => {
                                 }
                             }
     
-                            const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs)
+                            const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs.get())
     
                             const cachedToProperty = [
                                 'brand',
@@ -3311,15 +3216,15 @@ describe('Unit_Test', () => {
                             const carId = uniqid()
                             const driverId = uniqid()
     
-                            const car = new CarM(stubFs, null, carId)
+                            const car = new CarM(stubFs.get(), null, carId)
                             
-                            firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                            stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                                 [`${Stubs.DRIVER}`] : {
                                     [driverId] : true
                                 }
                             }
 
-                            firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                            stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
                                 [`${Stubs.CAR}`] : {
                                     [carId] : true
                                 }
@@ -3337,7 +3242,7 @@ describe('Unit_Test', () => {
     
                             await car.drivers().updateCache(change)
     
-                            const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                            const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
                             const expectedCarDoc = {
                                 [Stubs.CAR] : {
                                     [carId] : {
@@ -3364,15 +3269,15 @@ describe('Unit_Test', () => {
                             const carId = uniqid()
                             const driverId = uniqid()
     
-                            const car = new CarM(stubFs, null, carId)
+                            const car = new CarM(stubFs.get(), null, carId)
 
-                            firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                            stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                                 [`${Stubs.DRIVER}`] : {
                                     [driverId] : true
                                 }
                             }
 
-                            firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                            stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
                                 [`${Stubs.CAR}`] : {
                                     [carId] : true
                                 }
@@ -3390,7 +3295,7 @@ describe('Unit_Test', () => {
     
                             await car.drivers().updateCache(change)
     
-                            const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                            const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
                             const expectedCarDoc = {
                                 [Stubs.CAR] : {
                                     [carId] : {
@@ -3405,7 +3310,7 @@ describe('Unit_Test', () => {
     
                             await car.drivers().updateCache(change2)
     
-                            expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
+                            expect(stubFs.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
                                 .to.be.undefined
                         })
 
@@ -3425,15 +3330,15 @@ describe('Unit_Test', () => {
                             const carId = uniqid()
                             const driverId = uniqid()
     
-                            const car = new CarM(stubFs, null, carId)
+                            const car = new CarM(stubFs.get(), null, carId)
 
-                            firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                            stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                                 [`${Stubs.DRIVER}`] : {
                                     [driverId] : true
                                 }
                             }
 
-                            firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                            stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
                                 [`${Stubs.CAR}`] : {
                                     [carId] : true
                                 }
@@ -3460,7 +3365,7 @@ describe('Unit_Test', () => {
     
                             await car.drivers().updateCache(change)
     
-                            const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                            const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
                             const expectedCarDoc = {
                                 [Stubs.CAR] : {
                                     [carId] : dataAfter
@@ -3469,7 +3374,7 @@ describe('Unit_Test', () => {
 
                             expect(driverDoc).to.deep.equal(expectedCarDoc)
                           
-                            expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
+                            expect(stubFs.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
                                 .to.be.undefined
                         })
 
@@ -3489,15 +3394,15 @@ describe('Unit_Test', () => {
                             const carId = uniqid()
                             const driverId = uniqid()
     
-                            const car = new CarM(stubFs, null, carId)
+                            const car = new CarM(stubFs.get(), null, carId)
 
-                            firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                            stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                                 [`${Stubs.DRIVER}`] : {
                                     [driverId] : true
                                 }
                             }
 
-                            firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                            stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
                                 [`${Stubs.CAR}`] : {
                                     [carId] : true
                                 }
@@ -3524,7 +3429,7 @@ describe('Unit_Test', () => {
     
                             await car.drivers().updateCache(change)
     
-                            const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                            const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
                             const expectedCarDoc = {
                                 [Stubs.CAR] : {
                                     [carId] : dataAfter
@@ -3533,7 +3438,7 @@ describe('Unit_Test', () => {
 
                             expect(driverDoc).to.deep.equal(expectedCarDoc)
                           
-                            expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
+                            expect(stubFs.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
                                 .to.be.undefined
                         })
 
@@ -3551,8 +3456,8 @@ describe('Unit_Test', () => {
                             const carId = uniqid()
                             const driverId = uniqid()
     
-                            const car = new CarM(stubFs, null, carId)
-                            const driver = new Driver(stubFs, null, driverId)
+                            const car = new CarM(stubFs.get(), null, carId)
+                            const driver = new Driver(stubFs.get(), null, driverId)
     
                             await car.drivers().attach(driver)
     
@@ -3567,7 +3472,7 @@ describe('Unit_Test', () => {
     
                             await car.drivers().updateCache(change)
     
-                            expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`][`${Stubs.CAR}.${carId}.name`]).to.be.undefined
+                            expect(stubFs.data()[`${Stubs.DRIVER}/${driverId}`][`${Stubs.CAR}.${carId}.name`]).to.be.undefined
                         })
                     })
                     
@@ -3586,12 +3491,12 @@ describe('Unit_Test', () => {
                     //     const carId = uniqid()
                     //     const driverId = uniqid()
     
-                    //     const car = new CarM(stubFs, null, carId)
-                    //     const driver = new Driver(stubFs, null, driverId)
+                    //     const car = new CarM(stubFs.get(), null, carId)
+                    //     const driver = new Driver(stubFs.get(), null, driverId)
     
                     //     await car.drivers().attach(driver)
     
-                    //     firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {}
+                    //     stubFs.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {}
     
                     //     const before = test.firestore.makeDocumentSnapshot({}, '')
     
@@ -3605,7 +3510,7 @@ describe('Unit_Test', () => {
     
                     //     await car.drivers().updateCache(change)
     
-                    //     const driverSecureDoc = firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
+                    //     const driverSecureDoc = stubFs.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
                     //     const expectedDriverSecureDoc = {
                     //         [Stubs.CAR] : {
                     //             [carId] : {
@@ -3632,8 +3537,8 @@ describe('Unit_Test', () => {
                     //     const carId = uniqid()
                     //     const driverId = uniqid()
     
-                    //     const car = new CarM(stubFs, null, carId)
-                    //     const driver = new Driver(stubFs, null, driverId)
+                    //     const car = new CarM(stubFs.get(), null, carId)
+                    //     const driver = new Driver(stubFs.get(), null, driverId)
     
                     //     await car.drivers().attach(driver)
     
@@ -3641,7 +3546,7 @@ describe('Unit_Test', () => {
                     //         name : 'Mustang'
                     //     }
 
-                    //     firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {
+                    //     stubFs.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {
                     //         [Stubs.CAR] : {
                     //             [carId] : {
                     //                 name : data.name
@@ -3656,14 +3561,14 @@ describe('Unit_Test', () => {
     
                     //     await car.drivers().updateCache(change)
     
-                    //     const driverSecureDoc = firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
+                    //     const driverSecureDoc = stubFs.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
                     //     const expectedDriverSecureDoc = {
                     //         [Stubs.CAR] : {
                     //             [carId] : {}
                     //         }
                     //     }
                         
-                    //     util.printFormattedJson(firestoreMockData)
+                    //     util.printFormattedJson(stubFs.data())
 
                     //     expect(driverSecureDoc).to.deep.equal(expectedDriverSecureDoc)
                     // })
@@ -3683,8 +3588,8 @@ describe('Unit_Test', () => {
                     //     const carId = uniqid()
                     //     const driverId = uniqid()
 
-                    //     const car = new CarM(stubFs, null, carId)
-                    //     const driver = new Driver(stubFs, null, driverId)
+                    //     const car = new CarM(stubFs.get(), null, carId)
+                    //     const driver = new Driver(stubFs.get(), null, driverId)
 
                     //     await car.drivers().attach(driver)
 
@@ -3694,7 +3599,7 @@ describe('Unit_Test', () => {
                     //         }
                     //     }
 
-                    //     firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {
+                    //     stubFs.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {
                     //         [Stubs.CAR] : {
                     //             [carId] : data
                     //         }
@@ -3707,7 +3612,7 @@ describe('Unit_Test', () => {
 
                     //     await car.drivers().updateCache(change)
 
-                    //     const driverSecureDoc = firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
+                    //     const driverSecureDoc = stubFs.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
                     //     const expectedDriverSecureDoc = {
                     //         [Stubs.CAR] : {
                     //             [carId] : {}
@@ -3732,8 +3637,8 @@ describe('Unit_Test', () => {
                     //     const carId = uniqid()
                     //     const driverId = uniqid()
 
-                    //     const car = new CarM(stubFs, null, carId)
-                    //     const driver = new Driver(stubFs, null, driverId)
+                    //     const car = new CarM(stubFs.get(), null, carId)
+                    //     const driver = new Driver(stubFs.get(), null, driverId)
 
                     //     await car.drivers().attach(driver)
 
@@ -3744,7 +3649,7 @@ describe('Unit_Test', () => {
                     //         }
                     //     }
 
-                    //     firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {
+                    //     stubFs.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {
                     //         [Stubs.CAR] : {
                     //             [carId] : data
                     //         }
@@ -3761,7 +3666,7 @@ describe('Unit_Test', () => {
 
                     //     await car.drivers().updateCache(change)
 
-                    //     const driverSecureDoc = firestoreMockData[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
+                    //     const driverSecureDoc = stubFs.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
                     //     const expectedDriverSecureDoc = {
                     //         [Stubs.CAR] : {
                     //             [carId] : {
@@ -3770,7 +3675,7 @@ describe('Unit_Test', () => {
                     //         }
                     //     }
                         
-                    //     util.printFormattedJson(firestoreMockData)
+                    //     util.printFormattedJson(stubFs.data())
 
                     //     // expect(driverSecureDoc).to.deep.equal(expectedDriverSecureDoc)
                     // })
@@ -3779,7 +3684,7 @@ describe('Unit_Test', () => {
 
                         it('Fields to be cached should be definable on the relation between the owner and the property', async () => {
 
-                            const car = new Car(stubFs)
+                            const car = new Car(stubFs.get())
                             class Many2ManyRelationStub extends Many2ManyRelation
                             {
                                 constructor(owner: ModelImpl, propertyModelName: string, _db)
@@ -3793,7 +3698,7 @@ describe('Unit_Test', () => {
                                 }
                             }
     
-                            const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs)
+                            const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs.get())
     
                             const cachedFromPivot = [
                                 'brand',
@@ -3812,7 +3717,7 @@ describe('Unit_Test', () => {
                             const cachedField = 'crashes'
 
                             const driverId = uniqid()
-                            const driver = new Driver(stubFs, null, driverId)
+                            const driver = new Driver(stubFs.get(), null, driverId)
 
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
@@ -3825,7 +3730,7 @@ describe('Unit_Test', () => {
                             }
 
                             const carId = uniqid()
-                            const car = new CarM(stubFs, null, carId)
+                            const car = new CarM(stubFs.get(), null, carId)
 
                             await car.drivers().attach(driver)
 
@@ -3843,7 +3748,7 @@ describe('Unit_Test', () => {
 
                             await car.drivers().updateCache(change)
 
-                            const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                            const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
                             const expectedCarDoc = {
                                 [Stubs.DRIVER] : {
                                     [driverId] : {
@@ -3864,7 +3769,7 @@ describe('Unit_Test', () => {
                             const driverId = uniqid()
                             const carId = uniqid()
 
-                            const driver = new Driver(stubFs, null, driverId)
+                            const driver = new Driver(stubFs.get(), null, driverId)
 
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
@@ -3876,7 +3781,7 @@ describe('Unit_Test', () => {
                                 }
                             }
 
-                            const car = new CarM(stubFs, null, carId)
+                            const car = new CarM(stubFs.get(), null, carId)
 
                             await car.drivers().attach(driver)
 
@@ -3896,7 +3801,7 @@ describe('Unit_Test', () => {
 
                             await car.drivers().updateCache(change)
 
-                            const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                            const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
                             const expectedCarDoc = {
                                 [Stubs.DRIVER] : {
                                     [driverId] : {
@@ -3919,9 +3824,9 @@ describe('Unit_Test', () => {
                     //     const driverId = uniqid()
                     //     const carId = uniqid()
 
-                    //     firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
+                    //     stubFs.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
 
-                    //     const driver = new Driver(stubFs, null, driverId)
+                    //     const driver = new Driver(stubFs.get(), null, driverId)
 
                     //     class CarM extends Car {
                     //         drivers(): Many2ManyRelation
@@ -3933,7 +3838,7 @@ describe('Unit_Test', () => {
                     //         }
                     //     }
 
-                    //     const car = new CarM(stubFs, null, carId)
+                    //     const car = new CarM(stubFs.get(), null, carId)
 
                     //     await car.drivers().attach(driver)
 
@@ -3953,7 +3858,7 @@ describe('Unit_Test', () => {
 
                     //     await car.drivers().updateCache(change)
 
-                    //     const carDoc = firestoreMockData[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
+                    //     const carDoc = stubFs.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
                     //     const expectedCarDoc = {
                     //         [Stubs.DRIVER] : {
                     //             [driverId] : {
@@ -3970,24 +3875,24 @@ describe('Unit_Test', () => {
 
                 it('GetName of Pivot model should return a correct formatted name', async () => {
          
-                    const driver = new Driver(stubFs)
-                    const car = new Car(stubFs)
+                    const driver = new Driver(stubFs.get())
+                    const car = new Car(stubFs.get())
                     
                     const pivotId = `${car.getId()}_${driver.getId()}`
 
-                    const pivot = new Pivot(stubFs, pivotId, car, driver)
+                    const pivot = new Pivot(stubFs.get(), pivotId, car, driver)
     
                     expect(pivot.getName()).to.be.equal(`${Stubs.CAR}_${Stubs.DRIVER}`)
                 })
                
                 it('GetId of pivot model should return a correct formatted id', async () => {
     
-                    const driver = new Driver(stubFs)
-                    const car = new Car(stubFs)
+                    const driver = new Driver(stubFs.get())
+                    const car = new Car(stubFs.get())
     
                     const pivotId = `${car.getId()}_${driver.getId()}`
 
-                    const pivot = new Pivot(stubFs, pivotId, car, driver)
+                    const pivot = new Pivot(stubFs.get(), pivotId, car, driver)
     
                     expect(pivot.getId()).to.equal(pivotId)
                 })
@@ -4101,7 +4006,7 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const driver = new Driver(stubFs, null, driverId)
+                    const driver = new Driver(stubFs.get(), null, driverId)
                     
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
@@ -4113,13 +4018,13 @@ describe('Unit_Test', () => {
                         }
                     }
 
-                    const car = new CarM(stubFs, null, carId)
+                    const car = new CarM(stubFs.get(), null, carId)
 
                     await car.drivers().attach(driver)
 
                     const pivotId = `${carId}_${driverId}`
 
-                    const pivot = new Pivot(stubFs, pivotId, car, driver)
+                    const pivot = new Pivot(stubFs.get(), pivotId, car, driver)
 
                     const pivotData = {
                                 [Relations.PIVOT]: {
@@ -4137,7 +4042,7 @@ describe('Unit_Test', () => {
 
                     await pivot.updateCache(change)
 
-                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
                     const expectedCarDoc = {
                         [Stubs.DRIVER] : {
                             [driverId] : {
@@ -4166,7 +4071,7 @@ describe('Unit_Test', () => {
                     }
 
                     const driverId = uniqid()
-                    const driver = new DriverM(stubFs, null, driverId)
+                    const driver = new DriverM(stubFs.get(), null, driverId)
                     
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
@@ -4179,14 +4084,14 @@ describe('Unit_Test', () => {
                     }
 
                     const carId = uniqid()
-                    const car = new CarM(stubFs, null, carId)
+                    const car = new CarM(stubFs.get(), null, carId)
 
                     await car.drivers().attach(driver)
                     await driver.cars().attach(car)
 
                     const pivotId = `${carId}_${driverId}`
 
-                    const pivot = new Pivot(stubFs, pivotId, car, driver)
+                    const pivot = new Pivot(stubFs.get(), pivotId, car, driver)
 
                     const pivotData = {
                                 [Relations.PIVOT]: {
@@ -4204,7 +4109,7 @@ describe('Unit_Test', () => {
 
                     await pivot.updateCache(change)
 
-                    const carDoc = firestoreMockData[`${Stubs.CAR}/${carId}`]
+                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
                     const expectedCarDoc = {
                         [Stubs.DRIVER] : {
                             [driverId] : {
@@ -4217,7 +4122,7 @@ describe('Unit_Test', () => {
 
                     expect(carDoc).to.deep.equal(expectedCarDoc)
 
-                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
                     const expectedDriverDoc = {
                         [Stubs.CAR] : {
                             [carId] : {
@@ -4238,7 +4143,7 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const driver = new Driver(stubFs, null, driverId)
+                    const driver = new Driver(stubFs.get(), null, driverId)
                     
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
@@ -4252,13 +4157,13 @@ describe('Unit_Test', () => {
                         }
                     }
 
-                    const car = new CarM(stubFs, null, carId)
+                    const car = new CarM(stubFs.get(), null, carId)
 
                     await car.drivers().attach(driver)
 
                     const pivotId = `${carId}_${driverId}`
 
-                    const pivot = new Pivot(stubFs, pivotId, car, driver)
+                    const pivot = new Pivot(stubFs.get(), pivotId, car, driver)
 
                     const pivotData = {
                                 [Relations.PIVOT]: {
@@ -4276,7 +4181,7 @@ describe('Unit_Test', () => {
 
                     await pivot.updateCache(change)
 
-                    const carDoc = firestoreMockData[`${car.name}/${carId}`]
+                    const carDoc = stubFs.data()[`${car.name}/${carId}`]
                     const expectedCarDoc = {
                         [Stubs.DRIVER] : {
                             [driverId] : {
@@ -4309,8 +4214,8 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const car = new CarM(stubFs, null, carId)
-                    const driver = new Driver(stubFs, null, driverId)
+                    const car = new CarM(stubFs.get(), null, carId)
+                    const driver = new Driver(stubFs.get(), null, driverId)
 
                     await car.drivers().attach(driver)
 
@@ -4326,7 +4231,7 @@ describe('Unit_Test', () => {
 
                     await car.drivers().updateCache(change)
 
-                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
                     const expectedDriverDoc = {
                         [Stubs.CAR] : {
                             [carId] : {
@@ -4342,19 +4247,19 @@ describe('Unit_Test', () => {
                     const driverId = uniqid()
                     const carId = uniqid()
 
-                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.DRIVER] : {
                             [driverId] : true
                         }
                     }
                     
-                    firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                    stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
                         [Stubs.CAR] : {
                             [carId] : true
                         }
                     }
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
                     const drivers = await car.drivers().get() as Array<Driver>
                     
                     expect(drivers[0].getId()).to.be.equal(driverId)
@@ -4364,26 +4269,26 @@ describe('Unit_Test', () => {
                     const drivers2 = await car.drivers().get() as Array<Driver>
                     
                     expect(drivers2[0]).to.not.exist
-                    expect(firestoreMockData[`${Stubs.CAR}/${carId}`]).to.be.empty
+                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`]).to.be.empty
                 })
 
                 it('When properties are detached from the owner, the relations link on the properties should be deleteted', async () => {
                     const driverId = uniqid()
                     const carId = uniqid()
 
-                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.DRIVER] : {
                             [driverId] : true
                         }
                     }
                     
-                    firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                    stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
                         [Stubs.CAR] : {
                             [carId] : true
                         }
                     }
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
                     const drivers = await car.drivers().get() as Array<Driver>
                     
                     const cars = await drivers[0].cars().get() as Array<Car>
@@ -4400,7 +4305,7 @@ describe('Unit_Test', () => {
 
                     expect(cars2[0]).to.not.exist
 
-                    const driverDoc = firestoreMockData[`${Stubs.DRIVER}/${driverId}`]
+                    const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
                     const expectedDriverDoc = {
                         [Stubs.CAR] : {}
                     }
@@ -4412,13 +4317,13 @@ describe('Unit_Test', () => {
                     const driverId = uniqid()
                     const carId = uniqid()
 
-                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.DRIVER] : {
                             [driverId] : true
                         }
                     }
 
-                    firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`] = {
+                    stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`] = {
                         [Stubs.DRIVER] : {
                             id : driverId
                         },
@@ -4427,13 +4332,13 @@ describe('Unit_Test', () => {
                         }
                     }
                     
-                    firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                    stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
                         [Stubs.CAR] : {
                             [carId] : true
                         }
                     }
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
                     
                     const pivot = await car.drivers().pivot(driverId)
 
@@ -4443,7 +4348,7 @@ describe('Unit_Test', () => {
 
                     const pivot2 = await car.drivers().pivot(driverId)
 
-                    const pivotDoc = firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`]
+                    const pivotDoc = stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`]
 
                     expect(pivot2).to.not.exist
                     expect(pivotDoc).to.not.exist
@@ -4454,20 +4359,20 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const carId2 = uniqid()
 
-                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.DRIVER] : {
                             [driverId] : true
                         }
                     }
 
-                    firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                    stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
                         [Stubs.CAR] : {
                             [carId] : true,
                             [carId2] : true
                         }
                     }
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
                     const drivers = await car.drivers().get() as Array<Driver>
 
                     const cars = await drivers[0].cars().get() as Array<Car>
@@ -4488,7 +4393,7 @@ describe('Unit_Test', () => {
                     expect(carIds2).to.not.include(carId)
                     expect(carIds2).to.include(carId2)
 
-                    expect(firestoreMockData[`${Stubs.DRIVER}/${driverId}`]).to.not.be.empty
+                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId}`]).to.not.be.empty
                 })
 
                 it('When properties are detached from the owner, the pivot collection related to properties and owner should be deleteted', async () => {
@@ -4496,19 +4401,19 @@ describe('Unit_Test', () => {
                     const carId     = uniqid()
                     const carId2    = uniqid()
 
-                    firestoreMockData[`${Stubs.CAR}/${carId}`] = {
+                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.DRIVER] : {
                             [driverId] : true
                         }
                     }
 
-                    firestoreMockData[`${Stubs.CAR}/${carId2}`] = {
+                    stubFs.data()[`${Stubs.CAR}/${carId2}`] = {
                         [Stubs.DRIVER] : {
                             [driverId] : true
                         }
                     }
 
-                    firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`] = {
+                    stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`] = {
                         [Stubs.DRIVER] : {
                             id : driverId
                         },
@@ -4517,7 +4422,7 @@ describe('Unit_Test', () => {
                         }
                     }
 
-                    firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId2}_${driverId}`] = {
+                    stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId2}_${driverId}`] = {
                         [Stubs.DRIVER] : {
                             id : driverId
                         },
@@ -4526,14 +4431,14 @@ describe('Unit_Test', () => {
                         }
                     }
                     
-                    firestoreMockData[`${Stubs.DRIVER}/${driverId}`] = {
+                    stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
                         [Stubs.CAR] : {
                             [carId] : true,
                             [carId2] : true
                         }
                     }
 
-                    const car = new Car(stubFs, null, carId)
+                    const car = new Car(stubFs.get(), null, carId)
                     
                     const pivot = await car.drivers().pivot(driverId)
 
@@ -4545,10 +4450,10 @@ describe('Unit_Test', () => {
 
                     expect(pivot2).to.not.exist
 
-                    const pivotDoc = firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`]
+                    const pivotDoc = stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`]
                     expect(pivotDoc).to.not.exist
 
-                    const pivotDoc2 = firestoreMockData[`${Stubs.CAR}_${Stubs.DRIVER}/${carId2}_${driverId}`]
+                    const pivotDoc2 = stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId2}_${driverId}`]
                     expect(pivotDoc2).to.exist
                 })
             })
