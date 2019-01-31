@@ -54,34 +54,34 @@
 
                     </v-list>
             
-                    </v-flex>
+                </v-flex>
 
-                    <v-flex
-                        xs12 sm6
-                        md5 offset-md1
-                        lg5 offset-lg1
-                        xl5 offset-xl1
-                        v-show="!showHousheoldDetailDrawer"
-                    >
-                        <v-card dark>
-                            
-                            <v-toolbar>
+                <v-flex
+                    xs12 sm6
+                    md5 offset-md1
+                    lg5 offset-lg1
+                    xl5 offset-xl1
+                    v-show="!showHousheoldDetailDrawer"
+                >
+                    <v-card dark>
+                        
+                        <v-toolbar>
 
-                                <v-toolbar-title>Details</v-toolbar-title>
+                            <v-toolbar-title>Details</v-toolbar-title>
 
-                            </v-toolbar>
-                            
-                            <admin-household-detail-list
-                                :activeHousehold="activeHousehold"
-                            />
-        
-                        </v-card>
+                        </v-toolbar>
+                        
+                        <admin-household-detail-list
+                            :activeHousehold="activeHousehold"
+                        />
+    
+                    </v-card>
 
-                    </v-flex>
+                </v-flex>
                 
-                </v-layout>
-
             </v-layout>
+
+        </v-layout>
 
         <v-container>
 

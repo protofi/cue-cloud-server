@@ -8,6 +8,7 @@ import DataORMImpl from '../lib/ORM';
 import Household from '../lib/ORM/Models/Household';
 import * as baseStationCode from 'randomatic'
 import * as fakeUuid from 'uuid/v1'
+import Sensor from '../lib/ORM/Models/Sensor';
 const { PubSub } = require('@google-cloud/pubsub')
 
 const apiBasePath = '/api/v1'
@@ -114,7 +115,8 @@ export default (app: Application) => {
             
             const household = await db.household().find(householdId) as Household
 
-            const sensor = db.sensor()
+            const sensor = await db.sensor(null, fakeUuid())
+
             await household.sensors().attach(sensor)
 
             res.json({
@@ -142,68 +144,68 @@ export default (app: Application) => {
 
     authRouter.route('/sensors')
     
-        .put(async (req: Request, res: Response) => {
+        // .put(async (req: Request, res: Response) => {
         
-            const sensorAddedData = {}
+        //     const sensorAddedData = {}
 
-            try{
-                const householdQuerySnaps: firestore.QuerySnapshot = await fs.collection(Models.HOUSEHOLD).get()
+        //     try{
+        //         const householdQuerySnaps: firestore.QuerySnapshot = await fs.collection(Models.HOUSEHOLD).get()
                 
-                const households = new Array<Household>()
+        //         const households = new Array<Household>()
 
-                householdQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
-                    households.push(db.household(doc))
-                })
+        //         householdQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+        //             households.push(db.household(doc))
+        //         })
 
-                const data = [
-                    {
-                        name        : 'Dørklokken',
-                        location    : 'Gangen',
-                        icon_string : 'doorbell'
-                    },
-                    {
-                        name        : 'Røgalarmen',
-                        location    : 'Køkkenet',
-                        icon_string : 'firealarm'
-                    },
-                    {
-                        name        : 'Røgalarmen',
-                        location    : 'Stuen',
-                        icon_string : 'firealarm'
-                    }
-                ]
+        //         const data = [
+        //             {
+        //                 name        : 'Dørklokken',
+        //                 location    : 'Gangen',
+        //                 icon_string : 'doorbell'
+        //             },
+        //             {
+        //                 name        : 'Røgalarmen',
+        //                 location    : 'Køkkenet',
+        //                 icon_string : 'firealarm'
+        //             },
+        //             {
+        //                 name        : 'Røgalarmen',
+        //                 location    : 'Stuen',
+        //                 icon_string : 'firealarm'
+        //             }
+        //         ]
 
-                await asyncForEach(households, async (household: Household) => {
+        //         await asyncForEach(households, async (household: Household) => {
 
-                    const sensors: Array<ModelImpl> = []
+        //             const sensors: Array<ModelImpl> = []
                     
-                    sensors.push(await db.sensor().create(data[0]))
-                    sensors.push(await db.sensor().create(data[1]))
-                    sensors.push(await db.sensor().create(data[2]))
+        //             sensors.push(await db.sensor().create(data[0]))
+        //             sensors.push(await db.sensor().create(data[1]))
+        //             sensors.push(await db.sensor().create(data[2]))
 
-                    await household.sensors().attachBulk(sensors)
+        //             await household.sensors().attachBulk(sensors)
 
-                    sensors.forEach((sensor, i) => {
-                        if(!sensorAddedData[household.getId()]) sensorAddedData[household.getId()] = {}
-                        sensorAddedData[household.getId()][sensor.getId()] = data[i]
-                    })
-                })
-            }
-            catch(e)
-            {
-                res.status(INTERNAL_SERVER_ERROR).json({
-                    success : false,
-                    error : e
-                })
+        //             sensors.forEach((sensor, i) => {
+        //                 if(!sensorAddedData[household.getId()]) sensorAddedData[household.getId()] = {}
+        //                 sensorAddedData[household.getId()][sensor.getId()] = data[i]
+        //             })
+        //         })
+        //     }
+        //     catch(e)
+        //     {
+        //         res.status(INTERNAL_SERVER_ERROR).json({
+        //             success : false,
+        //             error : e
+        //         })
 
-                return
-            }
+        //         return
+        //     }
 
-            res.json({
-                success : true,
-                sensors : sensorAddedData
-            })
-        })
+        //     res.json({
+        //         success : true,
+        //         sensors : sensorAddedData
+        //     })
+        // })
 
         .delete(async (req: Request, res: Response) => {
         
@@ -235,12 +237,12 @@ export default (app: Application) => {
             
             const pubsub = new PubSub()
 
-            const sensorId = req.params.id
+            const sensorUUID = req.params.id
 
             const topicName = 'notification'
 
             const data = {
-                sensor_id : sensorId
+                sensor_UUID : sensorUUID
             }
 
             const messageId = await pubsub
@@ -252,7 +254,7 @@ export default (app: Application) => {
 
             res.json({
                 success: true,
-                sensor: sensorId,
+                sensor: sensorUUID,
                 msg : messageId
             })
         })

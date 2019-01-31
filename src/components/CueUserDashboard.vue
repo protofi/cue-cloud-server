@@ -18,8 +18,7 @@
 
 		</v-toolbar>
 
-        <v-container
-        >
+        <v-container>
             <v-card
                 v-for="sensor in sensors"
                 :key="sensor.id"

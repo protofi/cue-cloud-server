@@ -343,7 +343,7 @@
 					ripple
 					dark
 				>
-					Re-authenticate
+					Renew
 				</v-btn>
 
 				<v-btn

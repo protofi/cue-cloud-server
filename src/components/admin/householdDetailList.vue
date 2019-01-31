@@ -557,14 +557,13 @@ export default {
 			e.preventDefault()
 		
 			try{
+				console.log(this.sensorIdToBeConfigured)
 				await firestore.collection('sensors').doc(this.sensorIdToBeConfigured).set({
 					name : this.sensorName,
 					location : this.sensorLocation,
 					icon_string : this.sensorIcon
 				}, {
 					merge : true
-				}).catch(e => {
-
 				})
 
 				this.sensorName = ''
