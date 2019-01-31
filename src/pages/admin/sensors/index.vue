@@ -4,7 +4,7 @@
 		
 		<v-toolbar color="cyan" dark tabs>
 
-			<v-toolbar-title>Users</v-toolbar-title>
+			<v-toolbar-title>Sensors</v-toolbar-title>
 
 			<v-spacer></v-spacer>
 
@@ -46,7 +46,7 @@ export default {
       return {
         tab: null,
         items: [
-          'all', 'admins'
+          'all'
         ],
         text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.'
       }
