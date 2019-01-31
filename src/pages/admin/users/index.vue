@@ -1,162 +1,116 @@
 <template>
-    <v-container>
-        <v-layout column fill-height justify-center>
-            
-            <v-layout row wrap>
-                
-                <v-flex xs12 sm6 md6 lg6 xl6>
+    
+    <div>
 
-                    <v-card>
+        <v-toolbar
+            color="cyan"
+            dark
+            tabs
+        >
+
+			<v-toolbar-title>Users</v-toolbar-title>
+
+			<v-spacer></v-spacer>
+
+            <!-- <v-tabs
+				slot="extension"
+				v-model="tab"
+				color="cyan"
+				align-with-title
+			>
+				<v-tabs-slider color="white"></v-tabs-slider>
+
+				<v-tab v-for="item in items" :key="item">
+				{{ item }}
+				</v-tab>
 			
-                        <v-toolbar color="light-blue" dark>
+			</v-tabs> -->
 
-                            <v-toolbar-title>Users</v-toolbar-title>
+		</v-toolbar>
 
-                        </v-toolbar>
+        <v-tabs-items v-model="tab">
 
-                        <v-list two-line subheader>
-                        
-                            <v-list-tile
-                                v-for="user in users"
-                                :key="user.id"
-                                :to="user.path"
-                                avatar
-                                router
-                            >
-                                <v-list-tile-avatar>
-                                    <v-icon class="grey lighten-1 white--text">account_circle</v-icon>
-                                </v-list-tile-avatar>
+			<v-tab-item v-for="item in items" :key="item">
+				
+				<v-card flat>
+                    
+                    <v-layout column fill-height justify-center>
 
-                                <v-list-tile-content>
+                        <v-layout row wrap>
+                            
+                            <v-flex xs12 sm6 md6 lg6 xl6>
+                    
+                                <v-list two-line subheader>
                                     
-                                    <v-list-tile-title>{{ user.data.name ? user.data.name : user.id }}</v-list-tile-title>
-                                    <v-list-tile-sub-title></v-list-tile-sub-title>
-
-                                </v-list-tile-content>
-
-                                <v-list-tile-action v-if="user.data.claims">
-                                    
-                                    <v-layout>
-
-                                        <v-icon v-if="user.data.claims.isSuperAdmin">{{roles.isSuperAdmin.icon}}</v-icon>
-                                        <v-icon v-else-if="user.data.claims.isAdmin">{{roles.isAdmin.icon}}</v-icon>
-
-                                    </v-layout>
-
-                                </v-list-tile-action>
-
-                                <v-list-tile-action v-if="$store.getters['auth/isSuperAdmin']">
-
-                                    <v-layout>
-
-                                        <v-btn
-                                            icon
-                                            ripple
-                                            @click.stop.prevent="promotionDialog(user)"
+                                        <v-list-tile
+                                            v-for="user in users"
+                                            :key="user.id"
+                                            :to="user.path"
+                                            avatar
+                                            router
                                         >
-                                            <v-icon
-                                                color="grey"
-                                            >
-                                                verified_user
-                                            </v-icon>
+                                            <v-list-tile-avatar>
+                                                <v-icon class="grey lighten-1 white--text">account_circle</v-icon>
+                                            </v-list-tile-avatar>
 
-                                        </v-btn>
-                                        
-                                    </v-layout>
-                                         
-                                </v-list-tile-action>
+                                            <v-list-tile-content>
+                                                
+                                                <v-list-tile-title>{{ user.data.name ? user.data.name : user.id }}</v-list-tile-title>
+                                                <v-list-tile-sub-title></v-list-tile-sub-title>
 
-                            </v-list-tile>
+                                            </v-list-tile-content>
 
-                        </v-list>
+                                            <v-list-tile-action v-if="user.data.claims">
+                                                
+                                                <v-layout>
 
-                    </v-card>
+                                                    <v-icon v-if="user.data.claims.isSuperAdmin">{{roles.isSuperAdmin.icon}}</v-icon>
+                                                    <v-icon v-else-if="user.data.claims.isAdmin">{{roles.isAdmin.icon}}</v-icon>
+
+                                                </v-layout>
+
+                                            </v-list-tile-action>
+
+                                            <v-list-tile-action v-if="$store.getters['auth/isSuperAdmin']">
+
+                                                <v-layout>
+
+                                                    <v-btn
+                                                        icon
+                                                        ripple
+                                                        @click.stop.prevent="promotionDialog(user)"
+                                                    >
+                                                        <v-icon
+                                                            color="grey"
+                                                        >
+                                                            verified_user
+                                                        </v-icon>
+
+                                                    </v-btn>
+                                                    
+                                                </v-layout>
+                                                    
+                                            </v-list-tile-action>
+
+                                        </v-list-tile>
+
+                                    </v-list>
+                        
+                            </v-flex>
+
+                        </v-layout>
+
+                    </v-layout>
+
+        		</v-card>
+				
+			</v-tab-item>
+
+		</v-tabs-items>
+
         
-                </v-flex>
 
-            </v-layout>
-
-        </v-layout>
-
-        <v-dialog v-model="showUserPromotionDialog" max-width="400px">
-
-            <v-card v-if="userToBePromoted">
-
-                <v-card-title>
-
-                    <span class="headline">Promote User</span>
-                
-                </v-card-title>
-
-                <v-card-text>
-
-                    <v-form ref="userPromotionForm">
-
-                        <v-container grid-list-md>
-
-                            <v-layout wrap>
-
-                                <v-flex xs12>
-                                    <v-text-field
-                                        label="User ID"
-                                        disabled
-                                        name="id"
-                                        v-model="userToBePromoted.id">
-                                    </v-text-field>
-                                </v-flex>
-
-                                <v-flex xs12>
-                                    <v-text-field
-                                        label="Name"
-                                        disabled
-                                        v-model="userToBePromoted.data.name">
-                                    </v-text-field>
-                                </v-flex>
-
-                                <v-flex xs12 row>
-                                   
-                                    <v-checkbox
-                                        v-for="(role, key) in roles"
-                                        :key="key"
-                                        :label="role.name"
-                                        v-model="userClaims[key]"
-                                    ></v-checkbox>
-
-                                </v-flex>
-
-                            </v-layout>
-
-                        </v-container>
-
-                        <v-alert
-                            :value="userPromotionError"
-                            color="error"
-                            icon="warning"
-                            transition="scale-transition"
-                            outline
-                        >
-                            {{ userPromotionErrorMessage }}
-
-                        </v-alert>
-
-                    </v-form>
-
-                </v-card-text>
-
-                <v-card-actions>
-
-                    <v-spacer></v-spacer>
-
-                    <v-btn color="blue darken-1" flat @click="showUserPromotionDialog = false">Close</v-btn>
-                    <v-btn color="blue darken-1" flat type="submit" @click="userClaimsubmit">Promote</v-btn>
-                
-                </v-card-actions>
-
-            </v-card>
-            
-        </v-dialog>
-
-    </v-container>
+    </div>
 
 </template>
 
@@ -178,7 +132,12 @@
                 userToBePromoted : null,
                 userPromotionErrorMessage : '',
                 userPromotionError : null,
-                userClaims : {}
+                userClaims : {},
+                
+                tab: null,
+                items: [
+                    'all', 'users', 'admins'
+                ],
             }
         },
         watch : {
@@ -220,6 +179,20 @@
                 })
 
                 return users
+            },
+
+            notAdmins()
+            {
+                return this.users.filter((user) => {
+                    return !user.data.claims.isAdmin && !user.data.claims.isSuperAdmin
+                })
+            },
+
+            admins()
+            {
+                return this.users.filter((user) => {
+                    return user.data.claims.isAdmin || user.data.claims.isSuperAdmin
+                })
             }
         },
         methods : {
