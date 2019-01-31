@@ -544,6 +544,7 @@ describe('Emulated_Rules', () => {
         })
         
         describe('Update', async () => {
+            
             it('Unautherized users should not be able to update data on Sensors', async () => {
                 const db = await setup(null, {
                     [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {}
@@ -591,28 +592,28 @@ describe('Emulated_Rules', () => {
                 })))
             })
 
-            // it('Users should be able to update data on related Sensors', async () => {
-            //     const db = await setup(testUserDataOne, {
-            //         [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
-            //             users : { [testUserDataOne.uid] : true },
-            //         }
-            //     })
+            it('Users should be able to update data on related Sensors', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
+                        users : { [testUserDataOne.uid] : true },
+                    }
+                })
 
-            //     const ref = db.collection(Models.SENSOR)
+                const ref = db.collection(Models.SENSOR)
 
-            //     expect(await firestore.assertSucceeds(ref.doc(testSensorDataOne.uid).update({})))
-            // })
+                expect(await firestore.assertSucceeds(ref.doc(testSensorDataOne.uid).update({})))
+            })
 
-            // it('Admin users should be able to update data on Sensors', async () => {
-            //     const db = await setup(testAdminUserData, {
-            //         [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
-            //             users : {}
-            //         }
-            //     })
-            //     const ref = db.collection(Models.SENSOR)
+            it('Admin users should be able to update data on Sensors', async () => {
+                const db = await setup(testAdminUserData, {
+                    [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
+                        users : {}
+                    }
+                })
+                const ref = db.collection(Models.SENSOR)
 
-            //     expect(await firestore.assertSucceeds(ref.doc(testSensorDataOne.uid).update({})))
-            // })
+                expect(await firestore.assertSucceeds(ref.doc(testSensorDataOne.uid).update({})))
+            })
         })
         
         describe('Delete', async () => {

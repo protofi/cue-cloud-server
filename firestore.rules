@@ -1,6 +1,6 @@
 service cloud.firestore{
 	match /databases/{database}/documents {
-		
+
 		match /{documents=**} {
 			allow read: if false
 			allow write: if false
@@ -12,15 +12,15 @@ service cloud.firestore{
 			allow read: if isSelf() || isAdmin()
 
 			allow update: if ( isSelf()
-							&& reqDataHasNo(['id', 'claims', 'email'])
+							&& !requestHasAny(['id', 'claims', 'email'])
 							&& (
-								reqDataHasNo(["households"]) // If request has no households field: allow
+								!requestHasAny(['households']) // If request has no households field: allow
 								|| (
-									!request.resource.data.households.keys().hasAll(["pivot"]) // If request has no households.pivot field: allow
+									!request.resource.data.households.keys().hasAll(['pivot']) // If request has no households.pivot field: allow
 									|| (
-										!request.resource.data.households.pivot.keys().hasAll(["role"]) // If request has no households.pivot.role field: allow
+										!request.resource.data.households.pivot.keys().hasAll(['role']) // If request has no households.pivot.role field: allow
 										&& (
-											!request.resource.data.households.pivot.keys().hasAll(["accepted"]) 
+											!request.resource.data.households.pivot.keys().hasAll(['accepted']) 
 											|| request.resource.data.households.pivot.accepted == true // If request has households.pivot.accepted it must be true
 										) 
 									)
@@ -48,18 +48,18 @@ service cloud.firestore{
 								|| isHouseholdAdmin()
 							)
 						) || isAdmin()
-							
+
 			allow delete: if false
 
 			function isHouseholdAdmin() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.households.pivot.role == "admin" }
 			function isResident() { return resource.data.users.keys().hasAll([request.auth.uid]) }
-			function reqHasUsersField() { return request.resource.data.keys().hasAll(["users"]) }
+			function reqHasUsersField() { return request.resource.data.keys().hasAll(['users']) }
 		}
 
 		match /sensors/{sensorId} {
 			allow create: if false
 			allow read:   if isAdmin() || isRelationed()
-			allow update: if reqDataHasNo(['id', 'users']) && (isAdmin() || isRelationed())
+			allow update: if !requestHasAny(['id', 'users']) && (isAdmin() || isRelationed())
 			allow delete: if false
 
 			function isRelationed() { return resource.data.users.keys().hasAll([request.auth.uid]) }
@@ -81,7 +81,7 @@ service cloud.firestore{
 			allow delete: if false
 		}
 
-		function reqDataHasNo(fields) { return !request.resource.data.keys().hasAny(fields) }
+		function requestHasAny(fields) { return request.writeFields.hasAny(fields) }
 		function isAuth() { return (request.auth.uid != null) }
 		function isAdmin() { return request.auth.token.isAdmin || request.auth.token.isSuperAdmin }
 		function isSuperAdmin() { return request.auth.token.isSuperAdmin }
