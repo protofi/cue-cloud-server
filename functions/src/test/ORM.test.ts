@@ -182,44 +182,6 @@ describe('Unit_Test', () => {
     
                     expect(carDoc.exists).to.false
                 })
-
-                // it('It should be possible to define actions to be executed onCreate', async () => {
-
-                //     const command = new ModelCommandStub()
-                //     const commandSpy = sinon.spy(command, 'execute')
-                //     class ModelStub extends ModelImpl
-                //     {
-                //         getModelAction()
-                //         {
-                //             return this.onCreateAction
-                //         }
-                //     }
-    
-                //     const model = new ModelStub('', stubFs.get())
-    
-                //     model.addOnCreateAction(command)
-                    
-                //     const modelAction = model.getModelAction()
-                    
-                //     expect(modelAction).to.not.be.null
-                //     expect(modelAction).equal(command)
-                //     await modelAction.execute(model)
-                //     expect(commandSpy.callCount).to.equals(1)
-                // })
-    
-                // it('onCreate actions should be executed when .onCreate on Model is invoked', async () => {
-    
-                //     const command = new ModelCommandStub()
-                //     const commandSpy = sinon.spy(command, 'execute')
-    
-                //     const model = new ModelImpl('', stubFs.get())
-    
-                //     model.addOnCreateAction(command)
-                    
-                //     model.onCreate()
-                    
-                //     expect(commandSpy.callCount).to.equals(1)
-                // })
     
                 it('If no action is defined invokation of .onCreate should be ignored', async () => {
     
@@ -2893,44 +2855,6 @@ describe('Unit_Test', () => {
                     expect(cd3.exists).to.be.false
                 })
 
-                // it('Write data directly to the collections the attaching', async () => {
-
-                //     const batch     = adminFs.batch()
-                //     const carId     = uniqid()
-
-                //     const driverId1: string = uniqid()
-                //     const driverId2: string = uniqid()
-                //     const driverId3: string = uniqid()
-                    
-                //     const car = new Car(adminFs, null, carId)
-
-                //     await car.drivers().attachByIdBulk([
-                //         driverId1,
-                //         driverId2,
-                //         driverId3
-                //     ], batch)
-
-                //     const c = await adminFs.doc(`${Stubs.CAR}/${carId}`).get()
-
-                //     const d1 = await adminFs.doc(`${Stubs.DRIVER}/${driverId1}`).get()
-                //     const d2 = await adminFs.doc(`${Stubs.DRIVER}/${driverId2}`).get()
-                //     const d3 = await adminFs.doc(`${Stubs.DRIVER}/${driverId3}`).get()
-
-                //     const cd1 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`).get()
-                //     const cd2 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`).get()
-                //     const cd3 = await adminFs.doc(`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`).get()
-
-                //     expect(c.exists).to.be.false
-
-                //     expect(d1.exists).to.be.false
-                //     expect(d2.exists).to.be.false
-                //     expect(d3.exists).to.be.false
-
-                //     expect(cd1.exists).to.be.false
-                //     expect(cd2.exists).to.be.false
-                //     expect(cd3.exists).to.be.false
-                // })
-
                 it('Retrieve attached blank model of relation', async () => {
 
                     const user = db.user()
@@ -2994,7 +2918,7 @@ describe('Unit_Test', () => {
                     }}
 
                     await user.update({
-                        [sensor.name] : { 
+                        [sensor.name] : {  
                             [sensorId] : {
                                 location: 'Office'
                             },
@@ -3103,70 +3027,7 @@ describe('Unit_Test', () => {
                     docsToBeDeleted.push(`${sensor.name}_${user.name}/${sensorId}_${userId}`)
                 })
 
-                // it('Fields to be cached from the owner on the pivot should be definable on the relation between the owner and the property', async () => {
-
-                //     const driver = new Driver(firestoreStub)
-                //     const car = new Car(adminFs)
-                    
-                //     class Many2ManyRelationStub extends Many2ManyRelation
-                //     {
-                //         constructor(owner: ModelImpl, propertyModelName: string, _db)
-                //         {
-                //             super(owner, propertyModelName, _db)
-                //         }
-
-                //         getCachableFields()
-                //         {
-                //             return this.cachedOnToPivot
-                //         }
-                //     }
-
-                //     const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, firestoreStub)
-
-                //     const cachedOnPivot = [
-                //         'brand',
-                //         'year'
-                //     ]
-
-                //     rel.defineCachableFields(null, null, cachedOnPivot)
-
-                //     const cachableFields = rel.getCachableFields()
-
-                //     expect(cachedOnPivot).to.be.equal(cachableFields)
-                // })
-
                 describe('Cache Layer', () => {
-
-                    it('Fields to be cached from the pivot to the owner should be definable on the relation between the owner and the property', async () => {
-
-                        const car = new Car(stubFs.get())
-                        
-                        class Many2ManyRelationStub extends Many2ManyRelation
-                        {
-                            constructor(owner: ModelImpl, propertyModelName: string, _db)
-                            {
-                                super(owner, propertyModelName, _db)
-                            }
-
-                            getCachableFields()
-                            {
-                                return this.cacheFromPivot
-                            }
-                        }
-
-                        const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs.get())
-
-                        const cachedFromPivot = [
-                            'brand',
-                            'year'
-                        ]
-
-                        rel.defineCachableFields(null, cachedFromPivot)
-
-                        const cache = rel.getCachableFields()
-
-                        expect(cachedFromPivot).to.be.equal(cache)
-                    })
 
                     describe('From owner to property model', () => {
 
@@ -3180,7 +3041,7 @@ describe('Unit_Test', () => {
                                 {
                                     super(owner, propertyModelName, _db)
                                 }
-    
+
                                 getCachableFields()
                                 {
                                     return this.cacheOnToProperty
@@ -3193,20 +3054,20 @@ describe('Unit_Test', () => {
                                 'brand',
                                 'year'
                             ]
-    
+
                             rel.defineCachableFields(cachedToProperty)
-    
+   
                             const cache = rel.getCachableFields()
-    
+   
                             expect(cachedToProperty).to.be.equal(cache)
                         })
-    
+   
                         it('Fields defined as cachable should be cached when new field is added', async () => {
     
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany('drivers')
+                                    return this.belongsToMany(Stubs.DRIVER)
                                             .defineCachableFields([
                                                 'name'
                                             ])
@@ -3259,7 +3120,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany('drivers')
+                                    return this.belongsToMany(Stubs.DRIVER)
                                             .defineCachableFields([
                                                 'name'
                                             ])
@@ -3320,7 +3181,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany('drivers')
+                                    return this.belongsToMany(Stubs.DRIVER)
                                             .defineCachableFields([
                                                 cachedField,
                                             ])
@@ -3384,7 +3245,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany('drivers')
+                                    return this.belongsToMany(Stubs.DRIVER)
                                             .defineCachableFields([
                                                 cachedField,
                                             ])
@@ -3446,7 +3307,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany('drivers')
+                                    return this.belongsToMany(Stubs.DRIVER)
                                             .defineCachableFields([
                                                 'name'
                                             ])
@@ -3481,7 +3342,7 @@ describe('Unit_Test', () => {
                     //     class CarM extends Car {
                     //         drivers(): Many2ManyRelation
                     //         {
-                    //             return this.belongsToMany('drivers')
+                    //             return this.belongsToMany(Stubs.DRIVER)
                     //                     .defineCachableFields([
                     //                         `name${Models.SECURE_SURFIX}`
                     //                     ])
@@ -3527,7 +3388,7 @@ describe('Unit_Test', () => {
                     //     class CarM extends Car {
                     //         drivers(): Many2ManyRelation
                     //         {
-                    //             return this.belongsToMany('drivers')
+                    //             return this.belongsToMany(Stubs.DRIVER)
                     //                     .defineCachableFields([
                     //                         `name${Models.SECURE_SURFIX}`
                     //                     ])
@@ -3578,7 +3439,7 @@ describe('Unit_Test', () => {
                     //     class CarM extends Car {
                     //         drivers(): Many2ManyRelation
                     //         {
-                    //             return this.belongsToMany('drivers')
+                    //             return this.belongsToMany(Stubs.DRIVER)
                     //                     .defineCachableFields([
                     //                         `service${Models.SECURE_SURFIX}`
                     //                     ])
@@ -3627,7 +3488,7 @@ describe('Unit_Test', () => {
                     //     class CarM extends Car {
                     //         drivers(): Many2ManyRelation
                     //         {
-                    //             return this.belongsToMany('drivers')
+                    //             return this.belongsToMany(Stubs.DRIVER)
                     //                     .defineCachableFields([
                     //                         `service${Models.SECURE_SURFIX}`
                     //                     ])
@@ -3679,6 +3540,39 @@ describe('Unit_Test', () => {
 
                     //     // expect(driverSecureDoc).to.deep.equal(expectedDriverSecureDoc)
                     // })
+
+                    //  it('Fields to be cached from the owner on the pivot should be definable on the relation between the owner and the property', async () => {
+
+                    //     const driver = new Driver(stubFs.data())
+                    //     const car = new Car(adminFs)
+                        
+                    //     class Many2ManyRelationStub extends Many2ManyRelation
+                    //     {
+                    //         constructor(owner: ModelImpl, propertyModelName: string, _db)
+                    //         {
+                    //             super(owner, propertyModelName, _db)
+                    //         }
+
+                    //         getCachableFields()
+                    //         {
+                    //             return this.cachedOnToPivot
+                    //         }
+                    //     }
+
+                    //     const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, firestoreStub)
+
+                    //     const cachedOnPivot = [
+                    //         'brand',
+                    //         'year'
+                    //     ]
+
+                    //     rel.defineCachableFields(null, null, cachedOnPivot)
+
+                    //     const cachableFields = rel.getCachableFields()
+
+                    //     expect(cachedOnPivot).to.be.equal(cachableFields)
+                    // })
+
 
                     describe('From pivot to owner model', () => {
 
@@ -4202,7 +4096,7 @@ describe('Unit_Test', () => {
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
                         {
-                            return this.belongsToMany('drivers')
+                            return this.belongsToMany(Stubs.DRIVER)
                                     .defineCachableFields([
                                         cacheField
                                     ], [
