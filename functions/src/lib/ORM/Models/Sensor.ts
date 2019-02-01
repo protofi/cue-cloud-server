@@ -8,7 +8,6 @@ export default class Sensor extends ModelImpl {
 
     static readonly f = {
         ID          : 'id',
-        UUID        : 'uuid',
         NAME        : 'name',
         LOCATION    : 'location',
         ICON        : 'icon_string',

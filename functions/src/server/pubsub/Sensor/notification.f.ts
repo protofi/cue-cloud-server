@@ -4,7 +4,7 @@ import DataORMImpl from '../../lib/ORM'
 import Sensor from '../../lib/ORM/Models/Sensor'
 import { Models } from '../../lib/ORM/Models';
 import { forOwn, capitalize, isEmpty } from "lodash"
-import { Errors, Env, WhereFilterOP } from '../../lib/const';
+import { Env } from '../../lib/const';
 import User from '../../lib/ORM/Models/User';
 
 exports = module.exports = pubsub
@@ -15,14 +15,7 @@ exports = module.exports = pubsub
 
 		const sensorUUID = message.attributes.sensor_UUID
 
-		const sensorQuery = await db.sensor().where(Sensor.f.UUID, WhereFilterOP.EQUAL, sensorUUID).get()
-
-		if(sensorQuery.empty) throw Error(Errors.MODEL_NOT_FOUND)
-		if(sensorQuery.size > 1) throw Error(Errors.GENERAL_ERROR)
-		
-		const sensorSnap: firestore.QueryDocumentSnapshot = sensorQuery.docs[0]
-
-		const sensor: Sensor = db.sensor(sensorSnap)
+		const sensor = await db.sensor().findOrFail(sensorUUID)
 
 		const users = await sensor.secure().getField(Models.USER)
 
@@ -55,8 +48,12 @@ exports = module.exports = pubsub
 				sensor_id : sensorUUID,
 				title : capitalize(notificationTitle),
 				android_channel_id : 'distinct vibration',
-				click_action : 'FLUTTER_NOTIFICATION_CLICK'
-			}
+				click_action : 'FLUTTER_NOTIFICATION_CLICK',
+			},
+			// notification : {
+			// 	title : capitalize(notificationTitle),
+			// 	sound : 'default'
+			// }
 		}
 
 		const iOSPayload = {
@@ -89,7 +86,6 @@ exports = module.exports = pubsub
 				androidTokens,
 				androidPayload
 			))
-		
 
 		return Promise.all(promises).catch(console.error)
 	}

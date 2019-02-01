@@ -26,7 +26,7 @@ exports = module.exports = functions.firestore
 
         sensor.onDelete(),
         sensor.users().detach(),
-        sensor.household().unset(),
+        sensor.household().unset()
 
     ]).catch(console.error)
 })

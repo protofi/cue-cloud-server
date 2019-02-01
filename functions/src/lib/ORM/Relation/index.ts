@@ -1,5 +1,5 @@
 import { Change } from "firebase-functions"
-import { asyncForEach, difference } from "../../util"
+import { asyncForEach, difference, printFormattedJson } from "../../util"
 import { Relations } from "../../const"
 import { singular } from "pluralize"
 import ModelImpl, { Models } from "../Models"
@@ -109,9 +109,6 @@ export default class RelationImpl implements Relation{
                 newSecureCacheData[`${this.owner.name}.${ownerId}.${field.replace(Models.SECURE_SURFIX,'')}`] = cachableFieldAfter
             else
                 newCacheData[`${this.owner.name}.${ownerId}.${field}`] = cachableFieldAfter
-
-            // printFormattedJson(newCacheData)
-
         })
 
         return {

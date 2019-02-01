@@ -756,7 +756,8 @@ describe('Integration_Test', () => {
                 expect(firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`]).to.exist
             })
 
-            it('Should fail if Sensor with UUID is already create', async () => {
+            it('Should not override Sensor if Sensor with UUID is already created', async () => {
+
                 // mock data
                 firestoreMockData[`${Models.BASE_STATION}/${baseStationUUID}`] = {
                     [Models.HOUSEHOLD] : {
@@ -767,7 +768,8 @@ describe('Integration_Test', () => {
                 firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`] = {
                     [Models.HOUSEHOLD] : {
                         id : householdId
-                    }
+                    },
+                    [Sensor.f.EVENT] : true
                 }
                 
                 const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
@@ -787,7 +789,17 @@ describe('Integration_Test', () => {
                     error = e.message
                 }
 
-                expect(error).to.exist
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`]
+
+                const expectedSensorDoc = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    },
+                    [Sensor.f.EVENT] : true
+                }
+
+                expect(sensorDoc).to.be.deep.equal(expectedSensorDoc)
+                expect(error).to.not.exist
             })
 
             it('Sending a message should create a Sensor related to the claiming Household', async () => {
@@ -850,41 +862,20 @@ describe('Integration_Test', () => {
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(0)
             })
 
-            it('Sending a message with Sensor UUID assigned to more than one Sensor should fail', async () => {
-                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
-                
-                // mock data
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                    [Sensor.f.UUID] : sensorOneUUID
-                }
-
-                firestoreMockData[`${Models.SENSOR}/${sensorTwoUUID}`] = {
-                    [Sensor.f.UUID] : sensorOneUUID
-                }
-
-                await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
-                    attributes: {
-                        sensor_UUID : sensorOneUUID
-                    }
-                })
-
-                expect(messagingSendToDeviceSpy.callCount).to.be.equal(0)
-            })
-
-            it('If user has muted sensor, no notification should be send', async () => {
+            it('If user has muted sensor, no notification should be send, but event should be registered on sensor', async () => {
                 const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
 
                 // mock data
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                    [Sensor.f.UUID] : sensorOneUUID
+                firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`] = {
                 }
 
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
                             [User.f.FCM_TOKENS] : {
-                                [FCMTokenOne] : true
+                                [FCMTokenOne] : {
+                                    [User.f.CONTEXT._] : User.f.CONTEXT.IOS 
+                                }
                             },
                             [Relations.PIVOT] : {
                                 [Sensor.f[Relations.PIVOT][Models.USER].MUTED] : true
@@ -900,6 +891,12 @@ describe('Integration_Test', () => {
                     }
                 })
 
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`]
+                const expectedSensorDoc = {
+                    [Sensor.f.EVENT] : true
+                }
+
+                expect(sensorDoc).to.be.deep.equal(expectedSensorDoc)
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(0)
             })
 
@@ -907,11 +904,10 @@ describe('Integration_Test', () => {
                 const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
 
                 // mock data
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                    [Sensor.f.UUID] : sensorOneUUID
+                firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`] = {
                 }
 
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {}
                     }
@@ -924,19 +920,24 @@ describe('Integration_Test', () => {
                     }
                 })
 
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`]
+                const expectedSensorDoc = {
+                    [Sensor.f.EVENT] : true
+                }
+
+                expect(sensorDoc).to.be.deep.equal(expectedSensorDoc)
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(0)
             })
 
-            it('Should send notification with title  if sensor has no Name field (Android)', async () => {
+            it('Should send notification with `Unconfigured sensor` title if sensor has no Name field (Android)', async () => {
                 const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
 
                 // mock data
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                    [Sensor.f.UUID] : sensorOneUUID,
+                firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`] = {
                     [Sensor.f.LOCATION] : 'living room'
                 }
 
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
                             [User.f.FCM_TOKENS] : {
@@ -955,22 +956,29 @@ describe('Integration_Test', () => {
                     }
                 })
 
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`]
+                const expectedSensorDoc = {
+                    [Sensor.f.EVENT] : true,
+                    [Sensor.f.LOCATION] : 'living room'
+                }
+
+                expect(sensorDoc).is.deep.equal(expectedSensorDoc)
+
                 const payload = messagingSendToDeviceSpy.args[0][1]
 
                 expect(payload.data.title).is.equal('Unconfigured sensor')
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
             })
 
-            it('Should send notification with title  if sensor has no Name field (iOS)', async () => {
+            it('Should send notification with title `Unconfigured sensor` if sensor has no Name field (iOS)', async () => {
                 const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
 
                 // mock data
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                    [Sensor.f.UUID] : sensorOneUUID,
+                firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`] = {
                     [Sensor.f.LOCATION] : 'living room'
                 }
 
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
                             [User.f.FCM_TOKENS] : {
@@ -988,6 +996,14 @@ describe('Integration_Test', () => {
                         sensor_UUID : sensorOneUUID
                     }
                 })
+                
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`]
+                const expectedSensorDoc = {
+                    [Sensor.f.LOCATION] : 'living room',
+                    [Sensor.f.EVENT] : true
+                }
+
+                expect(sensorDoc).is.deep.equal(expectedSensorDoc)
 
                 const payload = messagingSendToDeviceSpy.args[0][1]
 
@@ -995,16 +1011,15 @@ describe('Integration_Test', () => {
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
             })
 
-            it('Should send notification with title  if sensor has no Location field (Android)', async () => {
+            it('Should send notification with title `Unconfigured sensor` if sensor has no Location field (Android)', async () => {
                 const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
 
                 // mock data
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                    [Sensor.f.UUID] : sensorOneUUID,
+                firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`] = {
                     [Sensor.f.NAME] : 'sensor'
                 }
 
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
                             [User.f.FCM_TOKENS] : {
@@ -1023,22 +1038,29 @@ describe('Integration_Test', () => {
                     }
                 })
 
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`]
+                const expectedSensorDoc = {
+                    [Sensor.f.NAME] : 'sensor',
+                    [Sensor.f.EVENT] : true
+                }
+
+                expect(sensorDoc).is.deep.equal(expectedSensorDoc)
+
                 const payload = messagingSendToDeviceSpy.args[0][1]
 
                 expect(payload.data.title).is.equal('Unconfigured sensor')
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
             })
 
-            it('Should send notification with title  if sensor has no Location field (iOS)', async () => {
+            it('Should send notification with title `Unconfigured sensor` if sensor has no Location field (iOS)', async () => {
                 const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
 
                 // mock data
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                    [Sensor.f.UUID] : sensorOneUUID,
+                firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`] = {
                     [Sensor.f.NAME] : 'sensor'
                 }
 
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
                             [User.f.FCM_TOKENS] : {
@@ -1056,6 +1078,14 @@ describe('Integration_Test', () => {
                         sensor_UUID : sensorOneUUID
                     }
                 })
+
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`]
+                const expectedSensorDoc = {
+                    [Sensor.f.NAME] : 'sensor',
+                    [Sensor.f.EVENT] : true
+                }
+
+                expect(sensorDoc).is.deep.equal(expectedSensorDoc)
 
                 const payload = messagingSendToDeviceSpy.args[0][1]
 
@@ -1070,13 +1100,12 @@ describe('Integration_Test', () => {
                 const sensorLocation = 'stuen'
 
                 // mock data
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                    [Sensor.f.UUID] : sensorOneUUID,
+                firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`] = {
                     [Sensor.f.NAME] : sensorName,
                     [Sensor.f.LOCATION] : sensorLocation
                 }
 
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
                             [User.f.FCM_TOKENS] : {
@@ -1094,6 +1123,15 @@ describe('Integration_Test', () => {
                         sensor_UUID : sensorOneUUID
                     }
                 })
+
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`]
+                const expectedSensorDoc = {
+                    [Sensor.f.EVENT] : true,
+                    [Sensor.f.NAME] : sensorName,
+                    [Sensor.f.LOCATION] : sensorLocation
+                }
+
+                expect(sensorDoc).is.deep.equal(expectedSensorDoc)
 
                 const payload = messagingSendToDeviceSpy.args[0][1]
 
@@ -1110,13 +1148,12 @@ describe('Integration_Test', () => {
                 const sensorLocation = 'stuen'
 
                 // mock data
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                    [Sensor.f.UUID] : sensorOneUUID,
+                firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`] = {
                     [Sensor.f.NAME] : sensorName,
                     [Sensor.f.LOCATION] : sensorLocation
                 }
 
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
                             [User.f.FCM_TOKENS] : {
@@ -1134,6 +1171,15 @@ describe('Integration_Test', () => {
                         sensor_UUID : sensorOneUUID
                     }
                 })
+
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`]
+                const expectedSensorDoc = {
+                    [Sensor.f.NAME] : sensorName,
+                    [Sensor.f.LOCATION] : sensorLocation,
+                    [Sensor.f.EVENT] : true
+                }
+
+                expect(sensorDoc).is.deep.equal(expectedSensorDoc)
 
                 const payload = messagingSendToDeviceSpy.args[0][1]
 
@@ -1147,11 +1193,9 @@ describe('Integration_Test', () => {
                 const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
 
                 // mock data
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                    [Sensor.f.UUID] : sensorOneUUID
-                }
+                firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`] = {}
 
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
                             [User.f.FCM_TOKENS] : {
@@ -1170,6 +1214,13 @@ describe('Integration_Test', () => {
                     }
                 })
 
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`]
+                const expectedSensorDoc = {
+                    [Sensor.f.EVENT] : true
+                }
+
+                expect(sensorDoc).is.deep.equal(expectedSensorDoc)
+
                 const sendToTokens = messagingSendToDeviceSpy.args[0][0]
                 const payload = messagingSendToDeviceSpy.args[0][1]
 
@@ -1182,11 +1233,9 @@ describe('Integration_Test', () => {
                 const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
 
                 // mock data
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                    [Sensor.f.UUID] : sensorOneUUID
-                }
+                firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`] = {}
 
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
                             [User.f.FCM_TOKENS] : {
@@ -1205,6 +1254,13 @@ describe('Integration_Test', () => {
                     }
                 })
 
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`]
+                const expectedSensorDoc = {
+                    [Sensor.f.EVENT] : true
+                }
+
+                expect(sensorDoc).is.deep.equal(expectedSensorDoc)
+
                 const sendToTokens = messagingSendToDeviceSpy.args[0][0]
                 const payload = messagingSendToDeviceSpy.args[0][1]
 
@@ -1217,11 +1273,9 @@ describe('Integration_Test', () => {
                 const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
 
                 // mock data
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                    [Sensor.f.UUID] : sensorOneUUID
-                }
+                firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`] = {}
 
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
                             [User.f.FCM_TOKENS] : {
@@ -1248,6 +1302,13 @@ describe('Integration_Test', () => {
                     }
                 })
 
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorOneUUID}`]
+                const expectedSensorDoc = {
+                    [Sensor.f.EVENT] : true
+                }
+
+                expect(sensorDoc).is.deep.equal(expectedSensorDoc)
+                
                 const sendToIOSTokens = messagingSendToDeviceSpy.args[0][0]
                 const iOSpayload = messagingSendToDeviceSpy.args[0][1]
 
@@ -1262,43 +1323,7 @@ describe('Integration_Test', () => {
 
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(2)
             })
-
-            it('Should send two notifications if the context of some FCM_tokens specified as IOS and Android', async () => {
-                const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
-
-                // mock data
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
-                    [Sensor.f.UUID] : sensorOneUUID
-                }
-
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
-                    [Models.USER] : {
-                        [testUserDataOne.uid] : {
-                            [User.f.FCM_TOKENS] : {
-                                [FCMTokenOne] : {
-                                    [User.f.CONTEXT._] : User.f.CONTEXT.IOS
-                                }
-                            }
-                        }
-                    }
-                }
-
-                await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
-                    attributes: {
-                        sensor_UUID : sensorOneUUID
-                    }
-                })
-
-                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
-                const expectedSensorDoc = {
-                    [Sensor.f.UUID] : sensorOneUUID,
-                    [Sensor.f.EVENT] : true
-                }
-
-                expect(sensorDoc).is.deep.equal(expectedSensorDoc)
-                expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
-            })
         })
     })
+                
 })

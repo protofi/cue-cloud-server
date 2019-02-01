@@ -49,12 +49,10 @@ if (!firebase.apps.length)
 const auth = firebase.auth()
 const functions = firebase.functions()
 const firestore = firebase.firestore()
-// const messaging = firebase.messaging()
 
 export {
     auth,
     firebase,
     functions,
-    firestore,
-    // messaging
+    firestore
 }

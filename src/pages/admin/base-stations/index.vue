@@ -88,7 +88,7 @@
                 </v-layout>
 
             </v-layout>
-
+        
             <v-btn
                 color="pink"
                 dark
@@ -101,7 +101,7 @@
             >
                 <v-icon>add</v-icon>
             </v-btn>
-
+            
         </v-container>
                     
 	</div>
@@ -123,7 +123,7 @@ export default {
 
         firestore.collection('base_stations').onSnapshot(({docs}) => {
             this.baseStationDocs = docs
-        }, console.log)
+        }, console.error)
     },
 
     computed : {
@@ -152,9 +152,7 @@ export default {
             this.registerBaseStationLoading = true
 
             this.$axios.$put(`base-stations/`)
-				.catch(e => {
-					console.log(e)
-				})
+				.catch(console.error)
 				.finally(() => {
 					this.registerBaseStationLoading = false
 				})
@@ -164,9 +162,7 @@ export default {
         {
             this.unlinkBaseStationLoading = true
             this.$axios.$delete(`base-stations/${baseStationId}/households/`)
-				.catch(e => {
-					console.log(e)
-				})
+				.catch(console.error)
 				.finally(() => {
 					this.unlinkBaseStationLoading = false
 				})

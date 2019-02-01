@@ -38,7 +38,7 @@ describe('Unit_Test', () => {
     let test: FeaturesList
     let adminFs: FirebaseFirestore.Firestore
     let db: DataORMImpl
-    const stubFs = new FirestoreStub()
+    const fsStub = new FirestoreStub()
 
     before(async () => {
 
@@ -71,7 +71,7 @@ describe('Unit_Test', () => {
 
         beforeEach(() => {
             docsToBeDeleted = []
-            stubFs.reset()
+            fsStub.reset()
         })
 
         afterEach(async () => {
@@ -108,7 +108,7 @@ describe('Unit_Test', () => {
                 it('Create model based on doc id', async () => {
                     const uid = uniqid()
 
-                    const car = new Car(stubFs.get(), null, uid)
+                    const car = new Car(fsStub.get(), null, uid)
 
                     const docRef = car.getDocRef()
             
@@ -118,7 +118,7 @@ describe('Unit_Test', () => {
                 it('Create model based on doc snap', async () => {
                     const snap = test.firestore.exampleDocumentSnapshot()
             
-                    const car = new Car(stubFs.get(), snap)
+                    const car = new Car(fsStub.get(), snap)
                     const docRef = car.getDocRef()
             
                     expect(snap.ref.id).to.equal(docRef.id)
@@ -128,13 +128,13 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const carName = 'Mustang'
     
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
     
                     await car.create({
                         name: carName
                     })
     
-                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
+                    const carDoc = fsStub.data()[`${Stubs.CAR}/${carId}`]
                     const expectedCarDoc = {
                         name : carName
                     }
@@ -185,7 +185,7 @@ describe('Unit_Test', () => {
     
                 it('If no action is defined invokation of .onCreate should be ignored', async () => {
     
-                    const model = new ModelImpl('', stubFs.get())
+                    const model = new ModelImpl('', fsStub.get())
                     let error
     
                     try{
@@ -205,10 +205,10 @@ describe('Unit_Test', () => {
                     }
 
                     const carId = uniqid()
-                    const car = new CarM(stubFs.get(), null, carId)
+                    const car = new CarM(fsStub.get(), null, carId)
                     await car.onCreate()
 
-                    const carSecureDoc = stubFs.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
+                    const carSecureDoc = fsStub.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
                     expect(carSecureDoc).to.not.be.undefined
                 })
 
@@ -216,11 +216,11 @@ describe('Unit_Test', () => {
 
                     const carId = uniqid()
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.onDelete()
 
-                    const carSecureDoc = stubFs.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
+                    const carSecureDoc = fsStub.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
 
                     expect(carSecureDoc).to.be.undefined
                 })
@@ -229,7 +229,7 @@ describe('Unit_Test', () => {
             describe('Read', () => {
 
                 it('Get ref returns the same ref after initialization', async () => {
-                    const car = new Car(stubFs.get())
+                    const car = new Car(fsStub.get())
                     const docRef1 = car.getDocRef()
                     const docRef2 = car.getDocRef()
     
@@ -237,7 +237,7 @@ describe('Unit_Test', () => {
                 })
 
                 it('it should be possible to retrieve the Id of a model though method getId', async () => {
-                    const car = new Car(stubFs.get())
+                    const car = new Car(fsStub.get())
                     const id = car.getId()
     
                     expect(id).exist
@@ -245,7 +245,7 @@ describe('Unit_Test', () => {
 
                 it('GetId should return the same id a model was created with', async () => {
                     const carId = uniqid()
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
                     const id = car.getId()
     
                     expect(id).to.be.equal(carId)
@@ -254,7 +254,7 @@ describe('Unit_Test', () => {
                 it('Get ID of created docRef', async () => {
                     const carId = uniqid()
     
-                    const car = await new Car(stubFs.get(), null, carId).create({
+                    const car = await new Car(fsStub.get(), null, carId).create({
                         name : 'Mustang'
                     })
     
@@ -266,7 +266,7 @@ describe('Unit_Test', () => {
                 it('Method Find should be able to retrive one particular model by id', async () => {
                     const carId = uniqid()
                     const carId2 = uniqid()
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
     
                     const car2 = await car.find(carId2)
     
@@ -275,7 +275,7 @@ describe('Unit_Test', () => {
 
                 it('Method Find should be able to set the Id of an already instantiated model', async () => {
                     const carId = uniqid()
-                    const car = new Car(stubFs.get())
+                    const car = new Car(fsStub.get())
     
                     await car.find(carId)
     
@@ -286,11 +286,11 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const carName = 'Mustang'
     
-                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                    fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                         name : carName
                     }
     
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
     
                     const fetchedName = await car.getField('name')
     
@@ -300,7 +300,7 @@ describe('Unit_Test', () => {
                 it('GetField should return undefined if field does not exist', async () => {
                     const carId = uniqid()
     
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
     
                     const fetchedName = await car.getField('name')
     
@@ -309,9 +309,9 @@ describe('Unit_Test', () => {
 
                 it('If a model is fetch with method find() already existing in the DB the method exists should return true', async () => {
                     const carId = uniqid()
-                    stubFs.data()[`${Stubs.CAR}/${carId}`] = { id: carId }
+                    fsStub.data()[`${Stubs.CAR}/${carId}`] = { id: carId }
     
-                    const car = await new Car(stubFs.get()).find(carId)
+                    const car = await new Car(fsStub.get()).find(carId)
     
                     expect(await car.exists()).to.be.true
                 })
@@ -319,7 +319,7 @@ describe('Unit_Test', () => {
                 it('If a model is fetch with method find() not already existing in the DB the method exists should return false', async () => {
                     const carId = uniqid()
     
-                    const car = await new Car(stubFs.get()).find(carId)
+                    const car = await new Car(fsStub.get()).find(carId)
     
                     expect(await car.exists()).to.be.false
                 })
@@ -329,9 +329,9 @@ describe('Unit_Test', () => {
 
                 it('It should be possible to update data on an already existing model', async () => {
                     const carId = uniqid()
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
     
-                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                    fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                         name : 'Mustang'
                     }
 
@@ -339,7 +339,7 @@ describe('Unit_Test', () => {
                         name : 'Fiesta'
                     })
     
-                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
+                    const carDoc = fsStub.data()[`${Stubs.CAR}/${carId}`]
                     const expectedCarDoc = {
                         name : 'Fiesta'
                     }
@@ -405,15 +405,15 @@ describe('Unit_Test', () => {
 
                 it('It should be possible to delete a model', async () => {
                     const carId = uniqid()
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
     
-                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                    fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                         name : 'Mustang'
                     }
     
                     await car.delete()
     
-                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
+                    const carDoc = fsStub.data()[`${Stubs.CAR}/${carId}`]
     
                     expect(carDoc).to.not.exist
                 })
@@ -425,13 +425,13 @@ describe('Unit_Test', () => {
 
                     const carId = uniqid()
 
-                    stubFs.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
+                    fsStub.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
 
-                    const car = new CarM(stubFs.get(), null, carId)
+                    const car = new CarM(fsStub.get(), null, carId)
 
                     await car.onDelete()
 
-                    const carSecureDoc = stubFs.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
+                    const carSecureDoc = fsStub.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
 
                     expect(carSecureDoc).to.be.undefined
                 })
@@ -440,27 +440,27 @@ describe('Unit_Test', () => {
 
                     const carId = uniqid()
 
-                    stubFs.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
+                    fsStub.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.onDelete()
 
-                    const carSecureDoc = stubFs.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
+                    const carSecureDoc = fsStub.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
 
                     expect(carSecureDoc).to.be.not.undefined
                 })
             })
 
             it('If a model is instatiated not already existing in the DB the method exists should return false', async () => {
-                const car = new Car(stubFs.get())
+                const car = new Car(fsStub.get())
 
                 expect(await car.exists()).to.be.false
             })
 
             it('If a model is instatiated with an ID not already existing in the DB the method exists should return false', async () => {
                 const carId = uniqid()
-                const car = new Car(stubFs.get(), null, carId)
+                const car = new Car(fsStub.get(), null, carId)
 
                 expect(await car.exists()).to.be.false
             })
@@ -469,9 +469,9 @@ describe('Unit_Test', () => {
 
                 const carId = uniqid()
 
-                stubFs.data()[`${Stubs.CAR}/${carId}`] = {}
+                fsStub.data()[`${Stubs.CAR}/${carId}`] = {}
 
-                const car = new Car(stubFs.get(), null, carId)
+                const car = new Car(fsStub.get(), null, carId)
 
                 expect(await car.exists()).to.be.true
             })
@@ -493,7 +493,7 @@ describe('Unit_Test', () => {
                         }
                     }
 
-                    const model = new ModelStub('', stubFs.get())
+                    const model = new ModelStub('', fsStub.get())
 
                     model.defineActionableField(actionableField, command)
 
@@ -509,7 +509,7 @@ describe('Unit_Test', () => {
                 it('TakeActionOn should be able to react to changes when before snap is empty', async () => {
 
                     const wheelId1 = uniqid()
-                    const wheel = new Wheel(stubFs.get(), null, wheelId1)
+                    const wheel = new Wheel(fsStub.get(), null, wheelId1)
 
                     const actionableField = 'flat'
 
@@ -538,7 +538,7 @@ describe('Unit_Test', () => {
 
                     const actionableField = 'flat'
 
-                    const model = new Wheel(stubFs.get())
+                    const model = new Wheel(fsStub.get())
 
                     const command = new ActionableFieldCommandStub()
                     const commandSpy = sinon.spy(command, 'execute')
@@ -566,7 +566,7 @@ describe('Unit_Test', () => {
 
                 it('A defined field action should be executed when changes to the particular field are passed to takeActionOn', async () => {
 
-                    const wheel = new Wheel(stubFs.get())
+                    const wheel = new Wheel(fsStub.get())
                     const actionableField = 'flat'
 
                     const command = new ActionableFieldCommandStub()
@@ -595,7 +595,7 @@ describe('Unit_Test', () => {
 
                 it('Changes made the fields on the owner model with simular names should not course a action on pivot to execute', async () => {
 
-                    const wheel = new Wheel(stubFs.get())
+                    const wheel = new Wheel(fsStub.get())
 
                     const actionableField = 'flat'
 
@@ -628,7 +628,7 @@ describe('Unit_Test', () => {
             describe('One-to-One', async () => {
                 
                 it('Invoking relation method which return the same relation object', async () => {
-                    const car = new Car(stubFs.get())
+                    const car = new Car(fsStub.get())
 
                     const rel1 = car.windshield()
                     const rel2 = car.windshield()
@@ -641,22 +641,22 @@ describe('Unit_Test', () => {
                     const carId    = uniqid()
                     const windshieldId  = uniqid()
 
-                    const windshield: Windshield = new Windshield(stubFs.get(), null, windshieldId)
-                    const car: Car = new Car(stubFs.get(), null, carId)
+                    const windshield: Windshield = new Windshield(fsStub.get(), null, windshieldId)
+                    const car: Car = new Car(fsStub.get(), null, carId)
 
-                    stubFs.data()[`${Stubs.WIND_SHEILD}/${windshieldId}`] = {}
-                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {}
+                    fsStub.data()[`${Stubs.WIND_SHEILD}/${windshieldId}`] = {}
+                    fsStub.data()[`${Stubs.CAR}/${carId}`] = {}
 
                     await windshield.car().set(car)
 
-                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
+                    const carDoc = fsStub.data()[`${Stubs.CAR}/${carId}`]
                     const expectedCarDoc = {
                         [Stubs.WIND_SHEILD] : {
                             id : windshieldId
                         }
                     }
 
-                    const windshieldDoc = stubFs.data()[`${Stubs.WIND_SHEILD}/${windshieldId}`]
+                    const windshieldDoc = fsStub.data()[`${Stubs.WIND_SHEILD}/${windshieldId}`]
                     const expectedWindshieldDoc = {
                         [Stubs.CAR] : {
                             id : carId
@@ -672,7 +672,7 @@ describe('Unit_Test', () => {
 
                 it('Retrieving a relation on a Model should return the same Relation every time', async () => {
                     
-                    const car: Car = new Car(stubFs.get())
+                    const car: Car = new Car(fsStub.get())
 
                     const rel1 = car.wheels()
                     const rel2 = car.wheels()
@@ -685,19 +685,19 @@ describe('Unit_Test', () => {
                     const wheelId = uniqid()
                     const carId = uniqid()
 
-                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                    fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.WHEEL] : {
                             [wheelId] : true
                         }
                     }
                     
-                    stubFs.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                    fsStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
                         [Stubs.CAR] : {
                             id : wheelId
                         }
                     }
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
                     const wheels = await car.wheels().get() as Array<Wheel>
 
                     expect(wheels[0].car).to.exist
@@ -738,8 +738,8 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const wheelId = uniqid()
 
-                    const car = new Car(stubFs.get(), null, carId)
-                    const wheel = new Wheel(stubFs.get(), null, wheelId)
+                    const car = new Car(fsStub.get(), null, carId)
+                    const wheel = new Wheel(fsStub.get(), null, wheelId)
 
                     const dataName = 'Spare'
 
@@ -749,7 +749,7 @@ describe('Unit_Test', () => {
                         name : dataName
                     })
 
-                    const wheelDoc = stubFs.data()[`${Stubs.WHEEL}/${wheelId}`]
+                    const wheelDoc = fsStub.data()[`${Stubs.WHEEL}/${wheelId}`]
                     const expectedWheelDoc = {
                         [Stubs.CAR] : {
                             id : carId,
@@ -811,13 +811,13 @@ describe('Unit_Test', () => {
                 it('When models are attached by id relation to the property model should be made on the owner', async () => {
           
                     const carId = uniqid()
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
-                    const wheel = new Wheel(stubFs.get())
+                    const wheel = new Wheel(fsStub.get())
 
                     await car.wheels().attachById(wheel.getId())
                     
-                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
+                    const carDoc = fsStub.data()[`${Stubs.CAR}/${carId}`]
                     const expectedCarDoc = {
                         [Stubs.WHEEL] : { [wheel.getId()] : true }
                     }
@@ -828,13 +828,13 @@ describe('Unit_Test', () => {
                 it('When models are attached by id relation to the owner model should be made on the property model', async () => {
                     
                     const carId = uniqid()
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
-                    const wheel = new Wheel(stubFs.get())
+                    const wheel = new Wheel(fsStub.get())
 
                     await car.wheels().attachById(wheel.getId())
                     
-                    const wheelDoc = stubFs.data()[`${Stubs.WHEEL}/${wheel.getId()}`]
+                    const wheelDoc = fsStub.data()[`${Stubs.WHEEL}/${wheel.getId()}`]
                     const expectedWheelDoc = {
                         [Stubs.CAR] : { id : carId }
                     }
@@ -896,17 +896,17 @@ describe('Unit_Test', () => {
                     const wheelId2 = uniqid()
                     const wheelId3 = uniqid()
                     
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.wheels().attachBulk([
-                        new Wheel(stubFs.get(), null, wheelId1),
-                        new Wheel(stubFs.get(), null, wheelId2),
-                        new Wheel(stubFs.get(), null, wheelId3)
+                        new Wheel(fsStub.get(), null, wheelId1),
+                        new Wheel(fsStub.get(), null, wheelId2),
+                        new Wheel(fsStub.get(), null, wheelId3)
                     ])
 
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
                 })
 
                 it('When models are attached in bulk relations to the owner model should be made on the properties', async () => {
@@ -917,27 +917,27 @@ describe('Unit_Test', () => {
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.wheels().attachBulk([
-                        new Wheel(stubFs.get(), null, wheelId1),
-                        new Wheel(stubFs.get(), null, wheelId2),
-                        new Wheel(stubFs.get(), null, wheelId3)
+                        new Wheel(fsStub.get(), null, wheelId1),
+                        new Wheel(fsStub.get(), null, wheelId2),
+                        new Wheel(fsStub.get(), null, wheelId3)
                     ])
 
-                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
-                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
-                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(fsStub.data()[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(fsStub.data()[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(fsStub.data()[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
                 })
 
                 it('AttachByIdBulk should not update any collection if id array is empty', async () => {
                     const carId = uniqid()
                     
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.wheels().attachByIdBulk([])
 
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`]).to.not.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`]).to.not.exist
                 })
 
                 it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
@@ -1018,17 +1018,17 @@ describe('Unit_Test', () => {
                     const wheelId2 = uniqid()
                     const wheelId3 = uniqid()
                     
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.wheels().attachBulk([
-                        new Wheel(stubFs.get(), null, wheelId1),
-                        new Wheel(stubFs.get(), null, wheelId2),
-                        new Wheel(stubFs.get(), null, wheelId3)
+                        new Wheel(fsStub.get(), null, wheelId1),
+                        new Wheel(fsStub.get(), null, wheelId2),
+                        new Wheel(fsStub.get(), null, wheelId3)
                     ])
 
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
                 })
 
                 it('When models are attached in bulk relations to the owner model should be made on the properties', async () => {
@@ -1039,27 +1039,27 @@ describe('Unit_Test', () => {
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.wheels().attachBulk([
-                        new Wheel(stubFs.get(), null, wheelId1),
-                        new Wheel(stubFs.get(), null, wheelId2),
-                        new Wheel(stubFs.get(), null, wheelId3)
+                        new Wheel(fsStub.get(), null, wheelId1),
+                        new Wheel(fsStub.get(), null, wheelId2),
+                        new Wheel(fsStub.get(), null, wheelId3)
                     ])
 
-                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
-                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
-                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(fsStub.data()[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(fsStub.data()[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(fsStub.data()[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
                 })
 
                 it('AttachByIdBulk should not update any collection if id array is empty', async () => {
                     const carId = uniqid()
                     
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.wheels().attachByIdBulk([])
 
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`]).to.not.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`]).to.not.exist
                 })
 
                 it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
@@ -1140,7 +1140,7 @@ describe('Unit_Test', () => {
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
                     
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.wheels().attachByIdBulk([
                         wheelId1,
@@ -1148,9 +1148,9 @@ describe('Unit_Test', () => {
                         wheelId3
                     ])
 
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId1]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId2]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId3]).to.exist
                 })
 
                 it('When models are attached in bulk relations to the owner model should be made on the properties', async () => {
@@ -1161,7 +1161,7 @@ describe('Unit_Test', () => {
                     const wheelId2  = uniqid()
                     const wheelId3  = uniqid()
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.wheels().attachByIdBulk([
                         wheelId1,
@@ -1169,9 +1169,9 @@ describe('Unit_Test', () => {
                         wheelId3
                     ])
 
-                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
-                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
-                    expect(stubFs.data()[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(fsStub.data()[`${Stubs.WHEEL}/${wheelId1}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(fsStub.data()[`${Stubs.WHEEL}/${wheelId2}`][`${Stubs.CAR}`]['id']).to.equal(carId)
+                    expect(fsStub.data()[`${Stubs.WHEEL}/${wheelId3}`][`${Stubs.CAR}`]['id']).to.equal(carId)
                 })
 
                 it('When a write batch are passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
@@ -1281,19 +1281,19 @@ describe('Unit_Test', () => {
                     const wheelId = uniqid()
                     const carId = uniqid()
 
-                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                    fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.WHEEL] : {
                             [wheelId] : true
                         }
                     }
                     
-                    stubFs.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                    fsStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
                         [Stubs.CAR] : {
                             id : wheelId
                         }
                     }
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
                     
                     const wheels: Array<Wheel> = await car.wheels().get() as Array<Wheel>
 
@@ -1304,7 +1304,7 @@ describe('Unit_Test', () => {
                     const wheels2 = await car.wheels().get()
                     expect(wheels2[0]).to.not.exist
 
-                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
+                    const carDoc = fsStub.data()[`${Stubs.CAR}/${carId}`]
                     expect(carDoc).to.be.empty
                 })
 
@@ -1312,19 +1312,19 @@ describe('Unit_Test', () => {
                     const wheelId = uniqid()
                     const carId = uniqid()
 
-                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                    fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.WHEEL] : {
                             [wheelId] : true
                         }
                     }
                     
-                    stubFs.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                    fsStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
                         [Stubs.CAR] : {
                             id : carId
                         }
                     }
 
-                    const wheel = new Wheel(stubFs.get(), null, wheelId)
+                    const wheel = new Wheel(fsStub.get(), null, wheelId)
                     
                     const car: Car = await wheel.car().get() as Car
 
@@ -1341,7 +1341,7 @@ describe('Unit_Test', () => {
 
                     it('Action should be defined on the relation between the owner model and property model', async () => {
 
-                        const car = new Car(stubFs.get())
+                        const car = new Car(fsStub.get())
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
@@ -1353,7 +1353,7 @@ describe('Unit_Test', () => {
                             }
                         }
 
-                        const rel = new One2ManyRelationStub(car, Stubs.WHEEL, stubFs.get())
+                        const rel = new One2ManyRelationStub(car, Stubs.WHEEL, fsStub.get())
 
                         rel.defineActionOnUpdate(command)
 
@@ -1368,14 +1368,14 @@ describe('Unit_Test', () => {
                     
                     it('TakeActionOn should be able to react to changes when before snap is empty', async () => {
 
-                        const car = new Car(stubFs.get())
+                        const car = new Car(fsStub.get())
 
                         const wheelId1 = uniqid()
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
 
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs.get())
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, fsStub.get())
 
                         rel.defineActionOnUpdate(command)
 
@@ -1400,7 +1400,7 @@ describe('Unit_Test', () => {
 
                     it('TakeActionOn should be able to handle if no changes has been made to the relational data', async () => {
 
-                        const rel = new One2ManyRelation(new Car(stubFs.get()), Stubs.WHEEL, stubFs.get())
+                        const rel = new One2ManyRelation(new Car(fsStub.get()), Stubs.WHEEL, fsStub.get())
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
@@ -1423,9 +1423,9 @@ describe('Unit_Test', () => {
 
                     it('A defined onUpdate action should be executed when changes to the relation link field are passed to takeActionOn', async () => {
 
-                        const car = new Car(stubFs.get())
+                        const car = new Car(fsStub.get())
 
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs.get())
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, fsStub.get())
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
@@ -1455,9 +1455,9 @@ describe('Unit_Test', () => {
 
                     it('Changes made to the fields on the owner model should not course the onUpdate action to execute', async () => {
 
-                        const car = new Car(stubFs.get())
+                        const car = new Car(fsStub.get())
 
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs.get())
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, fsStub.get())
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
@@ -1483,9 +1483,9 @@ describe('Unit_Test', () => {
 
                     it('If no changes are made to the relation link it should not course onUpdate action to execute', async () => {
 
-                        const car = new Car(stubFs.get())
+                        const car = new Car(fsStub.get())
                         const wheelId1 = uniqid()
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs.get())
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, fsStub.get())
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
@@ -1512,10 +1512,10 @@ describe('Unit_Test', () => {
 
                     it('If new relational links are added those should be passes to the action', async () => {
 
-                        const car = new Car(stubFs.get())
+                        const car = new Car(fsStub.get())
                         const wheelId1 = uniqid()
                         const wheelId2 = uniqid()
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs.get())
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, fsStub.get())
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
@@ -1551,10 +1551,10 @@ describe('Unit_Test', () => {
 
                     it('If relational links are changed those should be passes to the action', async () => {
 
-                        const car = new Car(stubFs.get())
+                        const car = new Car(fsStub.get())
                         const wheelId1 = uniqid()
                         const wheelId2 = uniqid()
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, stubFs.get())
+                        const rel = new One2ManyRelation(car, Stubs.WHEEL, fsStub.get())
 
                         const command = new ActionableFieldCommandStub()
                         const commandSpy = sinon.spy(command, 'execute')
@@ -1600,7 +1600,7 @@ describe('Unit_Test', () => {
 
                     it('Retrieving a relation on a Model should return the same Relation every time', async () => {
                     
-                        const wheel: Wheel = new Wheel(stubFs.get())
+                        const wheel: Wheel = new Wheel(fsStub.get())
     
                         const rel1 = wheel.car()
                         const rel2 = wheel.car()
@@ -1613,13 +1613,13 @@ describe('Unit_Test', () => {
                         const wheelId = uniqid()
                         const carId = uniqid()
     
-                        stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                        fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                             [Stubs.WHEEL] : {
                                 [wheelId] : true
                             }
                         }
                         
-                        stubFs.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                        fsStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
                             [Stubs.CAR] : {
                                 id : wheelId
                             }
@@ -1632,7 +1632,7 @@ describe('Unit_Test', () => {
                             }
                         }
     
-                        const wheel = new Wheel(stubFs.get(), null, wheelId)
+                        const wheel = new Wheel(fsStub.get(), null, wheelId)
                         const car = await wheel.car().get() as Car
     
                         expect(car.wheels).to.exist
@@ -1642,11 +1642,11 @@ describe('Unit_Test', () => {
                     it('Field on the pivot should be accessable through relation', async () => {
 
                         const wheelId = uniqid()
-                        const wheel = new Wheel(stubFs.get(), null, wheelId)
+                        const wheel = new Wheel(fsStub.get(), null, wheelId)
 
                         const pivotField = 'flat'
                         
-                        stubFs.data()[`${wheel.name}/${wheelId}`] = {
+                        fsStub.data()[`${wheel.name}/${wheelId}`] = {
                             [Stubs.CAR] : {
                                 [Relations.PIVOT] : {
                                     [pivotField] : true
@@ -1662,11 +1662,11 @@ describe('Unit_Test', () => {
                     it('If field on pivot does not exist getPivotField should return null', async () => {
 
                         const wheelId = uniqid()
-                        const wheel = new Wheel(stubFs.get(), null, wheelId)
+                        const wheel = new Wheel(fsStub.get(), null, wheelId)
 
                         const pivotField = 'flat'
                         
-                        stubFs.data()[`${wheel.name}/${wheelId}`] = {
+                        fsStub.data()[`${wheel.name}/${wheelId}`] = {
                             [Stubs.CAR] : {
                                 [Relations.PIVOT] : {
                                     id : uniqid()
@@ -1682,9 +1682,9 @@ describe('Unit_Test', () => {
                     it('If relation link does not exist getPivotField should return null', async () => {
 
                         const wheelId = uniqid()
-                        const wheel = new Wheel(stubFs.get(), null, wheelId)
+                        const wheel = new Wheel(fsStub.get(), null, wheelId)
 
-                        stubFs.data()[`${wheel.name}/${wheelId}`] = {}
+                        fsStub.data()[`${wheel.name}/${wheelId}`] = {}
 
                         const fieldValue = await wheel.car().getPivotField('flat')
 
@@ -1695,19 +1695,19 @@ describe('Unit_Test', () => {
                         const wheelId = uniqid()
                         const carId = uniqid()
     
-                        stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                        fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                             [Stubs.WHEEL] : {
                                 [wheelId] : true
                             }
                         }
                         
-                        stubFs.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                        fsStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
                             [Stubs.CAR] : {
                                 id : carId
                             }
                         }
     
-                        const wheel = new Wheel(stubFs.get(), null, wheelId)
+                        const wheel = new Wheel(fsStub.get(), null, wheelId)
                         
                         const car = await wheel.car().get() as Car
     
@@ -1718,7 +1718,7 @@ describe('Unit_Test', () => {
                         const car2 = await wheel.car().get() as Car
                         expect(car2).to.not.exist
     
-                        const wheelDoc = stubFs.data()[`${Stubs.WHEEL}/${wheelId}`]
+                        const wheelDoc = fsStub.data()[`${Stubs.WHEEL}/${wheelId}`]
                         expect(wheelDoc).to.be.empty
                     })
     
@@ -1726,19 +1726,19 @@ describe('Unit_Test', () => {
                         const wheelId = uniqid()
                         const carId = uniqid()
     
-                        stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                        fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                             [Stubs.WHEEL] : {
                                 [wheelId] : true
                             }
                         }
                         
-                        stubFs.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                        fsStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
                             [Stubs.CAR] : {
                                 id : carId
                             }
                         }
     
-                        const wheel = new Wheel(stubFs.get(), null, wheelId)
+                        const wheel = new Wheel(fsStub.get(), null, wheelId)
                         
                         const car = await wheel.car().get() as Car
     
@@ -1750,7 +1750,7 @@ describe('Unit_Test', () => {
                         
                         expect(wheels).to.be.empty
                         
-                        const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
+                        const carDoc = fsStub.data()[`${Stubs.CAR}/${carId}`]
                         const expectedCarDoc = {
                             [Stubs.WHEEL] : {}
                         }
@@ -1762,20 +1762,20 @@ describe('Unit_Test', () => {
                         const wheelId2 = uniqid()
                         const carId = uniqid()
     
-                        stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                        fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                             [Stubs.WHEEL] : {
                                 [wheelId] : true,
                                 [wheelId2] : true
                             }
                         }
                         
-                        stubFs.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                        fsStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
                             [Stubs.CAR] : {
                                 id : carId
                             }
                         }
     
-                        const wheel = new Wheel(stubFs.get(), null, wheelId)
+                        const wheel = new Wheel(fsStub.get(), null, wheelId)
                         
                         const car = await wheel.car().get() as Car
     
@@ -1791,7 +1791,7 @@ describe('Unit_Test', () => {
 
                         expect(wheelIds).to.be.include(wheelId2)
                         
-                        const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
+                        const carDoc = fsStub.data()[`${Stubs.CAR}/${carId}`]
                         const expectedCarDoc = {
                             [Stubs.WHEEL] : {
                                 [wheelId2] : true
@@ -1804,7 +1804,7 @@ describe('Unit_Test', () => {
 
                         it('Actionable fields should be defined on the relation between the owner model and property model', async () => {
 
-                            const wheel = new Wheel(stubFs.get())
+                            const wheel = new Wheel(fsStub.get())
 
                             const actionableField = 'flat'
 
@@ -1819,7 +1819,7 @@ describe('Unit_Test', () => {
                                 }
                             }
 
-                            const rel = new N2OneRelationStub(wheel, Stubs.CAR, stubFs.get())
+                            const rel = new N2OneRelationStub(wheel, Stubs.CAR, fsStub.get())
 
                             rel.defineActionableField(actionableField, command)
 
@@ -1834,14 +1834,14 @@ describe('Unit_Test', () => {
                         
                         it('TakeActionOn should be able to react to changes when before snap is empty', async () => {
 
-                            const wheel = new Wheel(stubFs.get())
+                            const wheel = new Wheel(fsStub.get())
 
                             const actionableField = 'flat'
 
                             const command = new ActionableFieldCommandStub()
                             const commandSpy = sinon.spy(command, 'execute')
 
-                            const rel = new N2OneRelation(wheel, Stubs.CAR, stubFs.get())
+                            const rel = new N2OneRelation(wheel, Stubs.CAR, fsStub.get())
 
                             rel.defineActionableField(actionableField, command)
 
@@ -1870,7 +1870,7 @@ describe('Unit_Test', () => {
 
                             const actionableField = 'flat'
 
-                            const rel = new N2OneRelation(new Wheel(stubFs.get()), Stubs.CAR, stubFs.get())
+                            const rel = new N2OneRelation(new Wheel(fsStub.get()), Stubs.CAR, fsStub.get())
 
                             const command = new ActionableFieldCommandStub()
                             const commandSpy = sinon.spy(command, 'execute')
@@ -1894,10 +1894,10 @@ describe('Unit_Test', () => {
 
                         it('A defined field action should be executed when changes to the particular field are passed to takeActionOn', async () => {
 
-                            const wheel = new Wheel(stubFs.get())
+                            const wheel = new Wheel(fsStub.get())
                             const actionableField = 'flat'
 
-                            const rel = new N2OneRelation(wheel, Stubs.CAR, stubFs.get())
+                            const rel = new N2OneRelation(wheel, Stubs.CAR, fsStub.get())
 
                             const command = new ActionableFieldCommandStub()
                             const commandSpy = sinon.spy(command, 'execute')
@@ -1929,11 +1929,11 @@ describe('Unit_Test', () => {
 
                         it('Changes made the fields on the owner model with simular names should not course a action on pivot to execute', async () => {
 
-                            const wheel = new Wheel(stubFs.get())
+                            const wheel = new Wheel(fsStub.get())
 
                             const actionableField = 'flat'
 
-                            const rel = new N2OneRelation(wheel, Stubs.CAR, stubFs.get())
+                            const rel = new N2OneRelation(wheel, Stubs.CAR, fsStub.get())
 
                             const command = new ActionableFieldCommandStub()
                             const commandSpy = sinon.spy(command, 'execute')
@@ -1963,7 +1963,7 @@ describe('Unit_Test', () => {
             describe('Many-to-many', () => {
 
                 it('Related models method should return the same relation every time', async () => {
-                    const car = new Car(stubFs.get())
+                    const car = new Car(fsStub.get())
 
                     const drivers1 = car.drivers()
                     const drivers2 = car.drivers()
@@ -1974,41 +1974,41 @@ describe('Unit_Test', () => {
                 it('Attaching a model to another should create an owner collection with a relation to the property', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     const driverId = uniqid()
-                    const driver = new Driver(stubFs.get(), null, driverId)
+                    const driver = new Driver(fsStub.get(), null, driverId)
 
                     await car.drivers().attach(driver)
 
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId], 'Foreign key on owner').to.be.true
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId], 'Foreign key on owner').to.be.true
                 })
                 
                 it('Attaching a model to another should create a Property Collection with a relation to the Owner', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     const driverId = uniqid()
-                    const driver = new Driver(stubFs.get(), null, driverId)
+                    const driver = new Driver(fsStub.get(), null, driverId)
 
                     await car.drivers().attach(driver)
 
-                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId], 'Foreign key on property').to.be.true
+                    expect(fsStub.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId], 'Foreign key on property').to.be.true
                 })
 
                 it('Attaching a model to another should create a Pivot Collection with a relation to both Owner and Property', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     const driverId = uniqid()
-                    const driver = new Driver(stubFs.get(), null, driverId)
+                    const driver = new Driver(fsStub.get(), null, driverId)
 
                     await car.drivers().attach(driver)
 
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.CAR]['id']).to.be.equals(carId)
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.DRIVER]['id']).to.be.equals(driverId)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.DRIVER]['id']).to.be.equals(driverId)
                 })
 
                 it('Attaching two models should work with batch', async () => {
@@ -2094,11 +2094,11 @@ describe('Unit_Test', () => {
                 it('When attaching models to each other writing data directly to the relation on the Property to the Owner should be possible', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     const driverId = uniqid()
                     const carName = 'Mustang'
-                    const driver = new Driver(stubFs.get(), null, driverId)
+                    const driver = new Driver(fsStub.get(), null, driverId)
 
                     await car.drivers().attach(driver, null, {
                         owner : {
@@ -2106,7 +2106,7 @@ describe('Unit_Test', () => {
                         }
                     })
 
-                    const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
+                    const driverDoc = fsStub.data()[`${Stubs.DRIVER}/${driverId}`]
                     const expectedDriverDoc = {
                         [Stubs.CAR] : {
                             [carId] : {
@@ -2121,11 +2121,11 @@ describe('Unit_Test', () => {
                 it('When attaching models to each other writing data directly to the relation on the Owner to the Property should be possible', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     const driverId = uniqid()
                     const driverName = 'Bob'
-                    const driver = new Driver(stubFs.get(), null, driverId)
+                    const driver = new Driver(fsStub.get(), null, driverId)
 
                     await car.drivers().attach(driver, null, {
                         property : {
@@ -2133,7 +2133,7 @@ describe('Unit_Test', () => {
                         }
                     })
 
-                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
+                    const carDoc = fsStub.data()[`${Stubs.CAR}/${carId}`]
                     const expectedcarDoc = {
                         [Stubs.DRIVER] : {
                             [driverId] : {
@@ -2153,17 +2153,17 @@ describe('Unit_Test', () => {
                     const driverId2 = uniqid()
                     const driverId3 = uniqid()
                     
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.drivers().attachBulk([
-                        new Driver(stubFs.get(), null, driverId1),
-                        new Driver(stubFs.get(), null, driverId2),
-                        new Driver(stubFs.get(), null, driverId3)
+                        new Driver(fsStub.get(), null, driverId1),
+                        new Driver(fsStub.get(), null, driverId2),
+                        new Driver(fsStub.get(), null, driverId3)
                     ])
 
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]).to.exist
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]).to.exist
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]).to.exist
                 })
 
                 it('When models are attached in bulk relations to the owner model should be made on the property models', async () => {
@@ -2174,17 +2174,17 @@ describe('Unit_Test', () => {
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.drivers().attachBulk([
-                        new Driver(stubFs.get(), null, driverId1),
-                        new Driver(stubFs.get(), null, driverId2),
-                        new Driver(stubFs.get(), null, driverId3)
+                        new Driver(fsStub.get(), null, driverId1),
+                        new Driver(fsStub.get(), null, driverId2),
+                        new Driver(fsStub.get(), null, driverId3)
                     ])
 
-                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]).to.be.true
-                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]).to.be.true
-                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(fsStub.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(fsStub.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(fsStub.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]).to.be.true
                 })
 
                 it('When models are attached in bulk relations to all property models should create pivot collections', async () => {
@@ -2195,31 +2195,31 @@ describe('Unit_Test', () => {
                     const driverId2 = uniqid()
                     const driverId3 = uniqid()
                     
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.drivers().attachBulk([
-                        new Driver(stubFs.get(), null, driverId1),
-                        new Driver(stubFs.get(), null, driverId2),
-                        new Driver(stubFs.get(), null, driverId3)
+                        new Driver(fsStub.get(), null, driverId1),
+                        new Driver(fsStub.get(), null, driverId2),
+                        new Driver(fsStub.get(), null, driverId3)
                     ])
 
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.DRIVER]['id']).to.be.equals(driverId1)
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.DRIVER]['id']).to.be.equals(driverId2)
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.DRIVER]['id']).to.be.equals(driverId3)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.DRIVER]['id']).to.be.equals(driverId1)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.DRIVER]['id']).to.be.equals(driverId2)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.DRIVER]['id']).to.be.equals(driverId3)
 
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.CAR]['id']).to.be.equals(carId)
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.CAR]['id']).to.be.equals(carId)
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.CAR]['id']).to.be.equals(carId)
                 })
 
                 it('AttachBulk should not update any collection if id array is empty', async () => {
                     const carId = uniqid()
                     
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.drivers().attachBulk([])
 
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`]).to.not.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`]).to.not.exist
                 })
 
                 it('When a Write Batch is passed to attachBulk the relations should be made when commit on batch is invoked', async () => {
@@ -2323,22 +2323,22 @@ describe('Unit_Test', () => {
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
                     const carName = 'Bob'
 
                     await car.drivers().attachBulk([
-                        new Driver(stubFs.get(), null, driverId1),
-                        new Driver(stubFs.get(), null, driverId2),
-                        new Driver(stubFs.get(), null, driverId3)
+                        new Driver(fsStub.get(), null, driverId1),
+                        new Driver(fsStub.get(), null, driverId2),
+                        new Driver(fsStub.get(), null, driverId3)
                     ], null, {
                         owner : {
                             name : carName
                         }
                     })
 
-                    const carRelations1 = stubFs.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
-                    const carRelations2 = stubFs.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
-                    const carRelations3 = stubFs.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+                    const carRelations1 = fsStub.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = fsStub.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = fsStub.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
 
                     const expectedCarRelation = {
                         name : carName
@@ -2357,12 +2357,12 @@ describe('Unit_Test', () => {
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.drivers().attachBulk([
-                        new Driver(stubFs.get(), null, driverId1),
-                        new Driver(stubFs.get(), null, driverId2),
-                        new Driver(stubFs.get(), null, driverId3)
+                        new Driver(fsStub.get(), null, driverId1),
+                        new Driver(fsStub.get(), null, driverId2),
+                        new Driver(fsStub.get(), null, driverId3)
                     ], null, {
                         properties : [
                             {
@@ -2377,9 +2377,9 @@ describe('Unit_Test', () => {
                         ]
                     })
 
-                    const driverRelations1 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
-                    const driverRelations2 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
-                    const driverRelations3 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+                    const driverRelations1 = fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
 
                     const expectedDriverRelation1 = {
                         id : driverId1
@@ -2406,13 +2406,13 @@ describe('Unit_Test', () => {
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
                     const carName = 'Bob'
 
                     await car.drivers().attachBulk([
-                        new Driver(stubFs.get(), null, driverId1),
-                        new Driver(stubFs.get(), null, driverId2),
-                        new Driver(stubFs.get(), null, driverId3)
+                        new Driver(fsStub.get(), null, driverId1),
+                        new Driver(fsStub.get(), null, driverId2),
+                        new Driver(fsStub.get(), null, driverId3)
                     ], null, {
                         owner : {
                             name : carName
@@ -2424,9 +2424,9 @@ describe('Unit_Test', () => {
                         ]
                     })
 
-                    const carRelations1 = stubFs.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
-                    const carRelations2 = stubFs.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
-                    const carRelations3 = stubFs.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+                    const carRelations1 = fsStub.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = fsStub.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = fsStub.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
 
                     const expectedCarRelation = {
                         name : carName
@@ -2436,9 +2436,9 @@ describe('Unit_Test', () => {
                     expect(carRelations2).to.be.deep.equal(expectedCarRelation)
                     expect(carRelations3).to.be.deep.equal(expectedCarRelation)
 
-                    const driverRelations1 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
-                    const driverRelations2 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
-                    const driverRelations3 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+                    const driverRelations1 = fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
 
                     const expectedDriverRelation1 = {
                         id : driverId1
@@ -2460,41 +2460,41 @@ describe('Unit_Test', () => {
                 it('Attaching a model to another by id should create an owner collection with a relation to the property', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     const driverId = uniqid()
                     // const driver = new Driver(firestoreStub, null, driverId)
 
                     await car.drivers().attachById(driverId)
 
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId], 'Foreign key on owner').to.be.true
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId], 'Foreign key on owner').to.be.true
                 })
                 
                 it('Attaching a model to another by id should create a Property Collection with a relation to the Owner', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     const driverId = uniqid()
-                    const driver = new Driver(stubFs.get(), null, driverId)
+                    const driver = new Driver(fsStub.get(), null, driverId)
 
                     await car.drivers().attachById(driverId)
 
-                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId], 'Foreign key on property').to.be.true
+                    expect(fsStub.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId], 'Foreign key on property').to.be.true
                 })
 
                 it('Attaching a model to another by id should create a Pivot Collection with a relation to both Owner and Property', async () => {
 
                     const carId = uniqid()
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     const driverId = uniqid()
-                    const driver = new Driver(stubFs.get(), null, driverId)
+                    const driver = new Driver(fsStub.get(), null, driverId)
 
                     await car.drivers().attachById(driverId)
 
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.CAR]['id']).to.be.equals(carId)
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.DRIVER]['id']).to.be.equals(driverId)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`][Stubs.DRIVER]['id']).to.be.equals(driverId)
                 })
 
                 it('Attaching two models by id should work with batch', async () => {
@@ -2556,7 +2556,7 @@ describe('Unit_Test', () => {
                     const driverId2: string = uniqid()
                     const driverId3: string = uniqid()
                     
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.drivers().attachByIdBulk([
                         driverId1,
@@ -2564,9 +2564,9 @@ describe('Unit_Test', () => {
                         driverId3
                     ])
 
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]).to.exist
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]).to.exist
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]).to.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]).to.exist
                 })
 
                 it('When models are attached in bulk by id relations to the owner model should be made on the property models', async () => {
@@ -2577,7 +2577,7 @@ describe('Unit_Test', () => {
                     const driverId2: string = uniqid()
                     const driverId3: string = uniqid()
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.drivers().attachByIdBulk([
                         driverId1,
@@ -2585,9 +2585,9 @@ describe('Unit_Test', () => {
                         driverId3
                     ])
 
-                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]).to.be.true
-                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]).to.be.true
-                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(fsStub.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(fsStub.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]).to.be.true
+                    expect(fsStub.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]).to.be.true
                 })
 
                 it('When models are attached in bulk by id relations to all property models should create pivot collections', async () => {
@@ -2598,7 +2598,7 @@ describe('Unit_Test', () => {
                     const driverId2: string = uniqid()
                     const driverId3: string = uniqid()
                     
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.drivers().attachByIdBulk([
                         driverId1,
@@ -2606,23 +2606,23 @@ describe('Unit_Test', () => {
                         driverId3
                     ])
 
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.DRIVER]['id']).to.be.equals(driverId1)
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.DRIVER]['id']).to.be.equals(driverId2)
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.DRIVER]['id']).to.be.equals(driverId3)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.DRIVER]['id']).to.be.equals(driverId1)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.DRIVER]['id']).to.be.equals(driverId2)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.DRIVER]['id']).to.be.equals(driverId3)
 
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.CAR]['id']).to.be.equals(carId)
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.CAR]['id']).to.be.equals(carId)
-                    expect(stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId1}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId2}`][Stubs.CAR]['id']).to.be.equals(carId)
+                    expect(fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId3}`][Stubs.CAR]['id']).to.be.equals(carId)
                 })
 
                 it('AttachByIdBulk should not update any collection if id array is empty', async () => {
                     const carId = uniqid()
                     
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.drivers().attachByIdBulk([])
 
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`]).to.not.exist
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`]).to.not.exist
                 })
 
                 it('When attaching models in bulk by id to another model writing data directly to the relation on the Properties to the Owner should be possible', async () => {
@@ -2633,7 +2633,7 @@ describe('Unit_Test', () => {
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
                     const carName = 'Bob'
 
                     await car.drivers().attachByIdBulk([
@@ -2646,9 +2646,9 @@ describe('Unit_Test', () => {
                         }
                     })
 
-                    const carRelations1 = stubFs.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
-                    const carRelations2 = stubFs.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
-                    const carRelations3 = stubFs.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+                    const carRelations1 = fsStub.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = fsStub.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = fsStub.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
 
                     const expectedCarRelation = {
                         name : carName
@@ -2667,7 +2667,7 @@ describe('Unit_Test', () => {
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
 
                     await car.drivers().attachByIdBulk([
                         driverId1,
@@ -2681,9 +2681,9 @@ describe('Unit_Test', () => {
                         ]
                     })
 
-                    const driverRelations1 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
-                    const driverRelations2 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
-                    const driverRelations3 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+                    const driverRelations1 = fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
 
                     const expectedDriverRelation1 = {
                         id : driverId1
@@ -2710,7 +2710,7 @@ describe('Unit_Test', () => {
                     const driverId2  = uniqid()
                     const driverId3  = uniqid()
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
                     const carName = 'Bob'
 
                     await car.drivers().attachByIdBulk([
@@ -2729,9 +2729,9 @@ describe('Unit_Test', () => {
 
                     })
 
-                    const carRelations1 = stubFs.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
-                    const carRelations2 = stubFs.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
-                    const carRelations3 = stubFs.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
+                    const carRelations1 = fsStub.data()[`${Stubs.DRIVER}/${driverId1}`][`${Stubs.CAR}`][carId]
+                    const carRelations2 = fsStub.data()[`${Stubs.DRIVER}/${driverId2}`][`${Stubs.CAR}`][carId]
+                    const carRelations3 = fsStub.data()[`${Stubs.DRIVER}/${driverId3}`][`${Stubs.CAR}`][carId]
 
                     const expectedCarRelation = {
                         name : carName
@@ -2741,9 +2741,9 @@ describe('Unit_Test', () => {
                     expect(carRelations2).to.be.deep.equal(expectedCarRelation)
                     expect(carRelations3).to.be.deep.equal(expectedCarRelation)
 
-                    const driverRelations1 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
-                    const driverRelations2 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
-                    const driverRelations3 = stubFs.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
+                    const driverRelations1 = fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId1]
+                    const driverRelations2 = fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId2]
+                    const driverRelations3 = fsStub.data()[`${Stubs.CAR}/${carId}`][Stubs.DRIVER][driverId3]
 
                     const expectedDriverRelation1 = {
                         id : driverId1
@@ -3033,11 +3033,11 @@ describe('Unit_Test', () => {
 
                         it('Fields to be cached should be definable on the relation between the owner and the property', async () => {
     
-                            const car = new Car(stubFs.get())
+                            const car = new Car(fsStub.get())
                             
                             class Many2ManyRelationStub extends Many2ManyRelation
                             {
-                                constructor(owner: ModelImpl, propertyModelName: string, _db)
+                                constructor(owner: ModelImpl, propertyModelName: string, _db: any)
                                 {
                                     super(owner, propertyModelName, _db)
                                 }
@@ -3048,7 +3048,7 @@ describe('Unit_Test', () => {
                                 }
                             }
     
-                            const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs.get())
+                            const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, fsStub.get())
     
                             const cachedToProperty = [
                                 'brand',
@@ -3063,13 +3063,14 @@ describe('Unit_Test', () => {
                         })
    
                         it('Fields defined as cachable should be cached when new field is added', async () => {
-    
+                            
+                            const cachedField = 'name'
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
                                     return this.belongsToMany(Stubs.DRIVER)
                                             .defineCachableFields([
-                                                'name'
+                                                cachedField
                                             ])
                                 }
                             }
@@ -3077,15 +3078,15 @@ describe('Unit_Test', () => {
                             const carId = uniqid()
                             const driverId = uniqid()
     
-                            const car = new CarM(stubFs.get(), null, carId)
+                            const car = new CarM(fsStub.get(), null, carId)
                             
-                            stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                            fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                                 [`${Stubs.DRIVER}`] : {
                                     [driverId] : true
                                 }
                             }
 
-                            stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
+                            fsStub.data()[`${Stubs.DRIVER}/${driverId}`] = {
                                 [`${Stubs.CAR}`] : {
                                     [carId] : true
                                 }
@@ -3094,7 +3095,7 @@ describe('Unit_Test', () => {
                             const before = test.firestore.makeDocumentSnapshot({}, '')
     
                             const data = {
-                                name : 'Mustang'
+                                [cachedField] : 'Mustang'
                             }
     
                             const after = test.firestore.makeDocumentSnapshot(data, '')
@@ -3103,11 +3104,11 @@ describe('Unit_Test', () => {
     
                             await car.drivers().updateCache(change)
     
-                            const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
+                            const driverDoc = fsStub.data()[`${Stubs.DRIVER}/${driverId}`]
                             const expectedCarDoc = {
                                 [Stubs.CAR] : {
                                     [carId] : {
-                                        name : data.name
+                                        [cachedField] : data[cachedField]
                                     }
                                 }
                             }
@@ -3117,12 +3118,13 @@ describe('Unit_Test', () => {
 
                         it('When fields defined are cachable is deleted the cached data should be deleted', async () => {
 
+                            const cachedField = 'name'
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
                                     return this.belongsToMany(Stubs.DRIVER)
                                             .defineCachableFields([
-                                                'name'
+                                                cachedField
                                             ])
                                 }
                             }
@@ -3130,49 +3132,45 @@ describe('Unit_Test', () => {
                             const carId = uniqid()
                             const driverId = uniqid()
     
-                            const car = new CarM(stubFs.get(), null, carId)
+                            const car = new CarM(fsStub.get(), null, carId)
 
-                            stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                            fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                                 [`${Stubs.DRIVER}`] : {
                                     [driverId] : true
                                 }
                             }
 
-                            stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
-                                [`${Stubs.CAR}`] : {
-                                    [carId] : true
-                                }
+                            const data = {
+                                [cachedField] : 'Mustang'
                             }
 
-                            const data = {
-                                name : 'Mustang'
+                            fsStub.data()[`${Stubs.DRIVER}/${driverId}`] = {
+                                [Stubs.CAR] : {
+                                    [carId] : data
+                                }
                             }
     
-                            const before = test.firestore.makeDocumentSnapshot({}, '')
+                            const before = test.firestore.makeDocumentSnapshot(data, '')
+                            const after = test.firestore.makeDocumentSnapshot({}, '')
     
-                            const after = test.firestore.makeDocumentSnapshot(data, '')
-    
-                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
-    
-                            await car.drivers().updateCache(change)
-    
-                            const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
-                            const expectedCarDoc = {
+                            const driverDoc = fsStub.data()[`${Stubs.DRIVER}/${driverId}`]
+                            const expectedDriverDoc = {
                                 [Stubs.CAR] : {
                                     [carId] : {
-                                        name : data.name
+                                        [cachedField] : data.name
                                     }
                                 }
                             }
     
-                            expect(driverDoc).to.deep.equal(expectedCarDoc)
+                            expect(driverDoc).to.deep.equal(expectedDriverDoc)
     
-                            const change2 = new Change<FirebaseFirestore.DocumentSnapshot>(after, before)
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
     
-                            await car.drivers().updateCache(change2)
-    
-                            expect(stubFs.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
-                                .to.be.undefined
+                            await car.drivers().updateCache(change)
+                            
+                            const cachedData = fsStub.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId][cachedField]
+
+                            expect(cachedData).to.be.undefined
                         })
 
                         it('When the nested field of origin is deleted the cached field should be deleted', async () => {
@@ -3191,15 +3189,15 @@ describe('Unit_Test', () => {
                             const carId = uniqid()
                             const driverId = uniqid()
     
-                            const car = new CarM(stubFs.get(), null, carId)
+                            const car = new CarM(fsStub.get(), null, carId)
 
-                            stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                            fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                                 [`${Stubs.DRIVER}`] : {
                                     [driverId] : true
                                 }
                             }
 
-                            stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
+                            fsStub.data()[`${Stubs.DRIVER}/${driverId}`] = {
                                 [`${Stubs.CAR}`] : {
                                     [carId] : true
                                 }
@@ -3226,7 +3224,7 @@ describe('Unit_Test', () => {
     
                             await car.drivers().updateCache(change)
     
-                            const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
+                            const driverDoc = fsStub.data()[`${Stubs.DRIVER}/${driverId}`]
                             const expectedCarDoc = {
                                 [Stubs.CAR] : {
                                     [carId] : dataAfter
@@ -3235,7 +3233,7 @@ describe('Unit_Test', () => {
 
                             expect(driverDoc).to.deep.equal(expectedCarDoc)
                           
-                            expect(stubFs.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
+                            expect(fsStub.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
                                 .to.be.undefined
                         })
 
@@ -3255,15 +3253,15 @@ describe('Unit_Test', () => {
                             const carId = uniqid()
                             const driverId = uniqid()
     
-                            const car = new CarM(stubFs.get(), null, carId)
+                            const car = new CarM(fsStub.get(), null, carId)
 
-                            stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                            fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                                 [`${Stubs.DRIVER}`] : {
                                     [driverId] : true
                                 }
                             }
 
-                            stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
+                            fsStub.data()[`${Stubs.DRIVER}/${driverId}`] = {
                                 [`${Stubs.CAR}`] : {
                                     [carId] : true
                                 }
@@ -3290,26 +3288,25 @@ describe('Unit_Test', () => {
     
                             await car.drivers().updateCache(change)
     
-                            const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
-                            const expectedCarDoc = {
+                            const driverDoc = fsStub.data()[`${Stubs.DRIVER}/${driverId}`]
+                            const expectedDriverDoc = {
                                 [Stubs.CAR] : {
                                     [carId] : dataAfter
                                 }
                             }
 
-                            expect(driverDoc).to.deep.equal(expectedCarDoc)
-                          
-                            expect(stubFs.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
-                                .to.be.undefined
+                            expect(driverDoc).to.deep.equal(expectedDriverDoc)
                         })
 
                         it('Cached fields should not be updated if no changes has happend to origin', async () => {
+                            
+                            const cachedField = 'name'
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
                                     return this.belongsToMany(Stubs.DRIVER)
                                             .defineCachableFields([
-                                                'name'
+                                                cachedField
                                             ])
                                 }
                             }
@@ -3317,23 +3314,332 @@ describe('Unit_Test', () => {
                             const carId = uniqid()
                             const driverId = uniqid()
     
-                            const car = new CarM(stubFs.get(), null, carId)
-                            const driver = new Driver(stubFs.get(), null, driverId)
+                            const car = new CarM(fsStub.get(), null, carId)
     
-                            await car.drivers().attach(driver)
-    
-                            const data = {
-                                name : 'Mustang'
+                            fsStub.data()[`${Stubs.CAR}/${carId}`] = {
+                                [Stubs.DRIVER] : {
+                                    [driverId] : true
+                                }
+                            }
+
+                            const dataBefore = {
+                                [cachedField] : 'Mustang'
+                            }
+
+                            const dataAfter = {
+                                [cachedField] : 'Mustang',
+                                'repaired' : true
+                            }
+
+                            fsStub.data()[`${Stubs.DRIVER}/${driverId}`] = {
+                                [Stubs.CAR] : {
+                                    [carId] : dataBefore
+                                }
                             }
     
-                            const before = test.firestore.makeDocumentSnapshot(data, '')
-                            const after = test.firestore.makeDocumentSnapshot(data, '')
+                            const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+                            const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
     
                             const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
     
                             await car.drivers().updateCache(change)
     
-                            expect(stubFs.data()[`${Stubs.DRIVER}/${driverId}`][`${Stubs.CAR}.${carId}.name`]).to.be.undefined
+                            const driverDoc = fsStub.data()[`${Stubs.DRIVER}/${driverId}`]
+                            const expectedDriverDoc = {
+                                [Stubs.CAR] : {
+                                    [carId] : dataBefore
+                                }
+                            }
+
+                            expect(driverDoc).to.deep.equal(expectedDriverDoc)
+                        })
+
+                        describe('Secure', () => {
+
+                            it('Fields defined as cachable should be cached when new field is added (SECURE)', async () => {
+    
+                                const cachedField = 'name'
+                                class CarM extends Car {
+                                    drivers(): Many2ManyRelation
+                                    {
+                                        return this.belongsToMany(Stubs.DRIVER)
+                                                .defineCachableFields([
+                                                    cachedField + Models.SECURE_SURFIX
+                                                ])
+                                    }
+                                }
+        
+                                const carId = uniqid()
+                                const driverId = uniqid()
+        
+                                const car = new CarM(fsStub.get(), null, carId)
+                                
+                                fsStub.data()[`${Stubs.CAR}/${carId}`] = {
+                                    [`${Stubs.DRIVER}`] : {
+                                        [driverId] : true
+                                    }
+                                }
+    
+                                fsStub.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {}
+        
+                                const before = test.firestore.makeDocumentSnapshot({}, '')
+        
+                                const data = {
+                                    [cachedField] : 'Mustang'
+                                }
+        
+                                const after = test.firestore.makeDocumentSnapshot(data, '')
+        
+                                const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+        
+                                await car.drivers().updateCache(change)
+        
+                                const driverDoc = fsStub.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
+                                const expectedDriverDoc = {
+                                    [Stubs.CAR] : {
+                                        [carId] : {
+                                            [cachedField] : data[cachedField]
+                                        }
+                                    }
+                                }
+    
+                                expect(driverDoc).to.deep.equal(expectedDriverDoc)
+                            })
+    
+                            it('When fields defined are cachable is deleted the cached data should be deleted (SECURE)', async () => {
+    
+                                const cachedField = 'name'
+                                class CarM extends Car {
+                                    drivers(): Many2ManyRelation
+                                    {
+                                        return this.belongsToMany(Stubs.DRIVER)
+                                                .defineCachableFields([
+                                                    cachedField + Models.SECURE_SURFIX
+                                                ])
+                                    }
+                                }
+        
+                                const carId = uniqid()
+                                const driverId = uniqid()
+        
+                                const car = new CarM(fsStub.get(), null, carId)
+    
+                                fsStub.data()[`${Stubs.CAR}/${carId}`] = {
+                                    [`${Stubs.DRIVER}`] : {
+                                        [driverId] : true
+                                    }
+                                }
+    
+                                const data = {
+                                    [cachedField] : 'Mustang'
+                                }
+    
+                                fsStub.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {
+                                    [Stubs.CAR] : {
+                                        [carId] : data
+                                    }
+                                }
+    
+                                const before = test.firestore.makeDocumentSnapshot(data, '')
+                                const after = test.firestore.makeDocumentSnapshot({}, '')
+        
+                                const secureDriverDoc = fsStub.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
+                                const expectedSecureDriverDoc = {
+                                    [Stubs.CAR] : {
+                                        [carId] : {
+                                            [cachedField] : data[cachedField]
+                                        }
+                                    }
+                                }
+        
+                                expect(secureDriverDoc).to.deep.equal(expectedSecureDriverDoc)
+        
+                                const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+        
+                                await car.drivers().updateCache(change)
+        
+                                const secureCachedField = secureDriverDoc[Stubs.CAR][carId][cachedField]
+    
+                                expect(secureCachedField).to.be.undefined
+                            })
+    
+                            it('When the nested field of origin is deleted the cached field should be deleted (SECURE)', async () => {
+                                
+                                const cachedField = 'crached'
+                                class CarM extends Car {
+                                    drivers(): Many2ManyRelation
+                                    {
+                                        return this.belongsToMany(Stubs.DRIVER)
+                                                .defineCachableFields([
+                                                    cachedField + Models.SECURE_SURFIX,
+                                                ])
+                                    }
+                                }
+        
+                                const carId = uniqid()
+                                const driverId = uniqid()
+        
+                                const car = new CarM(fsStub.get(), null, carId)
+    
+                                fsStub.data()[`${Stubs.CAR}/${carId}`] = {
+                                    [`${Stubs.DRIVER}`] : {
+                                        [driverId] : true
+                                    }
+                                }
+    
+                                const dataBefore = {
+                                    [cachedField] : {
+                                        marts : true,
+                                        april : true
+                                    }
+                                }
+                                
+                                fsStub.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {
+                                    [Stubs.CAR] : {
+                                        [carId] : dataBefore
+                                    }
+                                }
+        
+                                const dataAfter = {
+                                    [cachedField] : {
+                                        marts : true
+                                    }
+                                }
+    
+                                const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+        
+                                const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+        
+                                const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+        
+                                await car.drivers().updateCache(change)
+        
+                                const driverDoc = fsStub.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
+                                const expectedCarDoc = {
+                                    [Stubs.CAR] : {
+                                        [carId] : dataAfter
+                                    }
+                                }
+    
+                                expect(driverDoc).to.deep.equal(expectedCarDoc)
+                            })
+
+                            it('Cache layer should handle if one nested field is updated and another is deleted (SECURE)', async () => {
+                            
+                                const cachedField = 'crached'
+                                class CarM extends Car {
+                                    drivers(): Many2ManyRelation
+                                    {
+                                        return this.belongsToMany(Stubs.DRIVER)
+                                                .defineCachableFields([
+                                                    cachedField + Models.SECURE_SURFIX,
+                                                ])
+                                    }
+                                }
+        
+                                const carId = uniqid()
+                                const driverId = uniqid()
+        
+                                const car = new CarM(fsStub.get(), null, carId)
+    
+                                fsStub.data()[`${Stubs.CAR}/${carId}`] = {
+                                    [`${Stubs.DRIVER}`] : {
+                                        [driverId] : true
+                                    }
+                                }
+    
+                                const dataBefore = {
+                                    [cachedField] : {
+                                        marts : true,
+                                        april : true
+                                    }
+                                }
+    
+                                fsStub.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {
+                                    [`${Stubs.CAR}`] : {
+                                        [carId] : dataBefore
+                                    }
+                                }
+        
+                                const dataAfter = {
+                                    [cachedField] : {
+                                        marts : false,
+                                    }
+                                }
+    
+                                const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+        
+                                const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+        
+                                const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+        
+                                await car.drivers().updateCache(change)
+        
+                                const secureDriverDoc = fsStub.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
+                                const expectedSecureDriverDoc = {
+                                    [Stubs.CAR] : {
+                                        [carId] : dataAfter
+                                    }
+                                }
+    
+                                expect(secureDriverDoc).to.deep.equal(expectedSecureDriverDoc)
+                            })
+                            
+                            it('Cached fields should not be updated if no changes has happend to origin (SECURE)', async () => {
+    
+                                const cachedField = 'name'
+                                class CarM extends Car {
+                                    drivers(): Many2ManyRelation
+                                    {
+                                        return this.belongsToMany(Stubs.DRIVER)
+                                                .defineCachableFields([
+                                                    cachedField + Models.SECURE_SURFIX
+                                                ])
+                                    }
+                                }
+        
+                                const carId = uniqid()
+                                const driverId = uniqid()
+        
+                                const car = new CarM(fsStub.get(), null, carId)
+        
+                                fsStub.data()[`${Stubs.CAR}/${carId}`] = {
+                                    [Stubs.DRIVER] : {
+                                        [driverId] : true
+                                    }
+                                }
+    
+                                const dataBefore = {
+                                    [cachedField] : 'Mustang'
+                                }
+    
+                                const dataAfter = {
+                                    [cachedField] : 'Mustang',
+                                    'repaired' : true
+                                }
+    
+                                fsStub.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`] = {
+                                    [Stubs.CAR] : {
+                                        [carId] : dataBefore
+                                    }
+                                }
+        
+                                const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+                                const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+        
+                                const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+        
+                                await car.drivers().updateCache(change)
+        
+                                const driverDoc = fsStub.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
+                                const expectedDriverDoc = {
+                                    [Stubs.CAR] : {
+                                        [carId] : dataBefore
+                                    }
+                                }
+    
+                                expect(driverDoc).to.deep.equal(expectedDriverDoc)
+                            })
                         })
                     })
                     
@@ -3578,7 +3884,7 @@ describe('Unit_Test', () => {
 
                         it('Fields to be cached should be definable on the relation between the owner and the property', async () => {
 
-                            const car = new Car(stubFs.get())
+                            const car = new Car(fsStub.get())
                             class Many2ManyRelationStub extends Many2ManyRelation
                             {
                                 constructor(owner: ModelImpl, propertyModelName: string, _db)
@@ -3592,7 +3898,7 @@ describe('Unit_Test', () => {
                                 }
                             }
     
-                            const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, stubFs.get())
+                            const rel = new Many2ManyRelationStub(car, Stubs.DRIVER, fsStub.get())
     
                             const cachedFromPivot = [
                                 'brand',
@@ -3611,7 +3917,7 @@ describe('Unit_Test', () => {
                             const cachedField = 'crashes'
 
                             const driverId = uniqid()
-                            const driver = new Driver(stubFs.get(), null, driverId)
+                            const driver = new Driver(fsStub.get(), null, driverId)
 
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
@@ -3624,7 +3930,7 @@ describe('Unit_Test', () => {
                             }
 
                             const carId = uniqid()
-                            const car = new CarM(stubFs.get(), null, carId)
+                            const car = new CarM(fsStub.get(), null, carId)
 
                             await car.drivers().attach(driver)
 
@@ -3642,7 +3948,7 @@ describe('Unit_Test', () => {
 
                             await car.drivers().updateCache(change)
 
-                            const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
+                            const carDoc = fsStub.data()[`${Stubs.CAR}/${carId}`]
                             const expectedCarDoc = {
                                 [Stubs.DRIVER] : {
                                     [driverId] : {
@@ -3663,7 +3969,7 @@ describe('Unit_Test', () => {
                             const driverId = uniqid()
                             const carId = uniqid()
 
-                            const driver = new Driver(stubFs.get(), null, driverId)
+                            const driver = new Driver(fsStub.get(), null, driverId)
 
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
@@ -3675,7 +3981,7 @@ describe('Unit_Test', () => {
                                 }
                             }
 
-                            const car = new CarM(stubFs.get(), null, carId)
+                            const car = new CarM(fsStub.get(), null, carId)
 
                             await car.drivers().attach(driver)
 
@@ -3695,7 +4001,7 @@ describe('Unit_Test', () => {
 
                             await car.drivers().updateCache(change)
 
-                            const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
+                            const carDoc = fsStub.data()[`${Stubs.CAR}/${carId}`]
                             const expectedCarDoc = {
                                 [Stubs.DRIVER] : {
                                     [driverId] : {
@@ -3769,24 +4075,24 @@ describe('Unit_Test', () => {
 
                 it('GetName of Pivot model should return a correct formatted name', async () => {
          
-                    const driver = new Driver(stubFs.get())
-                    const car = new Car(stubFs.get())
+                    const driver = new Driver(fsStub.get())
+                    const car = new Car(fsStub.get())
                     
                     const pivotId = `${car.getId()}_${driver.getId()}`
 
-                    const pivot = new Pivot(stubFs.get(), pivotId, car, driver)
+                    const pivot = new Pivot(fsStub.get(), pivotId, car, driver)
     
                     expect(pivot.getName()).to.be.equal(`${Stubs.CAR}_${Stubs.DRIVER}`)
                 })
                
                 it('GetId of pivot model should return a correct formatted id', async () => {
     
-                    const driver = new Driver(stubFs.get())
-                    const car = new Car(stubFs.get())
+                    const driver = new Driver(fsStub.get())
+                    const car = new Car(fsStub.get())
     
                     const pivotId = `${car.getId()}_${driver.getId()}`
 
-                    const pivot = new Pivot(stubFs.get(), pivotId, car, driver)
+                    const pivot = new Pivot(fsStub.get(), pivotId, car, driver)
     
                     expect(pivot.getId()).to.equal(pivotId)
                 })
@@ -3900,7 +4206,7 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const driver = new Driver(stubFs.get(), null, driverId)
+                    const driver = new Driver(fsStub.get(), null, driverId)
                     
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
@@ -3912,13 +4218,13 @@ describe('Unit_Test', () => {
                         }
                     }
 
-                    const car = new CarM(stubFs.get(), null, carId)
+                    const car = new CarM(fsStub.get(), null, carId)
 
                     await car.drivers().attach(driver)
 
                     const pivotId = `${carId}_${driverId}`
 
-                    const pivot = new Pivot(stubFs.get(), pivotId, car, driver)
+                    const pivot = new Pivot(fsStub.get(), pivotId, car, driver)
 
                     const pivotData = {
                                 [Relations.PIVOT]: {
@@ -3936,7 +4242,7 @@ describe('Unit_Test', () => {
 
                     await pivot.updateCache(change)
 
-                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
+                    const carDoc = fsStub.data()[`${Stubs.CAR}/${carId}`]
                     const expectedCarDoc = {
                         [Stubs.DRIVER] : {
                             [driverId] : {
@@ -3965,7 +4271,7 @@ describe('Unit_Test', () => {
                     }
 
                     const driverId = uniqid()
-                    const driver = new DriverM(stubFs.get(), null, driverId)
+                    const driver = new DriverM(fsStub.get(), null, driverId)
                     
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
@@ -3978,14 +4284,14 @@ describe('Unit_Test', () => {
                     }
 
                     const carId = uniqid()
-                    const car = new CarM(stubFs.get(), null, carId)
+                    const car = new CarM(fsStub.get(), null, carId)
 
                     await car.drivers().attach(driver)
                     await driver.cars().attach(car)
 
                     const pivotId = `${carId}_${driverId}`
 
-                    const pivot = new Pivot(stubFs.get(), pivotId, car, driver)
+                    const pivot = new Pivot(fsStub.get(), pivotId, car, driver)
 
                     const pivotData = {
                                 [Relations.PIVOT]: {
@@ -4003,7 +4309,7 @@ describe('Unit_Test', () => {
 
                     await pivot.updateCache(change)
 
-                    const carDoc = stubFs.data()[`${Stubs.CAR}/${carId}`]
+                    const carDoc = fsStub.data()[`${Stubs.CAR}/${carId}`]
                     const expectedCarDoc = {
                         [Stubs.DRIVER] : {
                             [driverId] : {
@@ -4016,7 +4322,7 @@ describe('Unit_Test', () => {
 
                     expect(carDoc).to.deep.equal(expectedCarDoc)
 
-                    const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
+                    const driverDoc = fsStub.data()[`${Stubs.DRIVER}/${driverId}`]
                     const expectedDriverDoc = {
                         [Stubs.CAR] : {
                             [carId] : {
@@ -4037,7 +4343,7 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const driver = new Driver(stubFs.get(), null, driverId)
+                    const driver = new Driver(fsStub.get(), null, driverId)
                     
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
@@ -4051,13 +4357,13 @@ describe('Unit_Test', () => {
                         }
                     }
 
-                    const car = new CarM(stubFs.get(), null, carId)
+                    const car = new CarM(fsStub.get(), null, carId)
 
                     await car.drivers().attach(driver)
 
                     const pivotId = `${carId}_${driverId}`
 
-                    const pivot = new Pivot(stubFs.get(), pivotId, car, driver)
+                    const pivot = new Pivot(fsStub.get(), pivotId, car, driver)
 
                     const pivotData = {
                                 [Relations.PIVOT]: {
@@ -4075,7 +4381,7 @@ describe('Unit_Test', () => {
 
                     await pivot.updateCache(change)
 
-                    const carDoc = stubFs.data()[`${car.name}/${carId}`]
+                    const carDoc = fsStub.data()[`${car.name}/${carId}`]
                     const expectedCarDoc = {
                         [Stubs.DRIVER] : {
                             [driverId] : {
@@ -4108,8 +4414,8 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const driverId = uniqid()
 
-                    const car = new CarM(stubFs.get(), null, carId)
-                    const driver = new Driver(stubFs.get(), null, driverId)
+                    const car = new CarM(fsStub.get(), null, carId)
+                    const driver = new Driver(fsStub.get(), null, driverId)
 
                     await car.drivers().attach(driver)
 
@@ -4125,7 +4431,7 @@ describe('Unit_Test', () => {
 
                     await car.drivers().updateCache(change)
 
-                    const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
+                    const driverDoc = fsStub.data()[`${Stubs.DRIVER}/${driverId}`]
                     const expectedDriverDoc = {
                         [Stubs.CAR] : {
                             [carId] : {
@@ -4141,19 +4447,19 @@ describe('Unit_Test', () => {
                     const driverId = uniqid()
                     const carId = uniqid()
 
-                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                    fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.DRIVER] : {
                             [driverId] : true
                         }
                     }
                     
-                    stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
+                    fsStub.data()[`${Stubs.DRIVER}/${driverId}`] = {
                         [Stubs.CAR] : {
                             [carId] : true
                         }
                     }
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
                     const drivers = await car.drivers().get() as Array<Driver>
                     
                     expect(drivers[0].getId()).to.be.equal(driverId)
@@ -4163,26 +4469,26 @@ describe('Unit_Test', () => {
                     const drivers2 = await car.drivers().get() as Array<Driver>
                     
                     expect(drivers2[0]).to.not.exist
-                    expect(stubFs.data()[`${Stubs.CAR}/${carId}`]).to.be.empty
+                    expect(fsStub.data()[`${Stubs.CAR}/${carId}`]).to.be.empty
                 })
 
                 it('When properties are detached from the owner, the relations link on the properties should be deleteted', async () => {
                     const driverId = uniqid()
                     const carId = uniqid()
 
-                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                    fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.DRIVER] : {
                             [driverId] : true
                         }
                     }
                     
-                    stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
+                    fsStub.data()[`${Stubs.DRIVER}/${driverId}`] = {
                         [Stubs.CAR] : {
                             [carId] : true
                         }
                     }
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
                     const drivers = await car.drivers().get() as Array<Driver>
                     
                     const cars = await drivers[0].cars().get() as Array<Car>
@@ -4199,7 +4505,7 @@ describe('Unit_Test', () => {
 
                     expect(cars2[0]).to.not.exist
 
-                    const driverDoc = stubFs.data()[`${Stubs.DRIVER}/${driverId}`]
+                    const driverDoc = fsStub.data()[`${Stubs.DRIVER}/${driverId}`]
                     const expectedDriverDoc = {
                         [Stubs.CAR] : {}
                     }
@@ -4211,13 +4517,13 @@ describe('Unit_Test', () => {
                     const driverId = uniqid()
                     const carId = uniqid()
 
-                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                    fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.DRIVER] : {
                             [driverId] : true
                         }
                     }
 
-                    stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`] = {
+                    fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`] = {
                         [Stubs.DRIVER] : {
                             id : driverId
                         },
@@ -4226,13 +4532,13 @@ describe('Unit_Test', () => {
                         }
                     }
                     
-                    stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
+                    fsStub.data()[`${Stubs.DRIVER}/${driverId}`] = {
                         [Stubs.CAR] : {
                             [carId] : true
                         }
                     }
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
                     
                     const pivot = await car.drivers().pivot(driverId)
 
@@ -4242,7 +4548,7 @@ describe('Unit_Test', () => {
 
                     const pivot2 = await car.drivers().pivot(driverId)
 
-                    const pivotDoc = stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`]
+                    const pivotDoc = fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`]
 
                     expect(pivot2).to.not.exist
                     expect(pivotDoc).to.not.exist
@@ -4253,20 +4559,20 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const carId2 = uniqid()
 
-                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                    fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.DRIVER] : {
                             [driverId] : true
                         }
                     }
 
-                    stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
+                    fsStub.data()[`${Stubs.DRIVER}/${driverId}`] = {
                         [Stubs.CAR] : {
                             [carId] : true,
                             [carId2] : true
                         }
                     }
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
                     const drivers = await car.drivers().get() as Array<Driver>
 
                     const cars = await drivers[0].cars().get() as Array<Car>
@@ -4287,7 +4593,7 @@ describe('Unit_Test', () => {
                     expect(carIds2).to.not.include(carId)
                     expect(carIds2).to.include(carId2)
 
-                    expect(stubFs.data()[`${Stubs.DRIVER}/${driverId}`]).to.not.be.empty
+                    expect(fsStub.data()[`${Stubs.DRIVER}/${driverId}`]).to.not.be.empty
                 })
 
                 it('When properties are detached from the owner, the pivot collection related to properties and owner should be deleteted', async () => {
@@ -4295,19 +4601,19 @@ describe('Unit_Test', () => {
                     const carId     = uniqid()
                     const carId2    = uniqid()
 
-                    stubFs.data()[`${Stubs.CAR}/${carId}`] = {
+                    fsStub.data()[`${Stubs.CAR}/${carId}`] = {
                         [Stubs.DRIVER] : {
                             [driverId] : true
                         }
                     }
 
-                    stubFs.data()[`${Stubs.CAR}/${carId2}`] = {
+                    fsStub.data()[`${Stubs.CAR}/${carId2}`] = {
                         [Stubs.DRIVER] : {
                             [driverId] : true
                         }
                     }
 
-                    stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`] = {
+                    fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`] = {
                         [Stubs.DRIVER] : {
                             id : driverId
                         },
@@ -4316,7 +4622,7 @@ describe('Unit_Test', () => {
                         }
                     }
 
-                    stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId2}_${driverId}`] = {
+                    fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId2}_${driverId}`] = {
                         [Stubs.DRIVER] : {
                             id : driverId
                         },
@@ -4325,14 +4631,14 @@ describe('Unit_Test', () => {
                         }
                     }
                     
-                    stubFs.data()[`${Stubs.DRIVER}/${driverId}`] = {
+                    fsStub.data()[`${Stubs.DRIVER}/${driverId}`] = {
                         [Stubs.CAR] : {
                             [carId] : true,
                             [carId2] : true
                         }
                     }
 
-                    const car = new Car(stubFs.get(), null, carId)
+                    const car = new Car(fsStub.get(), null, carId)
                     
                     const pivot = await car.drivers().pivot(driverId)
 
@@ -4344,10 +4650,10 @@ describe('Unit_Test', () => {
 
                     expect(pivot2).to.not.exist
 
-                    const pivotDoc = stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`]
+                    const pivotDoc = fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId}_${driverId}`]
                     expect(pivotDoc).to.not.exist
 
-                    const pivotDoc2 = stubFs.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId2}_${driverId}`]
+                    const pivotDoc2 = fsStub.data()[`${Stubs.CAR}_${Stubs.DRIVER}/${carId2}_${driverId}`]
                     expect(pivotDoc2).to.exist
                 })
             })
