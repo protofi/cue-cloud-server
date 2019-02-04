@@ -31,7 +31,7 @@
                 
                 <v-flex xs12 sm6 md6 lg6 xl6>
                     
-                    <v-container v-if="households.length < 1">
+                    <v-container v-if="!hasHousehold">
 
                         <v-card>
 
@@ -99,7 +99,7 @@
                     md5 offset-md1
                     lg5 offset-lg1
                     xl5 offset-xl1
-                    v-if="households.length > 0"
+                    v-if="hasHousehold"
                     v-show="!showHouseholdDetailDrawer"
                 >
                     <v-card dark>
@@ -127,7 +127,7 @@
             <v-navigation-drawer
                 stateless
                 value="true"
-                v-if="households.length > 0"
+                v-if="hasHousehold"
                 v-model="householdsDetailDrawer"
                 v-show="showHouseholdDetailDrawer"
                 right
@@ -161,67 +161,88 @@
 
         </v-container>
 
-        <v-dialog v-model="newHouseholdDialog.show" max-width="600px">
-    
-            <v-card>
-    
-                <v-card-title
-                    class="headline white--text pink"
-                    >
-                        Create new Household
-                </v-card-title>
+        <v-btn
+            color="pink"
+            dark
+            fixed
+            bottom
+            right
+            fab
+            v-if="hasHousehold"
+            :loading="createHouseholdDialog.loading"
+            @click="showCreateHouseholdDialog"
+        >
+            <v-icon>add</v-icon>
+        </v-btn>
 
-                <v-card-text>
+        <v-dialog v-model="createHouseholdDialog.show" max-width="600px">
+            
+            <v-form
+                ref="createHouseholdForm"
+                >
 
-                    <v-container grid-list-md>
-
-                        <v-layout wrap>
-
-                            To create a Household an Owner must be picked. 
-
-                        </v-layout>
-
-                        <v-layout wrap>
-
-                            <v-flex xs12 sm6>
-                                <v-select
-                                :items="users"
-                                no-data-text="No users found"
-                                label="Owner"
-                                v-model="newHouseholdDialog.owner"
-                                required
-                                ></v-select>
-                            </v-flex>
-
-                        </v-layout>
-
-                    </v-container>
-
-                    <p> 
-                        Only users not already assigned a Household can be chosen as Owner.
-                    </p>
-
-                </v-card-text>
-    
-                <v-card-actions>
-    
-                    <v-spacer></v-spacer>
+                <v-card>
         
-                    <v-btn color="blue darken-1" flat @click="newHouseholdDialog.show = false">Cancel</v-btn>
-                    <v-btn
-                        color="blue darken-1"
-                        flat
-                        type="submit"
-                        @click="createHosueholdSubmit"
-                        :loading="newHouseholdDialog.loading"
+                    <v-card-title
+                        class="headline white--text pink"
                         >
-                        Create
-                    </v-btn>
-    
-                </v-card-actions>
-    
-            </v-card>
-    
+                            Create new Household
+                    </v-card-title>
+
+                    <v-card-text>
+
+                        <v-container grid-list-md>
+
+                            <v-layout wrap>
+
+                                To create a Household an Owner must be picked. 
+
+                            </v-layout>
+
+                            <v-layout wrap>
+
+                                <v-flex xs12 sm6>
+                                    <v-select
+                                    :items="users"
+                                    no-data-text="No users found"
+                                    label="Owner"
+                                    v-model="createHouseholdDialog.owner"
+                                    required
+                                    :rules="createHouseholdDialog.ownerRules"
+                                    ></v-select>
+                                </v-flex>
+
+                            </v-layout>
+
+                        </v-container>
+
+                        <p> 
+                            Only users not already assigned a Household can be chosen as Owner.
+                        </p>
+
+                    </v-card-text>
+        
+                    <v-card-actions>
+        
+                        <v-spacer></v-spacer>
+            
+                        <v-btn color="blue darken-1" flat @click="createHouseholdDialog.show = false">Cancel</v-btn>
+                        <v-btn
+                            color="blue darken-1"
+                            flat
+                            type="submit"
+                            @click="createHosueholdSubmit"
+                            :loading="createHouseholdDialog.loading"
+                            >
+                            Create
+                        </v-btn>
+        
+                    </v-card-actions>
+        
+                </v-card>
+            
+            </v-form>
+
         </v-dialog>
     
     </div>
@@ -240,10 +261,13 @@ export default {
             households: [],
             loading : true,
             activeHousehold : null,
-            newHouseholdDialog : {
+            createHouseholdDialog : {
                 show : false,
                 loading : false,
                 owner : null,
+                ownerRules: [
+                    v => !!v || 'You need to choose an Owner',
+                ],
                 userDocs : []
             }
         }
@@ -286,7 +310,7 @@ export default {
             return this.$vuetify.breakpoint.name == 'xs'
         },
         users () {
-            return this.newHouseholdDialog.userDocs.filter(user => {
+            return this.createHouseholdDialog.userDocs.filter(user => {
                 return !((user.data()).households)
             }).map(user => {
                 const data = user.data()
@@ -295,6 +319,9 @@ export default {
                     value : user.id
                 }
             })
+        },
+        hasHousehold () {
+            return this.households.length > 0
         }
     },
     methods : {
@@ -303,26 +330,30 @@ export default {
             this.activeHousehold = household
         },
         async showCreateHouseholdDialog() {
-            this.newHouseholdDialog.show = true
+            this.createHouseholdDialog.show = true
 
             try{
-                this.newHouseholdDialog.userDocs = (await firestore.collection('users').get()).docs
+                this.createHouseholdDialog.userDocs = (await firestore.collection('users').get()).docs
             }
             catch(e)
             {
                 console.log('LISTEN ON USER', e)
             }
         },
-        async createHosueholdSubmit() {
+        async createHosueholdSubmit(e) {
+            
+            e.preventDefault()
+            
+            if (!this.$refs.createHouseholdForm.validate()) return
 
-            this.newHouseholdDialog.loading = true
+            this.createHouseholdDialog.loading = true
 
             try{
 
                 const householdSnap = await firestore.collection('households').doc()
                 const householdId = householdSnap.id
 
-                await firestore.collection('users').doc(this.newHouseholdDialog.owner).update({
+                await firestore.collection('users').doc(this.createHouseholdDialog.owner).update({
                     'households' : {
                         id : householdId
                     }
@@ -330,7 +361,7 @@ export default {
 
                 await householdSnap.set({
                     users : {
-                        [this.newHouseholdDialog.owner] : true
+                        [this.createHouseholdDialog.owner] : true
                     }
                 })
             }
@@ -339,9 +370,9 @@ export default {
                 console.log(e)
             }
 
-            this.newHouseholdDialog.loading = false
-            this.newHouseholdDialog.owner = null
-            this.newHouseholdDialog.show = false
+            this.createHouseholdDialog.loading = false
+            this.createHouseholdDialog.owner = null
+            this.createHouseholdDialog.show = false
         }
     },
 }
