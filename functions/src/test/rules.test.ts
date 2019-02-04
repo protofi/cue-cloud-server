@@ -446,17 +446,25 @@ describe('Emulated_Rules', () => {
             it('Unautherized users should not be able the delete households', async () => {
                 const db = await setup()
 
-                const ref = db.collection(Models.HOUSEHOLD)
+                const ref = db.collection(Models.HOUSEHOLD).doc(testHouseDataOne.uid)
 
-                expect(await firestore.assertFails(ref.doc().delete()))
+                expect(await firestore.assertFails(ref.delete()))
             })
 
             it('Users should not be able the delete households', async () => {
-                const db = await setup(testHouseDataOne)
+                const db = await setup(testUserDataOne)
 
-                const ref = db.collection(Models.HOUSEHOLD)
+                const ref = db.collection(Models.HOUSEHOLD).doc()
 
-                expect(await firestore.assertFails(ref.doc().delete()))
+                expect(await firestore.assertFails(ref.delete()))
+            })
+
+            it('Users should not be able the delete households', async () => {
+                const db = await setup(testAdminUserData)
+
+                const ref = db.collection(Models.HOUSEHOLD).doc(testHouseDataOne.uid)
+
+                expect(await firestore.assertSucceeds(ref.delete()))
             })
         })
     })

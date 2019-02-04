@@ -49,7 +49,7 @@ service cloud.firestore{
 							)
 						) || isAdmin()
 
-			allow delete: if false
+			allow delete: if isAdmin()
 
 			function isHouseholdAdmin() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.households.pivot.role == "admin" }
 			function isResident() { return resource.data.users.keys().hasAll([request.auth.uid]) }
