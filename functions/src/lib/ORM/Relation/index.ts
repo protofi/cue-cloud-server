@@ -6,6 +6,7 @@ import ModelImpl, { Models } from "../Models"
 import { Pivot } from "./Pivot"
 import { isPlainObject, intersection, keys, omit, get, capitalize, merge, isEmpty, includes, mapValues } from "lodash"
 import { IActionableFieldCommand } from "../../Command"
+import * as camelCase from 'camelcase'
 import { firestore } from "firebase-admin"
 
 const deleteFlag = (firestore.FieldValue) ? firestore.FieldValue.delete() : undefined //For testing purposes. Is to be fixed
@@ -17,7 +18,7 @@ export interface ModelImportStategy {
 export class StandardModelImport implements ModelImportStategy{
     async import(db: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl>
     {
-        const model = await import(`./../Models/${capitalize(singular(name))}`)
+        const model = await import(`./../Models/${capitalize(camelCase(singular(name)))}`)
         const property = new model.default(db, null, id)
         return property
     }
@@ -352,15 +353,10 @@ export class Many2ManyRelation extends N2ManyRelation {
             })
 
             if(!isEmpty(newCacheData))
-            {
                 await this.owner.update(newCacheData)
-            }
 
             if(!isEmpty(newSecureCacheData))
-            {
-                console.log(newSecureCacheData)
                 await this.owner.secure().update(newSecureCacheData)
-            }
         }
     }
 
@@ -517,7 +513,7 @@ export class One2ManyRelation extends N2ManyRelation {
             })
         })
 
-        await super.detach()
+        return super.detach()
     }
 
     async updatePivot(id: string, data: object)

@@ -114,16 +114,24 @@ describe('Integration_Test', () => {
                                     exists : (!_.isUndefined(firestoreMockData[`${col}/${id}`]))
                                 }
                             },
-                            update: (data) => {
+                            update: async (data) => {
                                 if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${`${col}/${id}`}]`)
-    
+
+                                _.forOwn(data, function(value, field) {
+                                    if(!value)
+                                    {
+                                        delete firestoreMockData[`${col}/${id}`][field]
+                                        delete data[field]
+                                    }
+                                })
+
                                 firestoreMockData = _.merge(firestoreMockData, {
                                     [`${col}/${id}`] : unflatten(data)
                                 })
-    
+
                                 return null
                             },
-                            delete: () => {
+                            delete: async () => {
                                 delete firestoreMockData[`${col}/${id}`]
                             }
                         }
@@ -411,9 +419,9 @@ describe('Integration_Test', () => {
         })
     })
 
-    describe('Households', async () => {
+    describe('Households', () => {
 
-        describe('On Create', async () => { 
+        describe('On Create', () => { 
             
             it('Pivot between user and household should recieve a role property of admin', async () => {
                 
@@ -488,6 +496,144 @@ describe('Integration_Test', () => {
                             id : householdIdOne
                         }
                     })
+            })
+        })
+
+        describe('On Delete', async () => {
+
+            it('Should delete relations to all Users when deleted', async () => {
+                const wrappedHouseholdsOnDelete = test.wrap(myFunctions.funcHouseholdsOnDelete)
+
+                const householdId = uniqid()
+                const userId = uniqid()
+                const userIdTwo = uniqid()
+
+                firestoreMockData[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                firestoreMockData[`${Models.USER}/${userIdTwo}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                const householdSnap = new OfflineDocumentSnapshotStub({
+                    ref: {
+                        update : () => {
+                            return null
+                        },
+                    },
+                    data : {
+                        [Models.USER] : {
+                            [userId] : true,
+                            [userIdTwo] : true
+                        }
+                    }
+                })
+
+                await wrappedHouseholdsOnDelete(householdSnap)
+ 
+                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                const expectedUserDoc = {}
+
+                const userTwoDoc = firestoreMockData[`${Models.USER}/${userIdTwo}`]
+                const expectedUserTwoDoc = {}
+
+                expect(userDoc).to.be.deep.equal(expectedUserDoc)
+                expect(userTwoDoc).to.be.deep.equal(expectedUserTwoDoc)
+            })
+            
+            it('Should delete relations to all Sensors when deleted', async () => {
+                const wrappedHouseholdsOnDelete = test.wrap(myFunctions.funcHouseholdsOnDelete)
+
+                const householdId = uniqid()
+                const sensorId = uniqid()
+                const sensorIdTwo = uniqid()
+
+                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                firestoreMockData[`${Models.SENSOR}/${sensorIdTwo}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                const householdSnap = new OfflineDocumentSnapshotStub({
+                    ref: {
+                        update : () => {
+                            return null
+                        },
+                    },
+                    data : {
+                        [Models.SENSOR] : {
+                            [sensorId] : true,
+                            [sensorIdTwo] : true
+                        }
+                    }
+                })
+
+                await wrappedHouseholdsOnDelete(householdSnap)
+
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
+                const expectedSensorDoc = {}
+
+                const sensorTwoDoc = firestoreMockData[`${Models.SENSOR}/${sensorIdTwo}`]
+                const expectedSensorTwoDoc = {}
+
+                expect(sensorDoc).to.be.deep.equal(expectedSensorDoc)
+                expect(sensorTwoDoc).to.be.deep.equal(expectedSensorTwoDoc)
+            })
+
+            it('Should delete relations to all Base Station when deleted', async () => {
+                const wrappedHouseholdsOnDelete = test.wrap(myFunctions.funcHouseholdsOnDelete)
+
+                const householdId = uniqid()
+                const baseStationId = uniqid()
+                const baseStationIdTwo = uniqid()
+
+                firestoreMockData[`${Models.BASE_STATION}/${baseStationId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                firestoreMockData[`${Models.BASE_STATION}/${baseStationIdTwo}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                const householdSnap = new OfflineDocumentSnapshotStub({
+                    ref: {
+                        update : () => {
+                            return null
+                        },
+                    },
+                    data : {
+                        [Models.BASE_STATION] : {
+                            [baseStationId] : true,
+                            [baseStationIdTwo] : true
+                        }
+                    }
+                })
+
+                await wrappedHouseholdsOnDelete(householdSnap)
+
+                const baseStationDoc = firestoreMockData[`${Models.BASE_STATION}/${baseStationId}`]
+                const expectedBaseStationDoc = {}
+
+                const baseStationTwoDoc = firestoreMockData[`${Models.BASE_STATION}/${baseStationIdTwo}`]
+                const expectedBaseStationTwoDoc = {}
+
+                expect(baseStationDoc).to.be.deep.equal(expectedBaseStationDoc)
+                expect(baseStationTwoDoc).to.be.deep.equal(expectedBaseStationTwoDoc)
             })
         })
     })

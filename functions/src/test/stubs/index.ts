@@ -22,8 +22,8 @@ export interface OfflineDocumentSnapshot {
 export class OfflineDocumentSnapshotStub {
     
     public ref: Object = {
-        id : uniqid(), 
-        delete : (): void => { return }
+            id : uniqid(), 
+            delete : (): void => { return }
         }
     private docData: Object = new Object()
 
