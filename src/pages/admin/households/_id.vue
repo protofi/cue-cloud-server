@@ -26,10 +26,13 @@
                 :loading="deleteLoading"
                 @click.stop="deletion"
                 >
+
                 <v-icon left dark>
                     delete
                 </v-icon>
+                
                 Delete
+ 
             </v-btn>
     
         </v-container>
@@ -56,8 +59,7 @@ export default {
 
             firestore.collection('households').doc(this.$route.params.id).delete()
             .then(() => {
-                _this.deleteLoading = false
-                _this.$router.push('admin/households')
+                _this.$router.push('/admin/households')
             }).catch(console.log)
         }
     }
