@@ -50,7 +50,6 @@ export default {
             deleteLoading : false
         }
     },
-
     methods : {
         async deletion()
         {

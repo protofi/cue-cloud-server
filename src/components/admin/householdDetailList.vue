@@ -629,7 +629,7 @@ export default {
 						await batch.commit()
 					}
 					catch(e) {
-
+						console.log(e)
 					}
 
 					this.showBaseStationDialog = false
