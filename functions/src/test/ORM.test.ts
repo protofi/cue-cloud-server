@@ -2365,15 +2365,9 @@ describe('Unit_Test', () => {
                         new Driver(firestoreStub.get(), null, driverId3)
                     ], null, {
                         properties : [
-                            {
-                                id : driverId1
-                            },
-                            {
-                                id : driverId2
-                            },
-                            {
-                                id : driverId3
-                            }
+                            { id : driverId1 },
+                            { id : driverId2 },
+                            { id : driverId3 }
                         ]
                     })
 

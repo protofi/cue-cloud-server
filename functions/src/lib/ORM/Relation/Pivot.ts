@@ -43,6 +43,9 @@ export class Pivot {
         const relationA = this.ownerA[plural(this.ownerB.name)]() as Many2ManyRelation
         const relationB = this.ownerB[plural(this.ownerA.name)]() as Many2ManyRelation
 
+        console.log(relationA)
+        console.log(relationB)
+
         await relationA.updateCache(change)
         await relationB.updateCache(change)
 

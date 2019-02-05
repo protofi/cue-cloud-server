@@ -909,7 +909,7 @@ describe('Integration_Test', () => {
             
             const userId        = uniqid()
             const sensorId      = uniqid()
-            const cacheField    = 'muted'
+            const cacheField    = Sensor.f.USERS.MUTED
             const pivotId       = `${sensorId}_${userId}`
 
             const wrappedSensorsUsersOnUpdate = test.wrap(myFunctions.funcSensorsUsersOnUpdate)
@@ -955,21 +955,70 @@ describe('Integration_Test', () => {
             }
             expect(sensorDoc).to.deep.equal(expectedSensorDoc)
         })
+
+        it('Should cache Muted field to Sensor secure data', async () => {
+            
+            const userId        = uniqid()
+            const sensorId      = uniqid()
+            const pivotId       = `${sensorId}_${userId}`
+
+            const wrappedSensorsUsersOnUpdate = test.wrap(myFunctions.funcSensorsUsersOnUpdate)
+
+            // mock data
+            firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                [Models.USER] : {
+                    [userId] : true
+                }
+            }
+            firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
+                [Models.USER] : {
+                    [userId] : true
+                }
+            }
+
+            const afterDocSnap = new OfflineDocumentSnapshotStub({
+                data : {
+                    [Relations.PIVOT] : {
+                        [Sensor.f.USERS.MUTED] : true
+                    },
+                    [Models.USER] : {
+                        [userId] : true
+                    }
+                },
+                ref : {
+                    id : pivotId,
+                    path : `${Models.SENSOR}_${Models.USER}/${pivotId}`,
+                }
+            })
+
+            const change = {
+                before : new OfflineDocumentSnapshotStub(),
+                after : afterDocSnap
+            }
+
+            await wrappedSensorsUsersOnUpdate(change)
+            
+            const sensorSecureDoc = firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`]
+            const expectedSensorSecureDoc = {
+                [Models.USER]: {
+                    [userId] : {
+                        [Relations.PIVOT] : {
+                            [Sensor.f.USERS.MUTED] : true
+                        }
+                    }
+                }
+            }
+            
+            expect(sensorSecureDoc).to.deep.equal(expectedSensorSecureDoc)
+        })
     })
 
     describe('Pub/Sub', () => {
         
         const nullBuffer = new Buffer('')       
         const householdId       = uniqid()
-        const householdTwoId    = uniqid()
-
         const baseStationUUID   = fakeUUID()
-        const baseStationTwoUUID   = fakeUUID()
-
-        const sensorId          = uniqid()
         const sensorOneUUID        = fakeUUID()
-
-        const sensorTwoUUID       = fakeUUID()
 
         beforeEach(() => {
             messagingSendToDeviceSpy.resetHistory()
