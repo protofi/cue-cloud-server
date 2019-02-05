@@ -11,7 +11,7 @@ export default class CreateUserNewSensorRelationsCommand extends AbstractActiona
         const newSensorIds =  Object.keys(sensorRelLinks)
 
         await asyncForEach(users, async (user: User) => {
-            const accepted = await user.household().getPivotField('accepted')
+            const accepted = await user.household().getPivotField(User.f.HOUSEHOLDS.ACCEPTED)
             if(!accepted) return
             
             await user.sensors()

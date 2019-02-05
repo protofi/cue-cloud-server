@@ -26,7 +26,5 @@ exports = module.exports = functions.firestore
 
         sensor.onCreate(),
 
-    ]).catch(({message}) => {
-        console.error(message)
-    })
+    ]).catch(console.error)
 })

@@ -3,7 +3,6 @@ import { Many2ManyRelation, N2OneRelation } from "./../Relation"
 import CreateUserSensorRelationsCommand from "./../../Command/CreateUserSensorRelationsCommand";
 import UpdateCustomClaims from "./../../Command/UpdateCustomClaims";
 import UpdateFCMTokenSecureCache from "../../Command/UpdateFCMTokenSecureCache";
-import { Relations } from "../../const";
 
 export default class User extends ModelImpl {
 
@@ -18,11 +17,9 @@ export default class User extends ModelImpl {
             IOS     : 'IOS'
         },
         FCM_TOKENS  : 'FCM_tokens',
-        [Relations.PIVOT] : {
-            [Models.HOUSEHOLD] : {
-                ACCEPTED    : 'accepted',
-                ROLE        : 'role'
-            }
+        HOUSEHOLDS : {
+            ACCEPTED    : 'accepted',
+            ROLE        : 'role'
         }
     }
 
@@ -46,7 +43,7 @@ export default class User extends ModelImpl {
             .defineCachableFields([
                 User.f.NAME,
                 User.f.EMAIL
-            ]).defineActionableField(User.f[Relations.PIVOT][Models.HOUSEHOLD].ACCEPTED,
+            ]).defineActionableField(User.f.HOUSEHOLDS.ACCEPTED,
                 new CreateUserSensorRelationsCommand()
             )
     }

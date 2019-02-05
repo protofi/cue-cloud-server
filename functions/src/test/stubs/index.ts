@@ -39,7 +39,7 @@ export class OfflineDocumentSnapshotStub {
         return this.docData
     }
 
-    async get(field): Promise<Object>
+    get(field): any
     {
         return this.docData[field]
     }

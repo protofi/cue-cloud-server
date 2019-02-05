@@ -345,6 +345,7 @@ describe('Emulated_Rules', () => {
     describe('Households', async () => {
 
         describe('Create', async () => {
+        
             it('Unautherized users should not be able to create households', async () => {
                 const db = await setup()
                 const ref = db.collection(Models.HOUSEHOLD)
@@ -415,6 +416,7 @@ describe('Emulated_Rules', () => {
         })
 
         describe('Update', async () => {
+
             it('User possessing the role of ADMIN should be able to add other users to a household', async () => {
             
                 const db = await setup(testUserDataOne, {
@@ -443,6 +445,7 @@ describe('Emulated_Rules', () => {
         })
 
         describe('Delete', async () => {
+
             it('Unautherized users should not be able the delete households', async () => {
                 const db = await setup()
 
@@ -630,6 +633,7 @@ describe('Emulated_Rules', () => {
     })
 
     describe('Sensors_Users', async () => {
+
         describe('Create', async () => {
             return
         })

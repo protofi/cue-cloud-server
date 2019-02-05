@@ -15,6 +15,7 @@ import * as _ from 'lodash'
 import * as util from './lib/util'
 import User from './lib/ORM/Models/User';
 import Sensor from './lib/ORM/Models/Sensor';
+import { printFormattedJson } from './lib/util';
 
 const test: FeaturesList = require('firebase-functions-test')()
 
@@ -115,6 +116,7 @@ describe('Integration_Test', () => {
                                 }
                             },
                             update: async (data) => {
+                                
                                 if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${`${col}/${id}`}]`)
 
                                 _.forOwn(data, function(value, field) {
@@ -499,14 +501,226 @@ describe('Integration_Test', () => {
             })
         })
 
-        describe('On Delete', async () => {
+        describe('On Update', () => {
+
+            it('Should create relation between newly added sensor and already added users if reation is accepted', async () => {
+                const wrappedHouseholdsOnUpdate = test.wrap(myFunctions.funcHouseholdsOnUpdate)
+
+                const householdId = uniqid()
+                const sensorId = uniqid()
+                const userId = uniqid()
+
+                firestoreMockData[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId,
+                        [Relations.PIVOT] : {
+                            accepted : true
+                        }
+                    }
+                }
+
+                const householdDoc = {
+                    [Models.SENSOR] : {
+                        [sensorId] : true
+                    },
+                    [Models.USER] : {
+                        [userId] : true
+                    }
+                }
+
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : householdDoc,
+                    ref : {
+                        id : householdId
+                    }
+                })
+
+                const change = {
+                    before : new OfflineDocumentSnapshotStub(),
+                    after : afterDocSnap
+                }
+
+                await wrappedHouseholdsOnUpdate(change)
+
+                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                const expectedUserDoc = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId,
+                        [Relations.PIVOT] : {
+                            accepted : true
+                        }
+                    },
+                    [Models.SENSOR] : {
+                        [sensorId] : true
+                    }
+                }
+
+                expect(userDoc).is.deep.equal(expectedUserDoc)
+
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
+
+                expect(sensorDoc[Models.USER][userId]).to.exist
+
+                const sensorUserDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
+                const expectedSensorUserDoc = {
+                    [Models.SENSOR] : {
+                        id : sensorId
+                    },
+                    [Models.USER] : {
+                        id : userId
+                    }
+                }
+
+                expect(sensorUserDoc).to.be.deep.equal(expectedSensorUserDoc)
+            })
+
+            it('Should not create relation between newly added Sensor and already added User if reation is not accepted', async () => {
+                const wrappedHouseholdsOnUpdate = test.wrap(myFunctions.funcHouseholdsOnUpdate)
+
+                const householdId = uniqid()
+                const sensorId = uniqid()
+                const userId = uniqid()
+
+                firestoreMockData[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                const householdDoc = {
+                    [Models.SENSOR] : {
+                        [sensorId] : true
+                    },
+                    [Models.USER] : {
+                        [userId] : true
+                    }
+                }
+
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : householdDoc,
+                    ref : {
+                        id : householdId
+                    }
+                })
+
+                const change = {
+                    before : new OfflineDocumentSnapshotStub(),
+                    after : afterDocSnap
+                }
+
+                await wrappedHouseholdsOnUpdate(change)
+
+                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                expect(userDoc[Models.SENSOR]).to.be.undefined
+
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
+
+                expect(sensorDoc).to.not.exist
+
+                const sensorUserDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
+
+                expect(sensorUserDoc).to.not.exist
+            })
+
+            it('Should be able to correct relations between newly added Sensor and Users that either have or have not accepted the relation to the Household', async () => {
+                const wrappedHouseholdsOnUpdate = test.wrap(myFunctions.funcHouseholdsOnUpdate)
+
+                const householdId = uniqid()
+                const sensorId = uniqid()
+                const userId = uniqid()
+                const userTwoId = uniqid()
+
+                firestoreMockData[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                firestoreMockData[`${Models.USER}/${userTwoId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId,
+                        [Relations.PIVOT] : {
+                            accepted : true
+                        }
+                    }
+                }
+
+                const householdDoc = {
+                    [Models.SENSOR] : {
+                        [sensorId] : true
+                    },
+                    [Models.USER] : {
+                        [userId] : true,
+                        [userTwoId] : true
+                    }
+                }
+
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : householdDoc,
+                    ref : {
+                        id : householdId
+                    }
+                })
+
+                const change = {
+                    before : new OfflineDocumentSnapshotStub(),
+                    after : afterDocSnap
+                }
+
+                await wrappedHouseholdsOnUpdate(change)
+
+                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                expect(userDoc[Models.SENSOR]).to.be.undefined
+
+                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
+
+                expect(sensorDoc[Models.USER][userId]).to.undefined
+
+                const sensorUserDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
+
+                expect(sensorUserDoc).to.not.exist
+
+                const userTwoDoc = firestoreMockData[`${Models.USER}/${userTwoId}`]
+                const expectedUserTwoDoc = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId,
+                        [Relations.PIVOT] : {
+                            accepted : true
+                        }
+                    },
+                    [Models.SENSOR] : {
+                        [sensorId] : true
+                    }
+                }
+
+                expect(userTwoDoc).is.deep.equal(expectedUserTwoDoc)
+
+                expect(sensorDoc[Models.USER][userTwoId]).to.exist
+
+                const sensorUserTwoDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userTwoId}`]
+                const expectedSensorUserTwoDoc = {
+                    [Models.SENSOR] : {
+                        id : sensorId
+                    },
+                    [Models.USER] : {
+                        id : userTwoId
+                    }
+                }
+
+                expect(sensorUserTwoDoc).to.be.deep.equal(expectedSensorUserTwoDoc)
+            })
+        })
+
+        describe('On Delete', () => {
 
             it('Should delete relations to all Users when deleted', async () => {
                 const wrappedHouseholdsOnDelete = test.wrap(myFunctions.funcHouseholdsOnDelete)
 
-                const householdId = uniqid()
                 const userId = uniqid()
                 const userIdTwo = uniqid()
+                const householdId = uniqid()
 
                 firestoreMockData[`${Models.USER}/${userId}`] = {
                     [Models.HOUSEHOLD] : {
@@ -732,7 +946,6 @@ describe('Integration_Test', () => {
             const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
             const expectedSensorDoc = {
                 [Models.USER]: {
-                    
                     [userId] : {
                         [Relations.PIVOT] : {
                             [cacheField] : true
