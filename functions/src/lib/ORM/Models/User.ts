@@ -10,13 +10,19 @@ export default class User extends ModelImpl {
         ID          : 'id',
         NAME        : 'name',
         EMAIL       : 'email',
-        CLAIMS      : 'claims',
-        CONTEXT     : {
-            _       : 'context',
-            ANDROID : 'ANDROID',
-            IOS     : 'IOS'
+        CLAIMS      : {
+            _           : 'claims',
+            ADMIN       : 'isAdmin',
+            SUPER_ADMIN : 'isSuperAdmin'
         },
-        FCM_TOKENS  : 'FCM_tokens',
+        FCM_TOKENS  : {
+            _       :'FCM_tokens',
+            CONTEXT     : {
+                _       : 'context',
+                ANDROID : 'ANDROID',
+                IOS     : 'IOS'
+            },
+        },
         HOUSEHOLDS : {
             ACCEPTED    : 'accepted',
             ROLE        : 'role'
@@ -28,7 +34,7 @@ export default class User extends ModelImpl {
         super(Models.USER, db, snap, id)
 
         this.actionableFields.set(
-            'claims', new UpdateCustomClaims()
+            User.f.CLAIMS._, new UpdateCustomClaims()
         )
 
         this.actionableFields.set(
@@ -54,7 +60,7 @@ export default class User extends ModelImpl {
             .belongsToMany(Models.SENSOR)
             .defineCachableFields([
                 User.f.ID,
-                User.f.FCM_TOKENS + Models.SECURE_SURFIX
+                User.f.FCM_TOKENS._ + Models.SECURE_SURFIX
             ])
     }
 }

@@ -30,10 +30,10 @@ exports = module.exports = pubsub
 
 			forOwn(user.FCM_tokens, ({context}, token) => {
 
-				if(context === User.f.CONTEXT.IOS)
+				if(context === User.f.FCM_TOKENS.CONTEXT.IOS)
 					iOSTokens.push(token)
 				
-				if(context === User.f.CONTEXT.ANDROID)
+				if(context === User.f.FCM_TOKENS.CONTEXT.ANDROID)
 					androidTokens.push(token)
 			})
 		})

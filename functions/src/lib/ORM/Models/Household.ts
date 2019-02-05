@@ -8,6 +8,10 @@ export default class Household extends ModelImpl {
 
     private GrandOneUserHouseholdAdminPrivileges: IModelCommand = new GrandOneUserHouseholdAdminPrivileges()
     
+    static readonly f = {
+        ID          : 'id'
+    }
+
     constructor(db: any, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
         super(Models.HOUSEHOLD, db, snap, id)

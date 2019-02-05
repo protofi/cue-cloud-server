@@ -1,5 +1,5 @@
 import { Change } from "firebase-functions"
-import { asyncForEach, difference, printFormattedJson } from "../../util"
+import { asyncForEach, difference } from "../../util"
 import { Relations } from "../../const"
 import { singular } from "pluralize"
 import ModelImpl, { Models } from "../Models"

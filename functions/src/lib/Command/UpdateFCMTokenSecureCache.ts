@@ -8,7 +8,7 @@ export default class UpdateFCMTokenSecureCache extends AbstractActionableFieldCo
     
     async execute(user: User, changes: any, after?: any, before?: any): Promise<void>
     {
-        const tokens = await user.getField(User.f.FCM_TOKENS)
+        const tokens = await user.getField(User.f.FCM_TOKENS._)
         
         const sensors = (await user.sensors().get()).filter(sensor => {
             return includes(keys(changes), sensor.getId())
@@ -18,7 +18,7 @@ export default class UpdateFCMTokenSecureCache extends AbstractActionableFieldCo
             await sensor.secure().update({
                 [Models.USER] : {
                     [user.getId()] : {
-                        [User.f.FCM_TOKENS] : tokens
+                        [User.f.FCM_TOKENS._] : tokens
                     }
                 }
             })

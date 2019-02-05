@@ -364,7 +364,7 @@ describe('Integration_Test', () => {
 
             it('Changes to FCM_tokens should be cached onto Sensors_secure', async () => {
     
-                const cacheField = User.f.FCM_TOKENS
+                const cacheField = User.f.FCM_TOKENS._
                 const FCMToken = uniqid()
                 const sensorId = uniqid()
 
@@ -1231,13 +1231,13 @@ describe('Integration_Test', () => {
                 firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
-                            [User.f.FCM_TOKENS] : {
+                            [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
-                                    [User.f.CONTEXT._] : User.f.CONTEXT.IOS 
+                                    [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.IOS 
                                 }
                             },
                             [Relations.PIVOT] : {
-                                [Sensor.f[Relations.PIVOT][Models.USER].MUTED] : true
+                                [Sensor.f.USERS.MUTED] : true
                             }
                         }
                     }
@@ -1299,9 +1299,9 @@ describe('Integration_Test', () => {
                 firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
-                            [User.f.FCM_TOKENS] : {
+                            [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
-                                    [User.f.CONTEXT._] : User.f.CONTEXT.ANDROID
+                                    [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.ANDROID
                                 }
                             }
                         }
@@ -1340,9 +1340,9 @@ describe('Integration_Test', () => {
                 firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
-                            [User.f.FCM_TOKENS] : {
+                            [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
-                                    [User.f.CONTEXT._] : User.f.CONTEXT.IOS
+                                    [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.IOS
                                 }
                             }
                         }
@@ -1381,9 +1381,9 @@ describe('Integration_Test', () => {
                 firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
-                            [User.f.FCM_TOKENS] : {
+                            [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
-                                    [User.f.CONTEXT._] : User.f.CONTEXT.ANDROID
+                                    [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.ANDROID
                                 }
                             }
                         }
@@ -1422,9 +1422,9 @@ describe('Integration_Test', () => {
                 firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
-                            [User.f.FCM_TOKENS] : {
+                            [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
-                                    [User.f.CONTEXT._] : User.f.CONTEXT.IOS
+                                    [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.IOS
                                 }
                             }
                         }
@@ -1467,9 +1467,9 @@ describe('Integration_Test', () => {
                 firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
-                            [User.f.FCM_TOKENS] : {
+                            [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
-                                    [User.f.CONTEXT._] : User.f.CONTEXT.IOS
+                                    [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.IOS
                                 }
                             }
                         }
@@ -1515,9 +1515,9 @@ describe('Integration_Test', () => {
                 firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
-                            [User.f.FCM_TOKENS] : {
+                            [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
-                                    [User.f.CONTEXT._] : User.f.CONTEXT.ANDROID
+                                    [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.ANDROID
                                 }
                             }
                         }
@@ -1557,9 +1557,9 @@ describe('Integration_Test', () => {
                 firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
-                            [User.f.FCM_TOKENS] : {
+                            [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
-                                    [User.f.CONTEXT._] : User.f.CONTEXT.ANDROID
+                                    [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.ANDROID
                                 }
                             }
                         }
@@ -1597,9 +1597,9 @@ describe('Integration_Test', () => {
                 firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
-                            [User.f.FCM_TOKENS] : {
+                            [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
-                                    [User.f.CONTEXT._] : User.f.CONTEXT.IOS
+                                    [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.IOS
                                 }
                             }
                         }
@@ -1637,16 +1637,16 @@ describe('Integration_Test', () => {
                 firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
                         [testUserDataOne.uid] : {
-                            [User.f.FCM_TOKENS] : {
+                            [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
-                                    [User.f.CONTEXT._] : User.f.CONTEXT.IOS
+                                    [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.IOS
                                 }
                             }
                         },
                         [testUserDataTwo.uid] : {
-                            [User.f.FCM_TOKENS] : {
+                            [User.f.FCM_TOKENS._] : {
                                 [FCMTokenTwo] : {
-                                    [User.f.CONTEXT._] : User.f.CONTEXT.ANDROID
+                                    [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.ANDROID
                                 }
                             }
                         }

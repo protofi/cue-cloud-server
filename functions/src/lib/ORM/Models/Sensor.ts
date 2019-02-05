@@ -12,10 +12,8 @@ export default class Sensor extends ModelImpl {
         LOCATION    : 'location',
         ICON        : 'icon_string',
         EVENT       : 'event_has_happened',
-        [Relations.PIVOT] : {
-            [Models.USER] : {
-                MUTED   : 'muted'
-            }
+        USERS : {
+            MUTED   : 'muted'
         }
     }
 
@@ -39,7 +37,7 @@ export default class Sensor extends ModelImpl {
         return this
             .belongsToMany(Models.USER)
             .defineCachableFields(null, [
-                'muted'
+                Sensor.f.USERS.MUTED
             ])
     }
 
@@ -47,7 +45,7 @@ export default class Sensor extends ModelImpl {
     {
         return this.belongsTo(Models.HOUSEHOLD)
             .defineCachableFields([
-                'name'
+                Sensor.f.NAME
             ])
     }
 }

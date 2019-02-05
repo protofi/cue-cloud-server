@@ -1,4 +1,4 @@
-import { getStatusText, UNAUTHORIZED, NOT_FOUND, INTERNAL_SERVER_ERROR} from 'http-status-codes'
+import { getStatusText, UNAUTHORIZED, NOT_FOUND } from 'http-status-codes'
 import { Router, Application, Request, Response, NextFunction } from 'express'
 import { firestore, auth } from 'firebase-admin'
 
@@ -8,7 +8,6 @@ import DataORMImpl from '../lib/ORM';
 import Household from '../lib/ORM/Models/Household';
 import * as baseStationCode from 'randomatic'
 import * as fakeUuid from 'uuid/v1'
-import Sensor from '../lib/ORM/Models/Sensor';
 const { PubSub } = require('@google-cloud/pubsub')
 
 const apiBasePath = '/api/v1'

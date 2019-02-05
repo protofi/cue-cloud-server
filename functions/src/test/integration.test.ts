@@ -428,7 +428,7 @@ describe('Integration_Test', () => {
                 const expectedSensorSecureDoc = {
                     [Models.USER] : {
                         [userId] : {
-                            [User.f.FCM_TOKENS] : {
+                            [User.f.FCM_TOKENS._] : {
                                 [FCMToken] : true      
                             }
                         }
@@ -467,7 +467,7 @@ describe('Integration_Test', () => {
             //     const expectedSensorSecureDoc = {
             //         [Models.USER] : {
             //             [userId] : {
-            //                 [User.f.FCM_TOKENS] : {
+            //                 [User.f.FCM_TOKENS._] : {
             //                     [FCMToken] : true      
             //                 }
             //             }

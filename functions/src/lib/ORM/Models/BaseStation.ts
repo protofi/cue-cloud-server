@@ -4,6 +4,16 @@ import { UnlinkBaseStationFromHousehold } from "../../Command/UnlinkBaseStationF
 
 export default class BaseStation extends ModelImpl {
 
+    static readonly f = {
+        ID          : 'id',
+        PIN         : 'pin',
+        WEBSOCKET   : {
+            _       : 'websocket',
+            HOST    : 'hostname',
+            PORT    : 'port'
+        }
+    }
+
     constructor(db: any, snap?: FirebaseFirestore.DocumentSnapshot, id?: string)
     {
         super(Models.BASE_STATION, db, snap, id)
