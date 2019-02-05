@@ -1,32 +1,74 @@
 
 
-(node:12300) DeprecationWarning: grpc.load: Use the @grpc/proto-loader module with grpc.loadPackageDefinition instead
-  OFFLINE
-    Emulated_Rules
-      √ Writes to a random collection should fail (2181ms)
-      Households
-        √ Unautherized users should not be able to create households (2089ms)
-        √ Users should not be able to create households without a users property (2078ms)
-        √ Users should be able to create households with a users property including ID ref to themselves (2083ms)
-        √ Users should not be able to create households without a users property including ID ref to themselves (2088ms)
-        √ Users should not be able to create households with a users property including ID refs to other users (2091ms)
-        √ User possessing the role of ADMIN should be able to add other users to a household (2151ms)
-        √ Unautherized users should not be able to retrieve data from households (2123ms)
-        √ Users not included in a household should not be able to retrieve data about it (2092ms)
-        √ Unautherized users should not be able the delete households (2076ms)
-        √ Users should not be able the delete households (2078ms)
-      Users
-        √ Unautherized users should not be able to create users (2079ms)
-        √ Users should not be able to create users (2088ms)
-        √ Users should be able to update data about themselves (2116ms)
-        √ Users should be able to update their name (2098ms)
-        √ Users should be able to update data on the relation to a household (2165ms)
-        √ Users should not be able to change their role in relation to a household (2109ms)
-        √ Users should not be able to change the accecpted property in relation to a household to false (2112ms)
-        √ Users should be able to change the accecpted property in relation to a household to true (2099ms)
-        √ Unautherized users should not be able the delete users (2098ms)
-        √ Users should not be able the delete users (2079ms)
+(node:16984) DeprecationWarning: grpc.load: Use the @grpc/proto-loader module with grpc.loadPackageDefinition instead
+  Emulated_Rules
+    √ Writes to a random collection should fail (1052ms)
+    √ Reads from a random collection should fail (190ms)
+    Users
+      Create
+        √ Unautherized users should not be able to create new Users (200ms)
+        √ Users should not be able to create new Users (137ms)
+        √ Admin Users should not be able to create new Users (113ms)
+        √ Super Admin Users should not be able to create new Users (116ms)
+      Read
+        √ Unautherized users should not be able to read data from users (167ms)
+        √ Users should be able to read their own data (168ms)
+        √ Users should not be able to read data on other users (160ms)
+        √ Admin users should be able to read data on other users (111ms)
+        √ Super Admin users should be able to read data on other users (132ms)
+      Update
+        √ Unautherized Users should not be able to update data on users (150ms)
+        √ Users should not be able to update data on other users (184ms)
+        √ Users should not be able to update field: id (134ms)
+        √ Users should not be able to update field: claims (133ms)
+        √ Users should not be able to update field: email (202ms)
+        √ Users should be able to update field: name (131ms)
+        √ Users should be able to update data on the relation to a household (134ms)
+        √ Users should not be able to update their role in relation to a household (133ms)
+        √ Users should not be able to update the accecpted property in relation to a household to false (126ms)
+        √ Users should be able to change the accecpted property in relation to a household to true (108ms)
+        √ Super Admin users should be able to update data on other users (211ms)
+      Delete
+        √ Unautherized users should not be able the delete users (111ms)
+        √ Users should not be able the delete users (96ms)
+    Households
+      Create
+        √ Unautherized users should not be able to create households (116ms)
+        √ Users should not be able to create households without a users property (100ms)
+        √ Users should be able to create households with a users property including ID ref to themselves (117ms)
+        √ Users should not be able to create households without a users property including ID ref to themselves (92ms)
+        √ Users should not be able to create households with a users property including ID refs to other users (107ms)
+      Read
+        √ Unautherized users should not be able to read from Households (132ms)
+        √ Users not included in a household should not be able to read data about it (101ms)
+      Update
+        √ User possessing the role of ADMIN should be able to add other users to a household (157ms)
+      Delete
+        √ Unautherized users should not be able the delete households (150ms)
+        √ Users should not be able the delete households (109ms)
+        √ Users should not be able the delete households (100ms)
+    Sensors
+      Create
+        √ Unautherized users should not be able to create Sensors (119ms)
+        √ Users should not be able to create Sensors (115ms)
+        √ Admin Users should not be able to create Sensors (100ms)
+        √ Super Admin Users should not be able to create Sensors (116ms)
+      Read
+        √ Unautherized users should not be able to read data from Sensors (133ms)
+        √ Users should not be able to read data from non-related Sensors (131ms)
+        √ Users should be able to read data from related Sensors (154ms)
+        √ Admin users should be able to read data from Sensors (132ms)
+      Update
+        √ Unautherized users should not be able to update data on Sensors (119ms)
+        √ Users should not be able to update data on non-related Sensors (133ms)
+        √ Users should not be able to update field: id (161ms)
+        √ Users should not be able to update field: users (120ms)
+        √ Users should be able to update data on related Sensors (137ms)
+        √ Admin users should be able to update data on Sensors (139ms)
+    Sensors_Users
+      Update
+        √ Unautherized users should not be able to update data on Sensors_Users relation (219ms)
 
 
-  21 passing (44s)
+  50 passing (8s)
 
