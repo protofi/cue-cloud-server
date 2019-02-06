@@ -13,6 +13,42 @@
 
 			<v-spacer></v-spacer>
 
+                        <v-menu offset-y>
+            
+                <v-btn
+                    slot="activator"
+                    icon
+                >
+                    <v-icon>playlist_add_check</v-icon>
+                
+                </v-btn>
+
+                <v-list>
+
+                    <v-list-tile
+                        ripple
+                        @click.stop="bulkDelete"
+                    >
+                        <v-list-tile-avatar>
+                            <v-progress-circular
+                                v-if="deleteLoading"
+                                indeterminate
+                                color="amber"
+                            ></v-progress-circular>
+                            <v-icon v-else>delete</v-icon>
+                        </v-list-tile-avatar>
+
+                        <v-list-tile-title>
+                            Delete
+                        </v-list-tile-title>
+
+                    </v-list-tile>
+
+                </v-list>
+
+            </v-menu>
+
+
 		</v-toolbar>
 
         <v-layout column fill-height justify-center>
@@ -82,9 +118,21 @@
 
                             </v-list-tile-content>
 
+                            
+
                             <v-list-tile-action>
 
-                                <v-icon color="grey lighten-1">info</v-icon>
+                                <v-layout>
+                                
+                                    <v-icon color="grey lighten-1">info</v-icon>
+                                 
+                                </v-layout>
+
+                            </v-list-tile-action>
+                            
+                            <v-list-tile-action @click.stop.prevent="">
+
+                                <v-checkbox :value="household.id" v-model="selectedHouseholds"></v-checkbox>
 
                             </v-list-tile-action>
 
@@ -261,6 +309,8 @@ export default {
             households: [],
             loading : true,
             activeHousehold : null,
+            selectedHouseholds : [],
+            deleteLoading : false,
             createHouseholdDialog : {
                 show : false,
                 loading : false,
@@ -373,7 +423,30 @@ export default {
             this.createHouseholdDialog.loading = false
             this.createHouseholdDialog.owner = null
             this.createHouseholdDialog.show = false
-        }
+        },
+        
+        async bulkDelete()
+            {
+                this.deleteLoading = true
+
+                try{
+                    const deletions = []
+
+                    this.selectedHouseholds.forEach(id => {
+                        deletions.push(
+                            firestore.collection('households').doc(id).delete()
+                        )  
+                    })
+
+                    await Promise.all(deletions)
+                }
+                catch(e)
+                {
+                    console.log(e)
+                }
+
+                this.deleteLoading = false
+            }
     },
 }
 </script>

@@ -13,15 +13,17 @@
 			<v-spacer></v-spacer>
             
             <v-menu offset-y>
+            
                 <v-btn
                     slot="activator"
                     icon
                 >
-                    <v-icon>settings</v-icon>
+                    <v-icon>playlist_add_check</v-icon>
                 
                 </v-btn>
 
                 <v-list>
+
                     <v-list-tile
                         ripple
                         @click.stop="bulkDelete"
@@ -40,9 +42,10 @@
                         </v-list-tile-title>
 
                     </v-list-tile>
-                </v-list>
-            </v-menu>
 
+                </v-list>
+
+            </v-menu>
 
             <!-- <v-tabs
 				slot="extension"
@@ -360,7 +363,6 @@
                 }
 
                 this.deleteLoading = false
-
             }
         }
     }

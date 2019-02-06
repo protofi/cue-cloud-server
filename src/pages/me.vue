@@ -8,7 +8,8 @@
 
                 <h2>
 
-                    {{ $store.getters['auth/user'].email }}      
+                    {{ $store.getters['auth/user'].email }}
+                       
                 </h2>
         
             </v-container>
