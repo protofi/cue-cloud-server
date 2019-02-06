@@ -23,8 +23,18 @@
 
                 <v-list>
                     <v-list-tile
+                        ripple
                         @click.stop="bulkDelete"
                     >
+                        <v-list-tile-avatar>
+                            <v-progress-circular
+                                v-if="deleteLoading"
+                                indeterminate
+                                color="amber"
+                            ></v-progress-circular>
+                            <v-icon v-else>delete</v-icon>
+                        </v-list-tile-avatar>
+
                         <v-list-tile-title>
                             Delete
                         </v-list-tile-title>
@@ -241,6 +251,7 @@
                 userClaims : [],
                 
                 selectedUsers : [],
+                deleteLoading : false,
 
                 tab: null,
                 items: [
@@ -334,17 +345,22 @@
 
             async bulkDelete()
             {
+                this.deleteLoading = true
+
                 try{
-                    console.log(JSON.stringify(this.selectedUsers))
-
-                    const res = await this.$axios.delete('/users')
-
-                    console.log(res)
+                    const res = await this.$axios.delete('/users', {
+                        data : {
+                            ids : this.selectedUsers
+                        }
+                    })
                 }
                 catch(e)
                 {
                     console.log(e)
                 }
+
+                this.deleteLoading = false
+
             }
         }
     }

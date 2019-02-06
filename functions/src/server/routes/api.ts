@@ -102,30 +102,28 @@ export default (app: Application) => {
     authRouter.route('/users')
 
         .delete(async (req: Request, res: Response) => {
-            // const userIds = JSON.parse(req.body.ids)
+            const userIds = req.body.ids
             
             const deletions = []
 
             try{
                 
-                // userIds.forEach(id => {
-                //     deletions.push(auth().deleteUser(id))
-                // })
+                userIds.forEach(id => {
+                    deletions.push(auth().deleteUser(id))
+                })
 
-                // await Promise.all(deletions)
+                await Promise.all(deletions)
 
                 res.json({
                     success : true,
-                    // users   : userIds,
-                    params  : req.params,
-                    body    : req.body
+                    users   : userIds,
                 })  
 
             }
             catch(e) {
                 res.json({
                     success : false,
-                    // users   : userIds,
+                    users   : userIds,
                     error   : e
                 })  
             }

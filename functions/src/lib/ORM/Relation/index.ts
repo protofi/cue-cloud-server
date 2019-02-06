@@ -4,9 +4,8 @@ import { Relations } from "../../const"
 import { singular } from "pluralize"
 import ModelImpl, { Models } from "../Models"
 import { Pivot } from "./Pivot"
-import { isPlainObject, intersection, keys, omit, get, capitalize, merge, isEmpty, includes, mapValues } from "lodash"
+import { isPlainObject, intersection, keys, omit, get, camelCase, upperFirst, merge, isEmpty, includes, mapValues } from "lodash"
 import { IActionableFieldCommand } from "../../Command"
-import * as camelCase from 'camelcase'
 import { firestore } from "firebase-admin"
 
 const deleteFlag = (firestore.FieldValue) ? firestore.FieldValue.delete() : undefined //For testing purposes. Is to be fixed
@@ -18,7 +17,7 @@ export interface ModelImportStategy {
 export class StandardModelImport implements ModelImportStategy{
     async import(db: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl>
     {
-        const model = await import(`./../Models/${capitalize(camelCase(singular(name)))}`)
+        const model = await import(`./../Models/${upperFirst(camelCase(singular(name)))}`)
         const property = new model.default(db, null, id)
         return property
     }
