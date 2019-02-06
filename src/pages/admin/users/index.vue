@@ -45,10 +45,10 @@
                                         <v-list-tile
                                             v-for="user in users"
                                             :key="user.id"
-                                            :to="user.path"
                                             avatar
-                                            router
                                         >
+                                            <!-- :to="user.path"
+                                            router -->
                                             <v-list-tile-avatar>
                                                 <v-icon class="grey lighten-1 white--text">account_circle</v-icon>
                                             </v-list-tile-avatar>
@@ -71,19 +71,25 @@
 
                                             </v-list-tile-action>
 
+                                            <v-list-tile-action>
+
+                                                <v-checkbox :value="user.id" v-model="selectedUsers"></v-checkbox>
+
+                                            </v-list-tile-action>
+
                                             <v-list-tile-action v-if="$store.getters['auth/isSuperAdmin']">
 
                                                 <v-layout>
 
                                                     <v-btn
                                                         icon
+                                                        small color="grey darken-1" dark
                                                         ripple
                                                         @click.stop.prevent="promotionDialog(user)"
                                                     >
                                                         <v-icon
-                                                            color="grey"
                                                         >
-                                                            verified_user
+                                                            swap_vert
                                                         </v-icon>
 
                                                     </v-btn>
@@ -107,8 +113,85 @@
 			</v-tab-item>
 
 		</v-tabs-items>
-
         
+        <v-dialog v-model="showUserPromotionDialog" max-width="400px">
+
+            <v-card v-if="userToBePromoted">
+
+                <v-card-title>
+
+                    <span class="headline">Promote User</span>
+                
+                </v-card-title>
+
+                <v-card-text>
+
+                    <v-form ref="userPromotionForm">
+
+                        <v-container grid-list-md>
+
+                            <v-layout wrap>
+
+                                <v-flex xs12>
+                                    <v-text-field
+                                        label="User ID"
+                                        disabled
+                                        name="id"
+                                        v-model="userToBePromoted.id">
+                                    </v-text-field>
+                                </v-flex>
+
+                                <v-flex xs12>
+                                    <v-text-field
+                                        label="Name"
+                                        disabled
+                                        v-model="userToBePromoted.data.name">
+                                    </v-text-field>
+                                </v-flex>
+
+                                <v-flex xs12 row>
+                                   
+                                    <v-checkbox
+                                        v-for="(role, key) in roles"
+                                        :key="key"
+                                        :label="role.name"
+                                        :value="key"
+                                        v-model="userClaims"
+                                    ></v-checkbox>
+
+                                </v-flex>
+
+                            </v-layout>
+
+                        </v-container>
+
+                        <v-alert
+                            :value="userPromotionError"
+                            color="error"
+                            icon="warning"
+                            transition="scale-transition"
+                            outline
+                        >
+                            {{ userPromotionErrorMessage }}
+
+                        </v-alert>
+
+                    </v-form>
+
+                </v-card-text>
+
+                <v-card-actions>
+
+                    <v-spacer></v-spacer>
+
+                    <v-btn color="blue darken-1" flat @click="showUserPromotionDialog = false">Close</v-btn>
+                    <v-btn color="blue darken-1" flat type="submit" @click="userClaimSubmit">Promote</v-btn>
+                
+                </v-card-actions>
+
+            </v-card>
+            
+        </v-dialog>
 
     </div>
 
@@ -132,8 +215,10 @@
                 userToBePromoted : null,
                 userPromotionErrorMessage : '',
                 userPromotionError : null,
-                userClaims : {},
+                userClaims : [],
                 
+                selectedUsers : [],
+
                 tab: null,
                 items: [
                     'all', 'users', 'admins'
@@ -141,10 +226,10 @@
             }
         },
         watch : {
-            userToBePromoted(user) {
-                if(!user) this.userClaims = {}
-                else this.userClaims = user.data.claims
-            },
+            // userToBePromoted(user) {
+            //     if(!user) this.userClaims = {}
+            //     else this.userClaims = user.data.claims
+            // },
 
         },
         created ()
@@ -181,37 +266,55 @@
                 return users
             },
 
-            notAdmins()
-            {
-                return this.users.filter((user) => {
-                    return !user.data.claims.isAdmin && !user.data.claims.isSuperAdmin
-                })
-            },
+            // notAdmins()
+            // {
+            //     return this.users.filter((user) => {
+            //         return !user.data.claims.isAdmin && !user.data.claims.isSuperAdmin
+            //     })
+            // },
 
-            admins()
-            {
-                return this.users.filter((user) => {
-                    return user.data.claims.isAdmin || user.data.claims.isSuperAdmin
-                })
-            }
+            // admins()
+            // {
+            //     return this.users.filter((user) => {
+            //         return user.data.claims.isAdmin || user.data.claims.isSuperAdmin
+            //     })
+            // }
         },
         methods : {
             promotionDialog(user)
             {
                 this.showUserPromotionDialog = true
                 this.userToBePromoted = user
+                
+                if(user.data.claims)
+                    this.userClaims = Object.keys(user.data.claims)
             },
-            userClaimsubmit(e)
+
+            async userClaimSubmit(e)
             {
                 e.preventDefault()
 
-                firestore.collection('users').doc(this.userToBePromoted.id).set({
-                    claims : this.userClaims
-                }, {
-                    merge : true
-                }).catch(error => {
-                    console.log(error.message)
+                let claims = {}
+                
+                this.userClaims.forEach(claim => {
+                    claims[claim] = true
                 })
+
+                try
+                {
+                    await firestore.collection('users').doc(this.userToBePromoted.id).set({
+                        claims : claims
+                    }, {
+                        merge : true
+                    })
+                }
+                catch(e) {
+                    console.log(e)
+                }
+
+                this.showUserPromotionDialog = false
+                this.userToBePromoted = null
+                this.userClaims = []
             }
         }
     }
