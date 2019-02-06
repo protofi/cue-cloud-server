@@ -7,6 +7,12 @@
         <v-form ref="form" v-model="valid" lazy-validation >
            
             <v-text-field
+                v-model="name"
+                label="Navn"
+                :validate-on-blur='true'
+            ></v-text-field>
+
+            <v-text-field
                 v-model="email"
                 :rules="emailRules"
                 label="E-mail"
@@ -28,10 +34,10 @@
                 type="submit"
                 @click="submit"
             >
-                opret
+                Register
             </v-btn>
 
-            <v-btn @click="clear">Nulstil</v-btn>
+            <v-btn @click="clear">Reset</v-btn>
 
                 <v-alert
                     :value="formError"
@@ -51,7 +57,7 @@
 
 <script>
     import axios from 'axios'
-    import { auth } from '~/plugins/firebase.js'
+    import { auth, firestore } from '~/plugins/firebase.js'
 
     export default {
         data: () => ({
@@ -62,6 +68,7 @@
 
             //form validation
             valid: true,
+            name : '',
             password: '',
             passwordRules: [
                 v => !!v || 'Du skal indtaste en adgangskode',
@@ -89,11 +96,40 @@
                     this.errorMessage = ''
 
                     auth.createUserWithEmailAndPassword(this.email, this.password)
-                    .catch(error => {
-                        this.errorMessage = error.message
 
-                    }).finally(() => {
-                        this.submitLoading = false
+                    auth.onAuthStateChanged(user => {
+
+                        if(!user) return
+
+                        try{
+
+                            const unsubscribe = firestore.collection('users').doc(user.uid).onSnapshot((snapshot) => {
+                        
+                                console.log('CHANGE')
+
+                                if(snapshot.ref)
+                                {
+                                    snapshot.ref.set({
+                                        name : this.name,
+                                        FCM_tokens : {
+                                            'abvel234' : {
+                                                context : 'IOS'
+                                            }
+                                        }
+                                    }, {merge : true})
+                                    .then(() => {
+                                        unsubscribe()
+                                    })
+                                    .catch(e => {
+                                        console.log('UPDATE', e)
+                                    })
+                                }
+                            })
+                        }
+                        catch(e)
+                        {
+                            console.log('READ', e)
+                        }
                     })
                 }
             },

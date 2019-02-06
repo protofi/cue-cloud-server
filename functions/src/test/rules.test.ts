@@ -3,6 +3,7 @@ import * as sinon from 'sinon'
 import * as mocha from 'mocha'
 import * as firestore from '@firebase/testing'
 import { Models } from './lib/ORM/Models';
+import User from './lib/ORM/Models/User';
 import { setup } from './helpers'
 import { Roles } from './lib/const';
 
@@ -233,7 +234,23 @@ describe('Emulated_Rules', () => {
                 })))
             })
 
-            it('Users should be able to update data on the relation to a household', async () => {
+            it.only('Users should be able to update field: FCM_tokens', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.USER}/${testUserDataOne.uid}`] : {}
+                })
+
+                const userDoc = db.collection(Models.USER).doc(testUserDataOne.uid)
+
+                expect(await firestore.assertSucceeds(userDoc.update({
+                    [User.f.FCM_TOKENS._] : {
+                        'abc' : {
+                            [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.IOS
+                        }
+                    }
+                })))
+            })
+
+            it('Users should be able to update data on the relation to a Household', async () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.USER}/${testUserDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : {

@@ -11,6 +11,28 @@
 			<v-toolbar-title>Users</v-toolbar-title>
 
 			<v-spacer></v-spacer>
+            
+            <v-menu offset-y>
+                <v-btn
+                    slot="activator"
+                    icon
+                >
+                    <v-icon>settings</v-icon>
+                
+                </v-btn>
+
+                <v-list>
+                    <v-list-tile
+                        @click.stop="bulkDelete"
+                    >
+                        <v-list-tile-title>
+                            Delete
+                        </v-list-tile-title>
+
+                    </v-list-tile>
+                </v-list>
+            </v-menu>
+
 
             <!-- <v-tabs
 				slot="extension"
@@ -46,9 +68,10 @@
                                             v-for="user in users"
                                             :key="user.id"
                                             avatar
+                                            :to="user.path"
+                                            router
                                         >
-                                            <!-- :to="user.path"
-                                            router -->
+                                            
                                             <v-list-tile-avatar>
                                                 <v-icon class="grey lighten-1 white--text">account_circle</v-icon>
                                             </v-list-tile-avatar>
@@ -71,7 +94,7 @@
 
                                             </v-list-tile-action>
 
-                                            <v-list-tile-action>
+                                            <v-list-tile-action @click.prevent="">
 
                                                 <v-checkbox :value="user.id" v-model="selectedUsers"></v-checkbox>
 
@@ -225,20 +248,12 @@
                 ],
             }
         },
-        watch : {
-            // userToBePromoted(user) {
-            //     if(!user) this.userClaims = {}
-            //     else this.userClaims = user.data.claims
-            // },
-
-        },
         created ()
         {
             firestore.collection('users')
                 .onSnapshot(({ docs }) => {
                     
                     this.userDocs = docs
-                    return
 
                 }, error => {
                     console.log(error.message)
@@ -266,19 +281,19 @@
                 return users
             },
 
-            // notAdmins()
-            // {
-            //     return this.users.filter((user) => {
-            //         return !user.data.claims.isAdmin && !user.data.claims.isSuperAdmin
-            //     })
-            // },
+            notAdmins()
+            {
+                return this.users.filter((user) => {
+                    return user.data.claims && !user.data.claims.isAdmin && !user.data.claims.isSuperAdmin
+                })
+            },
 
-            // admins()
-            // {
-            //     return this.users.filter((user) => {
-            //         return user.data.claims.isAdmin || user.data.claims.isSuperAdmin
-            //     })
-            // }
+            admins()
+            {
+                return this.users.filter((user) => {
+                    return user.data.claims && (user.data.claims.isAdmin || user.data.claims.isSuperAdmin)
+                })
+            }
         },
         methods : {
             promotionDialog(user)
@@ -315,6 +330,21 @@
                 this.showUserPromotionDialog = false
                 this.userToBePromoted = null
                 this.userClaims = []
+            },
+
+            async bulkDelete()
+            {
+                try{
+                    console.log(JSON.stringify(this.selectedUsers))
+
+                    const res = await this.$axios.delete('/users')
+
+                    console.log(res)
+                }
+                catch(e)
+                {
+                    console.log(e)
+                }
             }
         }
     }

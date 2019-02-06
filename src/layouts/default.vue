@@ -212,7 +212,7 @@
 
 						<v-list-tile-content>
 					
-							<v-list-tile-title>Base Staions</v-list-tile-title>
+							<v-list-tile-title>Base Stations</v-list-tile-title>
 					
 						</v-list-tile-content>
 
@@ -314,8 +314,8 @@
 				
 				<v-progress-linear
 					:indeterminate="true"
-					color="grey"
-					height="3"
+					color="green darken-2"
+					height="10"
 				></v-progress-linear>
 				
 			</v-layout>

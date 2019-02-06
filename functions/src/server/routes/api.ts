@@ -99,6 +99,38 @@ export default (app: Application) => {
     
     authRouter.use(adminMiddleware)
 
+    authRouter.route('/users')
+
+        .delete(async (req: Request, res: Response) => {
+            // const userIds = JSON.parse(req.body.ids)
+            
+            const deletions = []
+
+            try{
+                
+                // userIds.forEach(id => {
+                //     deletions.push(auth().deleteUser(id))
+                // })
+
+                // await Promise.all(deletions)
+
+                res.json({
+                    success : true,
+                    // users   : userIds,
+                    params  : req.params,
+                    body    : req.body
+                })  
+
+            }
+            catch(e) {
+                res.json({
+                    success : false,
+                    // users   : userIds,
+                    error   : e
+                })  
+            }
+        })
+
     authRouter.route('/households')
         
         .get(async (req: Request, res: Response) => {

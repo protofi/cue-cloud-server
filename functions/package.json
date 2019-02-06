@@ -17,14 +17,14 @@
     "deploy": "firebase deploy --only functions,hosting",
     "deploy:stage:rules": "firebase use staging && firebase deploy --only firestore:rules",
     "logs": "firebase functions:log",
-    "mocha" : "mocha --exit --timeout 5000",
-    "build:test"        : "tsc -p test --outDir ./test",
-    "test"              : "tsc -p test --outDir ./test && mocha --exit --timeout 5000 || true",
-    "test:unit"         : "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep Unit_Test || true",
-    "test:rules"        : "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep Emulated_Rules || true",
-    "test:integration"  : "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep Integration_Test || true",
-    "test:report:rules" : "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep Emulated_Rules 2>&1 | tee ./../rules.description.txt",
-    "test:coverage"     : "tsc -p test --outDir ./test && nyc mocha --exit --timeout 5000"
+    "mocha": "mocha --exit --timeout 5000",
+    "build:test": "tsc -p test --outDir ./test",
+    "test": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 || true",
+    "test:unit": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep Unit_Test || true",
+    "test:rules": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep Emulated_Rules || true",
+    "test:integration": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep Integration_Test || true",
+    "test:report:rules": "tsc -p test --outDir ./test && mocha --exit --timeout 5000 --grep Emulated_Rules 2>&1 | tee ./../rules.description.txt",
+    "test:coverage": "tsc -p test --outDir ./test && nyc mocha --exit --timeout 5000"
   },
   "nyc": {
     "include": [

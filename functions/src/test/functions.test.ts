@@ -956,7 +956,7 @@ describe('Integration_Test', () => {
             expect(sensorDoc).to.deep.equal(expectedSensorDoc)
         })
 
-        it('Should cache Muted field to Sensor secure data', async () => {
+        it('Should cache Muted field to Sensor Secure data', async () => {
             
             const userId        = uniqid()
             const sensorId      = uniqid()
