@@ -207,11 +207,11 @@ export default class ModelImpl implements Model {
     /**
      * Attach one model to many others
      */
-    protected hasMany(property: string): One2ManyRelation
+    protected hasMany(property: string, isWeak?: boolean): One2ManyRelation
     {
         if(!this.relations.has(property))
         {
-            const relation: One2ManyRelation = new One2ManyRelation(this, property, this.db)
+            const relation: One2ManyRelation = new One2ManyRelation(this, property, this.db, isWeak)
             this.relations.set(property, relation)
         }
 

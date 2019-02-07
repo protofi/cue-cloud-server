@@ -426,27 +426,29 @@ export default {
         },
         
         async bulkDelete()
-            {
-                this.deleteLoading = true
+        {
+            if(this.selectedHouseholds.length < 1) return
+            
+            this.deleteLoading = true
 
-                try{
-                    const deletions = []
+            try{
+                const deletions = []
 
-                    this.selectedHouseholds.forEach(id => {
-                        deletions.push(
-                            firestore.collection('households').doc(id).delete()
-                        )  
-                    })
+                this.selectedHouseholds.forEach(id => {
+                    deletions.push(
+                        firestore.collection('households').doc(id).delete()
+                    )  
+                })
 
-                    await Promise.all(deletions)
-                }
-                catch(e)
-                {
-                    console.log(e)
-                }
-
-                this.deleteLoading = false
+                await Promise.all(deletions)
             }
+            catch(e)
+            {
+                console.log(e)
+            }
+
+            this.deleteLoading = false
+        }
     },
 }
 </script>

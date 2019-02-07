@@ -133,10 +133,13 @@ export interface IN2ManyRelation {
 export abstract class N2ManyRelation extends RelationImpl implements IN2ManyRelation {
     
     protected properties: Set<ModelImpl>
+    protected isWeak: boolean = false
 
-    constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore)
+    constructor(owner: ModelImpl, propertyModelName: string, db: FirebaseFirestore.Firestore, isWeak?: boolean)
     {
         super(owner, propertyModelName, db)
+
+        this.isWeak = isWeak
         this.properties = new Set<ModelImpl>()
     }
 
@@ -507,9 +510,16 @@ export class One2ManyRelation extends N2ManyRelation {
         const properties: Array<ModelImpl> = await this.get()
 
         await asyncForEach(properties, async (property: ModelImpl) => {
-            await property.update({
-                [this.owner.name] : deleteFlag
-            })
+            if(this.isWeak)
+            {
+                await property.delete()
+            }
+            else
+            {
+                await property.update({
+                    [this.owner.name] : deleteFlag
+                })
+            }
         })
 
         return super.detach()
@@ -618,7 +628,7 @@ export class N2OneRelation extends RelationImpl {
         const beforeData: FirebaseFirestore.DocumentData = change.before.data()
         const afterData: FirebaseFirestore.DocumentData = change.after.data()
 
-        const { newCacheData, newSecureCacheData } = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
+        const { newCacheData } = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
 
         const property: ModelImpl = await this.get()
 

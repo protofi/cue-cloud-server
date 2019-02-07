@@ -6,8 +6,6 @@ import 'firebase/auth'
 
 if (!firebase.apps.length)
 {
-    // const projectId = process.env.GCLOUD_PROJECT
-
     const config = {
         // STAGING
         apiKey: "AIzaSyBSOLIAOif1jZ80ukoTjsfTwQ9BEBXcmkc",

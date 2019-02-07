@@ -41,11 +41,11 @@ export default class Car extends ModelImpl {
     /**
      * Attach one model to many others
      */
-    protected hasMany(property: string): One2ManyRelation
+    protected hasMany(property: string, isWeak?: boolean): One2ManyRelation
     {
         if(!this.relations.has(property))
         {
-            const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db)
+            const relation: One2ManyRelation = new One2ManyRelationStub(this, property, this.db, isWeak)
             this.relations.set(property, relation)
         }
 
@@ -54,7 +54,7 @@ export default class Car extends ModelImpl {
 
     /**
      * Attach one or more models to one other
-     */
+      */
     protected belongsTo(property: string): N2OneRelation
     {
         if(!this.relations.has(property))
@@ -66,7 +66,6 @@ export default class Car extends ModelImpl {
         return this.relations.get(property) as N2OneRelation
     }
 }
-
 
 class N2OneRelationStub extends N2OneRelation {
     importStrategy = new ModelImportStrategyStub('./WindShield')

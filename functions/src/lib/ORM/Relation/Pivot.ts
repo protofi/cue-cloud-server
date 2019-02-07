@@ -5,7 +5,7 @@ import { Many2ManyRelation } from '.';
 
 export class Pivot {
 
-    private db: FirebaseFirestore.Firestore
+    // private db: FirebaseFirestore.Firestore
     private ownerA: ModelImpl
     private ownerB: ModelImpl
 
@@ -13,7 +13,7 @@ export class Pivot {
 
     constructor(db: FirebaseFirestore.Firestore, id: string, ownerA: ModelImpl, ownerB: ModelImpl)
     {
-        this.db = db
+        // this.db = db
         
         this.ownerA = ownerA
         this.ownerB = ownerB
@@ -42,9 +42,6 @@ export class Pivot {
     {
         const relationA = this.ownerA[plural(this.ownerB.name)]() as Many2ManyRelation
         const relationB = this.ownerB[plural(this.ownerA.name)]() as Many2ManyRelation
-
-        console.log(relationA)
-        console.log(relationB)
 
         await relationA.updateCache(change)
         await relationB.updateCache(change)

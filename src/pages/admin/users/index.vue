@@ -275,6 +275,7 @@
         },
 
         computed : {
+
             users()
             {
                 if(!this.userDocs) return
@@ -309,7 +310,9 @@
                 })
             }
         },
+
         methods : {
+
             promotionDialog(user)
             {
                 this.showUserPromotionDialog = true
@@ -348,6 +351,8 @@
 
             async bulkDelete()
             {
+                if(this.selectedUsers.length < 1) return
+
                 this.deleteLoading = true
 
                 try{

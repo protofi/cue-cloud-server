@@ -24,7 +24,7 @@ export default class Household extends ModelImpl {
 
     sensors(): One2ManyRelation
     {
-        return this.hasMany(Models.SENSOR)
+        return this.hasMany(Models.SENSOR, true)
             .defineActionOnUpdate(new CreateUserNewSensorRelationsCommand())
     }
 

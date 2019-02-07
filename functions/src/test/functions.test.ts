@@ -15,7 +15,6 @@ import * as _ from 'lodash'
 import * as util from './lib/util'
 import User from './lib/ORM/Models/User';
 import Sensor from './lib/ORM/Models/Sensor';
-import { printFormattedJson } from './lib/util';
 
 const test: FeaturesList = require('firebase-functions-test')()
 
@@ -282,7 +281,7 @@ describe('Integration_Test', () => {
     describe('Users', () => {
 
         describe('On Update', () => {
-    
+
             it('Id should be cached on related sensors', async () => {
 
                 const cacheField = User.f.ID
@@ -308,7 +307,7 @@ describe('Integration_Test', () => {
                     before : new OfflineDocumentSnapshotStub(),
                     after : afterDocSnap 
                 }
-    
+
                 await wrappedUsersOnUpdate(change)
 
                 const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorsId}`]
@@ -321,13 +320,71 @@ describe('Integration_Test', () => {
                 }
                 expect(sensorDoc).to.deep.equal(expectedSensorDoc)
             })
-    
-            it('Name should be cached on related household', async () => {
-    
+
+            it('Should not update Name cache on Household if Name is not changed', async () => {
+
                 const cacheField = User.f.NAME
                 const householdId = uniqid()
-    
+
                 firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {}
+
+                const beforeDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [cacheField] : testUserDataOne.name,
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    },
+                    ref : {
+                        id : testUserDataOne.uid,
+                    }
+                })
+
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [cacheField] : testUserDataOne.name,
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    },
+                    ref : {
+                        id : testUserDataOne.uid,
+                    }
+                })
+
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.funcUsersOnUpdate)
+
+
+                const change = {
+                    before : beforeDocSnap,
+                    after : afterDocSnap
+                }
+
+                await wrappedUsersOnUpdate(change)
+                
+                const householdDoc = firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]
+                const expectedHouseholdDoc = {}
+
+                expect(householdDoc).to.deep.equal(expectedHouseholdDoc)
+            })
+
+            it('Name should be cached on related household when Name is added', async () => {
+
+                const cacheField = User.f.NAME
+                const householdId = uniqid()
+
+                firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {}
+
+                const beforeDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    },
+                    ref : {
+                        id : testUserDataOne.uid,
+                    }
+                })
 
                 const afterDocSnap = new OfflineDocumentSnapshotStub({
                     data : {
@@ -344,7 +401,7 @@ describe('Integration_Test', () => {
                 const wrappedUsersOnUpdate = test.wrap(myFunctions.funcUsersOnUpdate)
 
                 const change = {
-                    before : new OfflineDocumentSnapshotStub(),
+                    before : beforeDocSnap,
                     after : afterDocSnap
                 }
 
@@ -359,8 +416,113 @@ describe('Integration_Test', () => {
                     }
                 }
 
-                expect(householdDoc).to.deep.equal(expectedHouseholdDoc)  
+                expect(householdDoc).to.deep.equal(expectedHouseholdDoc)
             })
+
+            it('Name should be cached on related household when Name is changed', async () => {
+
+                const cacheField = User.f.NAME
+                const householdId = uniqid()
+
+                firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {}
+
+                const beforeDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [cacheField] : 'Bobby',
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    },
+                    ref : {
+                        id : testUserDataOne.uid,
+                    }
+                })
+
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [cacheField] : testUserDataOne.name,
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    },
+                    ref : {
+                        id : testUserDataOne.uid,
+                    }
+                })
+
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.funcUsersOnUpdate)
+
+
+                const change = {
+                    before : beforeDocSnap,
+                    after : afterDocSnap
+                }
+
+                await wrappedUsersOnUpdate(change)
+                
+                const householdDoc = firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]
+                const expectedHouseholdDoc = {
+                    [Models.USER]: {
+                        [testUserDataOne.uid] : {
+                            [cacheField] : testUserDataOne.name
+                        }
+                    }
+                }
+
+                expect(householdDoc).to.deep.equal(expectedHouseholdDoc)
+            })
+
+            // it('Name should be cached on related Household when Household is linked to User', async () => {
+
+            //     const cacheField = User.f.NAME
+            //     const householdId = uniqid()
+
+            //     firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {}
+
+            //     const beforeDocSnap = new OfflineDocumentSnapshotStub({
+            //         data : {
+            //             [cacheField] : testUserDataOne.name,
+            //         },
+            //         ref : {
+            //             id : testUserDataOne.uid,
+            //         }
+            //     })
+
+            //     const afterDocSnap = new OfflineDocumentSnapshotStub({
+            //         data : {
+            //             [cacheField] : testUserDataOne.name,
+            //             [Models.HOUSEHOLD] : {
+            //                 id : householdId
+            //             }
+            //         },
+            //         ref : {
+            //             id : testUserDataOne.uid,
+            //         }
+            //     })
+
+            //     const wrappedUsersOnUpdate = test.wrap(myFunctions.funcUsersOnUpdate)
+
+
+            //     const change = {
+            //         before : beforeDocSnap,
+            //         after : afterDocSnap
+            //     }
+
+            //     await wrappedUsersOnUpdate(change)
+                
+            //     util.printFormattedJson(firestoreMockData)
+
+            //     const householdDoc = firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]
+            //     const expectedHouseholdDoc = {
+            //         [Models.USER]: {
+            //             [testUserDataOne.uid] : {
+            //                 [cacheField] : testUserDataOne.name
+            //             }
+            //         }
+            //     }
+
+            //     expect(householdDoc).to.deep.equal(expectedHouseholdDoc)
+            // })
 
             it('Changes to FCM_tokens should be cached onto Sensors_secure', async () => {
     
@@ -760,7 +922,7 @@ describe('Integration_Test', () => {
                 expect(userTwoDoc).to.be.deep.equal(expectedUserTwoDoc)
             })
             
-            it('Should delete relations to all Sensors when deleted', async () => {
+            it('Should delete relations to all Sensors when deleted and delete Sensors', async () => {
                 const wrappedHouseholdsOnDelete = test.wrap(myFunctions.funcHouseholdsOnDelete)
 
                 const householdId = uniqid()
@@ -796,13 +958,11 @@ describe('Integration_Test', () => {
                 await wrappedHouseholdsOnDelete(householdSnap)
 
                 const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
-                const expectedSensorDoc = {}
 
                 const sensorTwoDoc = firestoreMockData[`${Models.SENSOR}/${sensorIdTwo}`]
-                const expectedSensorTwoDoc = {}
 
-                expect(sensorDoc).to.be.deep.equal(expectedSensorDoc)
-                expect(sensorTwoDoc).to.be.deep.equal(expectedSensorTwoDoc)
+                expect(sensorDoc).to.be.undefined
+                expect(sensorTwoDoc).to.be.undefined
             })
 
             it('Should delete relations to all Base Station when deleted', async () => {
@@ -916,6 +1076,12 @@ describe('Integration_Test', () => {
 
             // mock data
             firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                [Models.USER] : {
+                    [userId] : true
+                }
+            }
+
+            firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {
                 [Models.USER] : {
                     [userId] : true
                 }
