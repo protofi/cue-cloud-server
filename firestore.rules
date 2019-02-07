@@ -33,12 +33,11 @@ service cloud.firestore{
 		}
 
 		match /households/{householdId} {
-			allow create: if isAuth()
-							&& (
+			allow create: if (isAuth() && (
 								reqHasUsersField()
 								&& request.resource.data.users.keys().hasOnly([request.auth.uid])
 								&& request.resource.data.users[request.auth.uid] == true
-							)
+							) || isAdmin())
 
 			allow read: if isResident() || isAdmin()
 

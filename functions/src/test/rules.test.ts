@@ -234,7 +234,7 @@ describe('Emulated_Rules', () => {
                 })))
             })
 
-            it.only('Users should be able to update field: FCM_tokens', async () => {
+            it('Users should be able to update field: FCM_tokens', async () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.USER}/${testUserDataOne.uid}`] : {}
                 })
@@ -377,17 +377,6 @@ describe('Emulated_Rules', () => {
                 expect(await firestore.assertFails(ref.add({})))
             })
             
-            it('Users should be able to create households with a users property including ID ref to themselves', async () => {
-                const db = await setup(testUserDataOne)
-                const ref = db.collection(Models.HOUSEHOLD)
-
-                expect(await firestore.assertSucceeds(ref.add({
-                    [Models.USER]: {
-                        [testUserDataOne.uid] : true
-                    }
-                })))
-            })
-
             it('Users should not be able to create households without a users property including ID ref to themselves', async () => {
                 const db = await setup(testUserDataOne)
                 const ref = db.collection(Models.HOUSEHOLD)
@@ -407,6 +396,29 @@ describe('Emulated_Rules', () => {
                     [Models.USER]: {
                         [testUserDataOne.uid] : true,
                         [testUserDataThree.uid] : true
+                    }
+                })))
+            })
+
+            it('Users should be able to create households with a users property including ID ref to themselves', async () => {
+                const db = await setup(testUserDataOne)
+                const ref = db.collection(Models.HOUSEHOLD)
+
+                expect(await firestore.assertSucceeds(ref.add({
+                    [Models.USER]: {
+                        [testUserDataOne.uid] : true
+                    }
+                })))
+            })
+
+            it('Admin should be able to create Household for other users', async () => {
+                const db = await setup(testAdminUserData)
+                const ref = db.collection(Models.HOUSEHOLD)
+
+                
+                expect(await firestore.assertSucceeds(ref.add({
+                    [Models.USER]: {
+                        [testUserDataOne.uid] : true
                     }
                 })))
             })
