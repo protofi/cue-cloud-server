@@ -1,5 +1,5 @@
 import ModelImpl from "../lib/ORM/Models";
-import { N2OneRelation } from "../lib/ORM/Relation";
+import { Many2OneRelation } from "../lib/ORM/Relation";
 import { Stubs, ModelImportStrategyStub } from ".";
 
 export default class Wheel extends ModelImpl {
@@ -9,26 +9,26 @@ export default class Wheel extends ModelImpl {
         super(Stubs.WHEEL, db, snap, id)
     }
 
-    car(): N2OneRelation
+    car(): Many2OneRelation
     {
-        return this.belongsTo(Stubs.CAR)
+        return this.haveOne(Stubs.CAR)
     }
 
      /**
      * Attach one or more models to one other
      */
-    protected belongsTo(property: string): N2OneRelation
+    protected haveOne(property: string): Many2OneRelation
     {
         if(!this.relations.has(property))
         {
-            const relation: N2OneRelation = new N2OneRelationStub(this, property, this.db)
+            const relation: Many2OneRelation = new N2OneRelationStub(this, property, this.db)
             this.relations.set(property, relation)
         }
 
-        return this.relations.get(property) as N2OneRelation
+        return this.relations.get(property) as Many2OneRelation
     }
 }
 
-class N2OneRelationStub extends N2OneRelation {
+class N2OneRelationStub extends Many2OneRelation {
     importStrategy = new ModelImportStrategyStub('./Car')
 }

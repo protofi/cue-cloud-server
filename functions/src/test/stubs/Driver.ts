@@ -1,5 +1,5 @@
 import ModelImpl from "../lib/ORM/Models";
-import { Many2ManyRelation, N2OneRelation } from "../lib/ORM/Relation";
+import { Many2ManyRelation, Many2OneRelation } from "../lib/ORM/Relation";
 import { Stubs, ModelImportStrategyStub } from ".";
 
 export default class Driver extends ModelImpl {
@@ -10,13 +10,13 @@ export default class Driver extends ModelImpl {
 
     cars(): Many2ManyRelation
     {
-        return this.belongsToMany(Stubs.CAR)
+        return this.haveMany(Stubs.CAR)
     }
    
     /**
      * Attach many models to many others
      */
-    protected belongsToMany(property: string): Many2ManyRelation
+    protected haveMany(property: string): Many2ManyRelation
     {
         if(!this.relations.has(property))
         {

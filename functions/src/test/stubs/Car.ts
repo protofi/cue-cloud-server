@@ -1,5 +1,5 @@
 import ModelImpl from "../lib/ORM/Models";
-import { Many2ManyRelation, N2OneRelation, One2ManyRelation } from "../lib/ORM/Relation";
+import { Many2ManyRelation, Many2OneRelation, One2ManyRelation } from "../lib/ORM/Relation";
 import { Stubs, ModelImportStrategyStub } from ".";
 
 export default class Car extends ModelImpl {
@@ -11,12 +11,12 @@ export default class Car extends ModelImpl {
 
     drivers(): Many2ManyRelation
     {
-        return this.belongsToMany(Stubs.DRIVER)
+        return this.haveMany(Stubs.DRIVER)
     }
 
-    windshield(): N2OneRelation
+    windshield(): Many2OneRelation
     {
-        return this.belongsTo(Stubs.WIND_SHEILD)
+        return this.haveOne(Stubs.WIND_SHEILD)
     }
 
     wheels(): One2ManyRelation
@@ -27,7 +27,7 @@ export default class Car extends ModelImpl {
     /**
      * Attach many models to many others
      */
-    protected belongsToMany(property: string): Many2ManyRelation
+    protected haveMany(property: string): Many2ManyRelation
     {
         if(!this.relations.has(property))
         {
@@ -55,19 +55,19 @@ export default class Car extends ModelImpl {
     /**
      * Attach one or more models to one other
       */
-    protected belongsTo(property: string): N2OneRelation
+    protected haveOne(property: string): Many2OneRelation
     {
         if(!this.relations.has(property))
         {
-            const relation: N2OneRelation = new N2OneRelationStub(this, property, this.db)
+            const relation: Many2OneRelation = new N2OneRelationStub(this, property, this.db)
             this.relations.set(property, relation)
         }
 
-        return this.relations.get(property) as N2OneRelation
+        return this.relations.get(property) as Many2OneRelation
     }
 }
 
-class N2OneRelationStub extends N2OneRelation {
+class N2OneRelationStub extends Many2OneRelation {
     importStrategy = new ModelImportStrategyStub('./WindShield')
 }
 

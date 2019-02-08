@@ -12,7 +12,7 @@ import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
 import Room from './lib/ORM/Models/Room'
 import { ActionableFieldCommandStub, Stubs, FirestoreStub } from './stubs'
-import { Many2ManyRelation, One2ManyRelation, N2OneRelation } from './lib/ORM/Relation'
+import { Many2ManyRelation, One2ManyRelation, Many2OneRelation } from './lib/ORM/Relation'
 import { Pivot } from './lib/ORM/Relation/Pivot'
 import { Change } from 'firebase-functions'
 import * as _ from 'lodash'
@@ -124,7 +124,7 @@ describe('Unit_Test', () => {
                 })
             })
 
-            describe.only('One-to-many', async () => {
+            describe('One-to-many', async () => {
 
                 it('Retrieving a relation on a Model should return the same Relation every time', async () => {
                     
@@ -1098,7 +1098,7 @@ describe('Unit_Test', () => {
                     })
                 })
 
-                describe.only('Cache Layer', () => {
+                describe('Cache Layer', () => {
                     
                     const cachedField = 'cachedFieldStub'
                     class CarM extends Car {
@@ -1140,7 +1140,9 @@ describe('Unit_Test', () => {
                             }
                         }
 
-                        const cachedToProperty = ['name']
+                        const cachedToProperty = [
+                            cachedField
+                        ]
 
                         const rel = new One2ManyRelationStub(car, Stubs.WHEEL, firestoreStub.get())
 
@@ -1561,7 +1563,7 @@ describe('Unit_Test', () => {
                             const command = new ActionableFieldCommandStub()
                             const commandSpy = sinon.spy(command, 'execute')
 
-                            class N2OneRelationStub extends N2OneRelation
+                            class N2OneRelationStub extends Many2OneRelation
                             {
                                 getFieldActions()
                                 {
@@ -1591,7 +1593,7 @@ describe('Unit_Test', () => {
                             const command = new ActionableFieldCommandStub()
                             const commandSpy = sinon.spy(command, 'execute')
 
-                            const rel = new N2OneRelation(wheel, Stubs.CAR, firestoreStub.get())
+                            const rel = new Many2OneRelation(wheel, Stubs.CAR, firestoreStub.get())
 
                             rel.defineActionableField(actionableField, command)
 
@@ -1620,7 +1622,7 @@ describe('Unit_Test', () => {
 
                             const actionableField = 'flat'
 
-                            const rel = new N2OneRelation(new Wheel(firestoreStub.get()), Stubs.CAR, firestoreStub.get())
+                            const rel = new Many2OneRelation(new Wheel(firestoreStub.get()), Stubs.CAR, firestoreStub.get())
 
                             const command = new ActionableFieldCommandStub()
                             const commandSpy = sinon.spy(command, 'execute')
@@ -1647,7 +1649,7 @@ describe('Unit_Test', () => {
                             const wheel = new Wheel(firestoreStub.get())
                             const actionableField = 'flat'
 
-                            const rel = new N2OneRelation(wheel, Stubs.CAR, firestoreStub.get())
+                            const rel = new Many2OneRelation(wheel, Stubs.CAR, firestoreStub.get())
 
                             const command = new ActionableFieldCommandStub()
                             const commandSpy = sinon.spy(command, 'execute')
@@ -1683,7 +1685,7 @@ describe('Unit_Test', () => {
 
                             const actionableField = 'flat'
 
-                            const rel = new N2OneRelation(wheel, Stubs.CAR, firestoreStub.get())
+                            const rel = new Many2OneRelation(wheel, Stubs.CAR, firestoreStub.get())
 
                             const command = new ActionableFieldCommandStub()
                             const commandSpy = sinon.spy(command, 'execute')
@@ -1712,9 +1714,9 @@ describe('Unit_Test', () => {
 
                         const cachedField = 'cacheFieldStub'
                         class WheelM extends Wheel {
-                            car(): N2OneRelation
+                            car(): Many2OneRelation
                             {
-                                return this.belongsTo(Stubs.CAR)
+                                return this.haveOne(Stubs.CAR)
                                         .defineCachableFields([
                                             cachedField
                                         ])
@@ -1741,7 +1743,7 @@ describe('Unit_Test', () => {
                         })
 
                         it('Fields to be cached should be definable on the relation between the owner and the property', async () => {
-                            class N2OneRelationStub extends N2OneRelation
+                            class N2OneRelationStub extends Many2OneRelation
                             {
                                 getCachableFields()
                                 {
@@ -3053,7 +3055,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany(Stubs.DRIVER)
+                                    return this.haveMany(Stubs.DRIVER)
                                             .defineCachableFields([
                                                 cachedField
                                             ])
@@ -3108,7 +3110,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany(Stubs.DRIVER)
+                                    return this.haveMany(Stubs.DRIVER)
                                             .defineCachableFields([
                                                 cachedField
                                             ])
@@ -3163,7 +3165,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany(Stubs.DRIVER)
+                                    return this.haveMany(Stubs.DRIVER)
                                             .defineCachableFields([
                                                 cachedField
                                             ])
@@ -3220,7 +3222,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany(Stubs.DRIVER)
+                                    return this.haveMany(Stubs.DRIVER)
                                             .defineCachableFields([
                                                 cachedField,
                                             ])
@@ -3284,7 +3286,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany(Stubs.DRIVER)
+                                    return this.haveMany(Stubs.DRIVER)
                                             .defineCachableFields([
                                                 cachedField,
                                             ])
@@ -3345,7 +3347,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany(Stubs.DRIVER)
+                                    return this.haveMany(Stubs.DRIVER)
                                             .defineCachableFields([
                                                 cachedField
                                             ])
@@ -3403,7 +3405,7 @@ describe('Unit_Test', () => {
                                 class CarM extends Car {
                                     drivers(): Many2ManyRelation
                                     {
-                                        return this.belongsToMany(Stubs.DRIVER)
+                                        return this.haveMany(Stubs.DRIVER)
                                                 .defineCachableFields([
                                                     cachedField + Models.SECURE_SURFIX
                                                 ])
@@ -3453,7 +3455,7 @@ describe('Unit_Test', () => {
                                 class CarM extends Car {
                                     drivers(): Many2ManyRelation
                                     {
-                                        return this.belongsToMany(Stubs.DRIVER)
+                                        return this.haveMany(Stubs.DRIVER)
                                                 .defineCachableFields([
                                                     cachedField + Models.SECURE_SURFIX
                                                 ])
@@ -3510,7 +3512,7 @@ describe('Unit_Test', () => {
                                 class CarM extends Car {
                                     drivers(): Many2ManyRelation
                                     {
-                                        return this.belongsToMany(Stubs.DRIVER)
+                                        return this.haveMany(Stubs.DRIVER)
                                                 .defineCachableFields([
                                                     cachedField + Models.SECURE_SURFIX,
                                                 ])
@@ -3571,7 +3573,7 @@ describe('Unit_Test', () => {
                                 class CarM extends Car {
                                     drivers(): Many2ManyRelation
                                     {
-                                        return this.belongsToMany(Stubs.DRIVER)
+                                        return this.haveMany(Stubs.DRIVER)
                                                 .defineCachableFields([
                                                     cachedField + Models.SECURE_SURFIX,
                                                 ])
@@ -3632,7 +3634,7 @@ describe('Unit_Test', () => {
                                 class CarM extends Car {
                                     drivers(): Many2ManyRelation
                                     {
-                                        return this.belongsToMany(Stubs.DRIVER)
+                                        return this.haveMany(Stubs.DRIVER)
                                                 .defineCachableFields([
                                                     cachedField + Models.SECURE_SURFIX
                                                 ])
@@ -3723,7 +3725,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany(Stubs.DRIVER)
+                                    return this.haveMany(Stubs.DRIVER)
                                             .defineCachableFields(null, [
                                                 cachedField
                                             ])
@@ -3771,7 +3773,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany(Stubs.DRIVER)
+                                    return this.haveMany(Stubs.DRIVER)
                                             .defineCachableFields(null, [
                                                 cachedField
                                             ])
@@ -3824,7 +3826,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany(Stubs.DRIVER)
+                                    return this.haveMany(Stubs.DRIVER)
                                             .defineCachableFields(null, [
                                                 cachedField
                                             ])
@@ -3881,7 +3883,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany(Stubs.DRIVER)
+                                    return this.haveMany(Stubs.DRIVER)
                                             .defineCachableFields(null, [
                                                 cachedField
                                             ])
@@ -3949,7 +3951,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany(Stubs.DRIVER)
+                                    return this.haveMany(Stubs.DRIVER)
                                             .defineCachableFields(null, [
                                                 cachedField,
                                             ])
@@ -4014,7 +4016,7 @@ describe('Unit_Test', () => {
                             class CarM extends Car {
                                 drivers(): Many2ManyRelation
                                 {
-                                    return this.belongsToMany(Stubs.DRIVER)
+                                    return this.haveMany(Stubs.DRIVER)
                                             .defineCachableFields(null, [
                                                 cachedField
                                             ])
@@ -4208,7 +4210,7 @@ describe('Unit_Test', () => {
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
                         {
-                            return this.belongsToMany(Stubs.DRIVER)
+                            return this.haveMany(Stubs.DRIVER)
                                     .defineCachableFields(null, [
                                         cachedField
                                     ])
@@ -4260,7 +4262,7 @@ describe('Unit_Test', () => {
                     class DriverM extends Driver {
                         cars(): Many2ManyRelation
                         {
-                            return this.belongsToMany(Stubs.CAR)
+                            return this.haveMany(Stubs.CAR)
                                     .defineCachableFields(null, [
                                         cachedField
                                     ])
@@ -4273,7 +4275,7 @@ describe('Unit_Test', () => {
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
                         {
-                            return this.belongsToMany(Stubs.DRIVER)
+                            return this.haveMany(Stubs.DRIVER)
                                     .defineCachableFields(null, [
                                         cachedField
                                     ])
@@ -4345,7 +4347,7 @@ describe('Unit_Test', () => {
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
                         {
-                            return this.belongsToMany(Stubs.DRIVER)
+                            return this.haveMany(Stubs.DRIVER)
                                     .defineCachableFields([
                                         'model'
                                     ], [
@@ -4399,7 +4401,7 @@ describe('Unit_Test', () => {
                     class CarM extends Car {
                         drivers(): Many2ManyRelation
                         {
-                            return this.belongsToMany(Stubs.DRIVER)
+                            return this.haveMany(Stubs.DRIVER)
                                     .defineCachableFields([
                                         cacheField
                                     ], [

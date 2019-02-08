@@ -1,5 +1,5 @@
 import ModelImpl from "../lib/ORM/Models";
-import { N2OneRelation } from "../lib/ORM/Relation";
+import { Many2OneRelation } from "../lib/ORM/Relation";
 import { Stubs } from ".";
 
 export default class Windshield extends ModelImpl {
@@ -9,8 +9,8 @@ export default class Windshield extends ModelImpl {
         super(Stubs.WIND_SHEILD, db, snap, id)
     }
 
-    car(): N2OneRelation
+    car(): Many2OneRelation
     {
-        return this.belongsTo(Stubs.CAR)
+        return this.haveOne(Stubs.CAR)
     }
 }

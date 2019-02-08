@@ -1,5 +1,5 @@
 import ModelImpl, { Models } from "./";
-import { N2OneRelation, One2ManyRelation, Many2ManyRelation } from "../Relation";
+import { Many2OneRelation, One2ManyRelation, Many2ManyRelation } from "../Relation";
 
 export default class Sensor extends ModelImpl {
 
@@ -21,9 +21,9 @@ export default class Sensor extends ModelImpl {
         super(Models.SENSOR, db, snap, id)
     }
 
-    room(): N2OneRelation
+    room(): Many2OneRelation
     {
-        return this.belongsTo(Models.ROOM)
+        return this.haveOne(Models.ROOM)
     }
 
     events(): One2ManyRelation
@@ -34,16 +34,16 @@ export default class Sensor extends ModelImpl {
     users(): Many2ManyRelation
     {
         return this
-            .belongsToMany(Models.USER)
+            .haveMany(Models.USER)
             .defineCachableFields(null, [
                 Sensor.f.USERS.MUTED,
                 Sensor.f.USERS.MUTED + Models.SECURE_SURFIX
             ])
     }
 
-    household(): N2OneRelation
+    household(): Many2OneRelation
     {
-        return this.belongsTo(Models.HOUSEHOLD)
+        return this.haveOne(Models.HOUSEHOLD)
             .defineCachableFields([
                 Sensor.f.NAME
             ])

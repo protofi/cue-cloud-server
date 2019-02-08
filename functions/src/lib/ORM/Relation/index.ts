@@ -612,19 +612,19 @@ export class One2ManyRelation extends N2ManyRelation {
 }
 
 /**
- * Constidues a reverse One-to-Many relationship between to models 
+ * Constitutes a reverse One-to-Many relationship between to models 
  */
-export class N2OneRelation extends RelationImpl {
+export class Many2OneRelation extends RelationImpl {
     
     protected cacheOnToProperty: Array<string> = new Array<string>()
 
-    defineCachableFields(cacheOnToProperty: Array<string>): N2OneRelation
+    defineCachableFields(cacheOnToProperty: Array<string>): Many2OneRelation
     {
         this.cacheOnToProperty = cacheOnToProperty
         return this
     }
 
-    defineActionableField(field: string, command: IActionableFieldCommand): N2OneRelation
+    defineActionableField(field: string, command: IActionableFieldCommand): Many2OneRelation
     {
         this.actionableFields.set(field, command)
         return this

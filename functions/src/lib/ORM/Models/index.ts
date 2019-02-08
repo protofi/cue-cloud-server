@@ -1,4 +1,4 @@
-import RelationImpl, { Many2ManyRelation, One2ManyRelation, N2OneRelation } from "../Relation"
+import RelationImpl, { Many2ManyRelation, One2ManyRelation, Many2OneRelation } from "../Relation"
 import { Change } from "firebase-functions";
 import * as flatten from 'flat'
 import { difference, asyncForEach } from "../../util";
@@ -193,7 +193,7 @@ export default class ModelImpl implements Model {
     /**
      * Attach many models to many others
      */
-    protected belongsToMany(property: string): Many2ManyRelation
+    protected haveMany(property: string): Many2ManyRelation
     {
         if(!this.relations.has(property))
         {
@@ -221,15 +221,15 @@ export default class ModelImpl implements Model {
     /**
      * Attach one or more models to one other
      */
-    protected belongsTo(property: string): N2OneRelation
+    protected haveOne(property: string): Many2OneRelation
     {
         if(!this.relations.has(property))
         {
-            const relation: N2OneRelation = new N2OneRelation(this, property, this.db)
+            const relation: Many2OneRelation = new Many2OneRelation(this, property, this.db)
             this.relations.set(property, relation)
         }
 
-        return this.relations.get(property) as N2OneRelation
+        return this.relations.get(property) as Many2OneRelation
     }
 
     defineActionableField(field: string, command: IActionableFieldCommand): void
