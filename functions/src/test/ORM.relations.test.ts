@@ -1098,12 +1098,40 @@ describe('Unit_Test', () => {
                     })
                 })
 
-                describe('Cache Layer', () => {
+                describe.only('Cache Layer', () => {
+                    
+                    const cachedField = 'cachedFieldStub'
+                    class CarM extends Car {
+                        wheels(): One2ManyRelation
+                        {
+                            return this.hasMany(Stubs.WHEEL)
+                                    .defineCachableFields([
+                                        cachedField
+                                    ])
+                        }
+                    }
 
+                    const carId = uniqid()
+                    const wheelId = uniqid()
+
+                    const car = new CarM(firestoreStub.get(), null, carId)
+                
+                    beforeEach(() => {
+                        firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
+                            [Stubs.WHEEL] : {
+                                [wheelId] : true
+                            }
+                        }
+
+                        firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                            [Stubs.CAR] : {
+                                id : carId
+                            }
+                        }
+                    })
+                        
                     it('Fields to be cached should be definable on the relation between the owner and the property', async () => {
     
-                        const car = new Car(firestoreStub.get())
-                        
                         class One2ManyRelationStub extends One2ManyRelation
                         {
                             getCachableFields()
@@ -1125,34 +1153,6 @@ describe('Unit_Test', () => {
 
                     it('Fields defined as cachable should be cached when new field is added', async () => {
                             
-                        const cachedField = 'name'
-                        class CarM extends Car {
-                            wheels(): One2ManyRelation
-                            {
-                                return this.hasMany(Stubs.WHEEL)
-                                        .defineCachableFields([
-                                            cachedField
-                                        ])
-                            }
-                        }
-
-                        const carId = uniqid()
-                        const wheelId = uniqid()
-
-                        const car = new CarM(firestoreStub.get(), null, carId)
-                        
-                        firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
-                            [`${Stubs.WHEEL}`] : {
-                                [wheelId] : true
-                            }
-                        }
-
-                        firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
-                            [`${Stubs.CAR}`] : {
-                                id : carId
-                            }
-                        }
-
                         const before = test.firestore.makeDocumentSnapshot({}, '')
 
                         const data = {
@@ -1177,34 +1177,6 @@ describe('Unit_Test', () => {
                     })
 
                     it('Fields defined as cachable should be cached on field update', async () => {
-
-                        const cachedField = 'crashed'
-
-                        class CarM extends Car {
-                            wheels(): One2ManyRelation
-                            {
-                                return this.hasMany(Stubs.WHEEL)
-                                        .defineCachableFields([
-                                            cachedField
-                                        ])
-                            }
-                        }
-
-                        const wheelId = uniqid()
-                        const carId = uniqid()
-                        const car = new CarM(firestoreStub.get(), null, carId)
-
-                        firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
-                            [Stubs.WHEEL] : {
-                                [wheelId] : true
-                            }
-                        }
-
-                        firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
-                            [Stubs.CAR] : {
-                                id : carId
-                            }
-                        }
 
                         const beforeData = {
                             [cachedField] : false
@@ -1234,28 +1206,6 @@ describe('Unit_Test', () => {
                     })
 
                     it('When fields defined are cachable is deleted the cached data should be deleted', async () => {
-
-                        const cachedField = 'name'
-                        class CarM extends Car {
-                            wheels(): One2ManyRelation
-                            {
-                                return this.hasMany(Stubs.WHEEL)
-                                        .defineCachableFields([
-                                            cachedField
-                                        ])
-                            }
-                        }
-
-                        const carId = uniqid()
-                        const wheelId = uniqid()
-
-                        const car = new CarM(firestoreStub.get(), null, carId)
- 
-                        firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
-                            [Stubs.WHEEL] : {
-                                [wheelId] : true
-                            }
-                        }
 
                         const data = {
                             [cachedField] : 'Mustang'
@@ -1291,34 +1241,6 @@ describe('Unit_Test', () => {
                     })
 
                     it('When the nested field of origin is deleted the cached field should be deleted', async () => {
-                        
-                        const cachedField = 'crached'
-                        class CarM extends Car {
-                            wheels(): One2ManyRelation
-                            {
-                                return this.hasMany(Stubs.WHEEL)
-                                        .defineCachableFields([
-                                            cachedField,
-                                        ])
-                            }
-                        }
-
-                        const carId = uniqid()
-                        const wheelId = uniqid()
-
-                        const car = new CarM(firestoreStub.get(), null, carId)
-
-                        firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
-                            [Stubs.WHEEL] : {
-                                [wheelId] : true
-                            }
-                        }
-
-                        firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
-                            [Stubs.CAR] : {
-                                id : carId
-                            }
-                        }
 
                         const dataBefore = {
                             [cachedField] : {
@@ -1359,34 +1281,6 @@ describe('Unit_Test', () => {
 
                     it('Should handle if one nested field is updated and another is deleted', async () => {
                         
-                        const cachedField = 'crached'
-                        class CarM extends Car {
-                            wheels(): One2ManyRelation
-                            {
-                                return this.hasMany(Stubs.WHEEL)
-                                        .defineCachableFields([
-                                            cachedField,
-                                        ])
-                            }
-                        }
-
-                        const carId = uniqid()
-                        const wheelId = uniqid()
-
-                        const car = new CarM(firestoreStub.get(), null, carId)
-
-                        firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
-                            [Stubs.WHEEL] : {
-                                [wheelId] : true
-                            }
-                        }
-
-                        firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
-                            [Stubs.CAR] : {
-                                id : carId
-                            }
-                        }
-
                         const dataBefore = {
                             [cachedField] : {
                                 marts : true,
@@ -1423,28 +1317,6 @@ describe('Unit_Test', () => {
 
                     it('Cached fields should not be updated if no changes has happend to origin', async () => {
                         
-                        const cachedField = 'name'
-                        class CarM extends Car {
-                            wheels(): One2ManyRelation
-                            {
-                                return this.hasMany(Stubs.WHEEL)
-                                        .defineCachableFields([
-                                            cachedField
-                                        ])
-                            }
-                        }
-
-                        const carId = uniqid()
-                        const wheelId = uniqid()
-
-                        const car = new CarM(firestoreStub.get(), null, carId)
-
-                        firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
-                            [Stubs.WHEEL] : {
-                                [wheelId] : true
-                            }
-                        }
-
                         const dataBefore = {
                             [cachedField] : 'Mustang'
                         }
@@ -1836,7 +1708,7 @@ describe('Unit_Test', () => {
                         })
                     })
 
-                    describe.only('Cache Layer', () => {
+                    describe('Cache Layer', () => {
 
                         const cachedField = 'cacheFieldStub'
                         class WheelM extends Wheel {
