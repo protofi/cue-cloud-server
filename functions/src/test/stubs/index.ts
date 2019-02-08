@@ -80,10 +80,28 @@ export class ModelImportStrategyStub implements ModelImportStategy{
 export class FirestoreStub {
 
     private mockData = {}
+    private idIterator = 0
+    private injectionIds = []
+
+    private nextIdInjection(): string
+    {
+        const _nextInjectionId = this.injectionIds[this.idIterator]
+
+        this.idIterator++
+
+        return (_nextInjectionId) ? _nextInjectionId : uniqid()
+    }
 
     reset(): void
     {
         this.mockData = {}
+        this.idIterator = 0
+        this.injectionIds = []
+    }
+
+    setInjectionIds(ids: Array<string>)
+    {
+        this.injectionIds = ids
     }
 
     data(): {}
@@ -99,16 +117,18 @@ export class FirestoreStub {
                 return {
                     doc: (id: string) => {
                         return {
-                            id: (id) ? id : uniqid(),
-                            set: (data: any, { merge }) => {
+                            id: (id) ? id : this.nextIdInjection(),
+                            set: (data : any, {merge}) => {
+    
+                                const _id = (id) ? id : this.nextIdInjection()
 
                                 if(merge)
                                 {
                                     this.mockData = _.merge(this.mockData, {
-                                        [`${col}/${id}`] : unflatten(data)
+                                        [`${col}/${_id}`] : unflatten(data)
                                     })
                                 }
-                                else this.mockData[`${col}/${id}`] = unflatten(data)
+                                else this.mockData[`${col}/${_id}`] = unflatten(data)
 
                                 return null
                             },
