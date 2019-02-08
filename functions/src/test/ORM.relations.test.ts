@@ -124,7 +124,7 @@ describe('Unit_Test', () => {
                 })
             })
 
-            describe('One-to-many', async () => {
+            describe.only('One-to-many', async () => {
 
                 it('Retrieving a relation on a Model should return the same Relation every time', async () => {
                     
@@ -1100,53 +1100,384 @@ describe('Unit_Test', () => {
 
                 describe('Cache Layer', () => {
 
-                    // it('Fields to be cached should be definable on the relation between the owner and the property', async () => {
+                    it('Fields to be cached should be definable on the relation between the owner and the property', async () => {
     
-                    //     const car = new Car(firestoreStub.get())
+                        const car = new Car(firestoreStub.get())
+                        
+                        class One2ManyRelationStub extends One2ManyRelation
+                        {
+                            getCachableFields()
+                            {
+                                return this.cacheOnToProperty
+                            }
+                        }
+
+                        const cachedToProperty = ['name']
+
+                        const rel = new One2ManyRelationStub(car, Stubs.WHEEL, firestoreStub.get())
+
+                        rel.defineCachableFields(cachedToProperty)
+   
+                        const cache = rel.getCachableFields()
+
+                        expect(cachedToProperty).to.be.equal(cache)
+                    })
+
+                    it('Fields defined as cachable should be cached when new field is added', async () => {
                             
-                    //         class One2ManyRelationStub extends One2ManyRelation
-                    //         {
-                    //             constructor(owner: ModelImpl, propertyModelName: string, _db: any)
-                    //             {
-                    //                 super(owner, propertyModelName, _db)
-                    //             }
+                        const cachedField = 'name'
+                        class CarM extends Car {
+                            wheels(): One2ManyRelation
+                            {
+                                return this.hasMany(Stubs.WHEEL)
+                                        .defineCachableFields([
+                                            cachedField
+                                        ])
+                            }
+                        }
 
-                    //             getCachableFields()
-                    //             {
-                    //                 return this.cacheOnToProperty
-                    //             }
-                    //         }
-                    // })
+                        const carId = uniqid()
+                        const wheelId = uniqid()
 
-                    // it('Fields defined as cachable should be cached when new field is added', async () => {
+                        const car = new CarM(firestoreStub.get(), null, carId)
                         
-                        
-                    // })
+                        firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
+                            [`${Stubs.WHEEL}`] : {
+                                [wheelId] : true
+                            }
+                        }
 
-                    // it('Fields defined as cachable should be cached on field update', async () => {
+                        firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                            [`${Stubs.CAR}`] : {
+                                id : carId
+                            }
+                        }
 
-                        
-                    // })
+                        const before = test.firestore.makeDocumentSnapshot({}, '')
 
-                    // it('When fields defined are cachable is deleted the cached data should be deleted', async () => {
+                        const data = {
+                            [cachedField] : 'Mustang'
+                        }
 
-                       
-                    // })
+                        const after = test.firestore.makeDocumentSnapshot(data, '')
 
-                    // it('When the nested field of origin is deleted the cached field should be deleted', async () => {
-                        
-                        
-                    // })
+                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
 
-                    // it('Should handle if one nested field is updated and another is deleted', async () => {
-                        
-                        
-                    // })
+                        await car.wheels().updateCache(change)
 
-                    // it('Cached fields should not be updated if no changes has happend to origin', async () => {
+                        const wheelDoc = firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`]
+                        const expectedWheelDoc = {
+                            [Stubs.CAR] : {
+                                id : carId,
+                                [cachedField] : data[cachedField]
+                            }
+                        }
+
+                        expect(wheelDoc).to.deep.equal(expectedWheelDoc)
+                    })
+
+                    it('Fields defined as cachable should be cached on field update', async () => {
+
+                        const cachedField = 'crashed'
+
+                        class CarM extends Car {
+                            wheels(): One2ManyRelation
+                            {
+                                return this.hasMany(Stubs.WHEEL)
+                                        .defineCachableFields([
+                                            cachedField
+                                        ])
+                            }
+                        }
+
+                        const wheelId = uniqid()
+                        const carId = uniqid()
+                        const car = new CarM(firestoreStub.get(), null, carId)
+
+                        firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
+                            [Stubs.WHEEL] : {
+                                [wheelId] : true
+                            }
+                        }
+
+                        firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                            [Stubs.CAR] : {
+                                id : carId
+                            }
+                        }
+
+                        const beforeData = {
+                            [cachedField] : false
+                        }
+
+                        const before = test.firestore.makeDocumentSnapshot(beforeData, '')
+
+                        const afterData = {
+                            [cachedField] : true
+                        }
+
+                        const after = test.firestore.makeDocumentSnapshot(afterData, '')
+
+                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                        await car.wheels().updateCache(change)
+
+                        const wheelDoc = firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`]
+                        const expectedWheelDoc = {
+                            [Stubs.CAR] : {
+                                id : carId,
+                                [cachedField] : true
+                            }
+                        }
+
+                        expect(wheelDoc).to.deep.equal(expectedWheelDoc)
+                    })
+
+                    it('When fields defined are cachable is deleted the cached data should be deleted', async () => {
+
+                        const cachedField = 'name'
+                        class CarM extends Car {
+                            wheels(): One2ManyRelation
+                            {
+                                return this.hasMany(Stubs.WHEEL)
+                                        .defineCachableFields([
+                                            cachedField
+                                        ])
+                            }
+                        }
+
+                        const carId = uniqid()
+                        const wheelId = uniqid()
+
+                        const car = new CarM(firestoreStub.get(), null, carId)
+ 
+                        firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
+                            [Stubs.WHEEL] : {
+                                [wheelId] : true
+                            }
+                        }
+
+                        const data = {
+                            [cachedField] : 'Mustang'
+                        }
+
+                        firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                            [Stubs.CAR] : {
+                                id : carId,
+                                [cachedField] : data[cachedField]
+                            }
+                        }
+
+                        const before = test.firestore.makeDocumentSnapshot(data, '')
+                        const after = test.firestore.makeDocumentSnapshot({}, '')
+
+                        const wheelDoc = firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`]
+                        const expectedWheelDoc = {
+                            [Stubs.CAR] : {
+                                id : carId,
+                                [cachedField] : data[cachedField]
+                            }
+                        }
                         
-                       
-                    // })
+                        expect(wheelDoc).to.deep.equal(expectedWheelDoc)
+
+                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                        await car.wheels().updateCache(change)
+                        
+                        const cachedData = firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`][Stubs.CAR][cachedField]
+
+                        expect(cachedData).to.be.undefined
+                    })
+
+                    it('When the nested field of origin is deleted the cached field should be deleted', async () => {
+                        
+                        const cachedField = 'crached'
+                        class CarM extends Car {
+                            wheels(): One2ManyRelation
+                            {
+                                return this.hasMany(Stubs.WHEEL)
+                                        .defineCachableFields([
+                                            cachedField,
+                                        ])
+                            }
+                        }
+
+                        const carId = uniqid()
+                        const wheelId = uniqid()
+
+                        const car = new CarM(firestoreStub.get(), null, carId)
+
+                        firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
+                            [Stubs.WHEEL] : {
+                                [wheelId] : true
+                            }
+                        }
+
+                        firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                            [Stubs.CAR] : {
+                                id : carId
+                            }
+                        }
+
+                        const dataBefore = {
+                            [cachedField] : {
+                                marts : true,
+                                april : true
+                            }
+                        }
+
+                        const dataAfter = {
+                            [cachedField] : {
+                                marts : true,
+                            }
+                        }
+
+                        const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+
+                        const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+
+                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                        await car.wheels().updateCache(change)
+
+                        const wheelDoc = firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`]
+                        const expectedWheelDoc = {
+                            [Stubs.CAR] : {
+                                id : carId,
+                                [cachedField] : {
+                                    marts : true,
+                                }
+                            }
+                        }
+
+                        expect(wheelDoc).to.deep.equal(expectedWheelDoc)
+                      
+                        expect(firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`][Stubs.CAR].name)
+                            .to.be.undefined
+                    })
+
+                    it('Should handle if one nested field is updated and another is deleted', async () => {
+                        
+                        const cachedField = 'crached'
+                        class CarM extends Car {
+                            wheels(): One2ManyRelation
+                            {
+                                return this.hasMany(Stubs.WHEEL)
+                                        .defineCachableFields([
+                                            cachedField,
+                                        ])
+                            }
+                        }
+
+                        const carId = uniqid()
+                        const wheelId = uniqid()
+
+                        const car = new CarM(firestoreStub.get(), null, carId)
+
+                        firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
+                            [Stubs.WHEEL] : {
+                                [wheelId] : true
+                            }
+                        }
+
+                        firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                            [Stubs.CAR] : {
+                                id : carId
+                            }
+                        }
+
+                        const dataBefore = {
+                            [cachedField] : {
+                                marts : true,
+                                april : true
+                            }
+                        }
+
+                        const dataAfter = {
+                            [cachedField] : {
+                                marts : false,
+                            }
+                        }
+
+                        const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+
+                        const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+
+                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                        await car.wheels().updateCache(change)
+
+                        const wheelDoc = firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`]
+                        const expectedWheelDoc = {
+                            [Stubs.CAR] : {
+                                id : carId,
+                                [cachedField] : {
+                                    marts : false
+                                }
+                            }
+                        }
+
+                        expect(wheelDoc).to.deep.equal(expectedWheelDoc)
+                    })
+
+                    it('Cached fields should not be updated if no changes has happend to origin', async () => {
+                        
+                        const cachedField = 'name'
+                        class CarM extends Car {
+                            wheels(): One2ManyRelation
+                            {
+                                return this.hasMany(Stubs.WHEEL)
+                                        .defineCachableFields([
+                                            cachedField
+                                        ])
+                            }
+                        }
+
+                        const carId = uniqid()
+                        const wheelId = uniqid()
+
+                        const car = new CarM(firestoreStub.get(), null, carId)
+
+                        firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
+                            [Stubs.WHEEL] : {
+                                [wheelId] : true
+                            }
+                        }
+
+                        const dataBefore = {
+                            [cachedField] : 'Mustang'
+                        }
+
+                        const dataAfter = {
+                            [cachedField] : 'Mustang',
+                            'repaired' : true
+                        }
+
+                        firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                            [Stubs.CAR] : {
+                                id : carId,
+                                [cachedField] : 'Mustang'
+                            }
+                        }
+
+                        const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+                        const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+
+                        const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+
+                        await car.wheels().updateCache(change)
+
+                        const wheelDoc = firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`]
+                        const expectedDriverDoc = {
+                            [Stubs.CAR] : {
+                                id : carId,
+                                [cachedField] : 'Mustang'
+                            }
+                        }
+
+                        expect(wheelDoc).to.deep.equal(expectedDriverDoc)
+                    })
                 })
 
                 describe('Inverse One-to-Many', () => {
@@ -1178,16 +1509,9 @@ describe('Unit_Test', () => {
                             }
                         }
 
-                        class WheelM extends Wheel {
-                            car(): N2OneRelation
-                            {
-                                return this.belongsTo(Stubs.CAR)
-                            }
-                        }
-    
                         const wheel = new Wheel(firestoreStub.get(), null, wheelId)
                         const car = await wheel.car().get() as Car
-    
+                        
                         expect(car.wheels).to.exist
                         expect(typeof car.wheels).to.be.equal(typeof Function)
                     })
@@ -1350,6 +1674,7 @@ describe('Unit_Test', () => {
                                 [wheelId2] : true
                             }
                         }
+
                         expect(carDoc).to.be.deep.equal(expectedCarDoc)
                     })
 
@@ -1508,6 +1833,247 @@ describe('Unit_Test', () => {
                             await rel.takeActionOn(change)
                             
                             expect(commandSpy.callCount).to.equals(0)
+                        })
+                    })
+
+                    describe.only('Cache Layer', () => {
+
+                        const cachedField = 'cacheFieldStub'
+                        class WheelM extends Wheel {
+                            car(): N2OneRelation
+                            {
+                                return this.belongsTo(Stubs.CAR)
+                                        .defineCachableFields([
+                                            cachedField
+                                        ])
+                            }
+                        }
+
+                        const carId = uniqid()
+                        const wheelId = uniqid()
+    
+                        const wheel = new WheelM(firestoreStub.get(), null, wheelId)
+
+                        beforeEach(() => {
+                            firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
+                                [Stubs.WHEEL] : {
+                                    [wheelId] : true
+                                }
+                            }
+    
+                            firestoreStub.data()[`${Stubs.WHEEL}/${wheelId}`] = {
+                                [Stubs.CAR] : {
+                                    id : carId
+                                }
+                            }
+                        })
+
+                        it('Fields to be cached should be definable on the relation between the owner and the property', async () => {
+                            class N2OneRelationStub extends N2OneRelation
+                            {
+                                getCachableFields()
+                                {
+                                    return this.cacheOnToProperty
+                                }
+                            }
+    
+                            const cachedToProperty = ['name']
+    
+                            const rel = new N2OneRelationStub(wheel, Stubs.CAR, firestoreStub.get())
+    
+                            rel.defineCachableFields(cachedToProperty)
+       
+                            const cache = rel.getCachableFields()
+    
+                            expect(cachedToProperty).to.be.equal(cache)
+                        })
+    
+                        it('Fields defined as cachable should be cached when new field is added', async () => {
+                                
+                            const before = test.firestore.makeDocumentSnapshot({}, '')
+    
+                            const data = {
+                                [cachedField] : 'Spare'
+                            }
+    
+                            const after = test.firestore.makeDocumentSnapshot(data, '')
+    
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                            await wheel.car().updateCache(change)
+    
+                            const carDoc = firestoreStub.data()[`${Stubs.CAR}/${carId}`]
+                            const expectedCarDoc = {
+                                [Stubs.WHEEL] : {
+                                    [wheelId] : data
+                                }
+                            }
+    
+                            expect(carDoc).to.deep.equal(expectedCarDoc)
+                        })
+    
+                        it('Fields defined as cachable should be cached on field update', async () => {
+
+                            const beforeData = {
+                                [cachedField] : false
+                            }
+    
+                            const before = test.firestore.makeDocumentSnapshot(beforeData, '')
+    
+                            const afterData = {
+                                [cachedField] : true
+                            }
+    
+                            const after = test.firestore.makeDocumentSnapshot(afterData, '')
+    
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                            await wheel.car().updateCache(change)
+    
+                            const carDoc = firestoreStub.data()[`${Stubs.CAR}/${carId}`]
+                            const expectedCarDoc = {
+                                [Stubs.WHEEL] : {
+                                    [wheelId] : afterData
+                                }
+                            }
+    
+                            expect(carDoc).to.deep.equal(expectedCarDoc)
+                        })
+    
+                        it('When fields defined are cachable is deleted the cached data should be deleted', async () => {
+    
+                            const data = {
+                                [cachedField] : 'Mustang'
+                            }
+
+                            firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
+                                [Stubs.WHEEL] : {
+                                    [wheelId] : data
+                                }
+                            }
+
+                            const before = test.firestore.makeDocumentSnapshot(data, '')
+                            const after = test.firestore.makeDocumentSnapshot({}, '')
+    
+                            const carDoc = firestoreStub.data()[`${Stubs.CAR}/${carId}`]
+                            const expectedWheelDoc = {
+                                [Stubs.WHEEL] : {
+                                    [wheelId] : data
+                                }
+                            }
+                                
+                            expect(carDoc).to.deep.equal(expectedWheelDoc)
+    
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                            await wheel.car().updateCache(change)
+                            
+                            const cachedData = firestoreStub.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId][cachedField]
+    
+                            expect(cachedData).to.be.undefined
+                        })
+    
+                        it('When the nested field of origin is deleted the cached field should be deleted', async () => {
+                            
+                            const dataBefore = {
+                                [cachedField] : {
+                                    marts : true,
+                                    april : true
+                                }
+                            }
+    
+                            const dataAfter = {
+                                [cachedField] : {
+                                    marts : true,
+                                }
+                            }
+    
+                            const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+    
+                            const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+    
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                            await wheel.car().updateCache(change)
+    
+                            const carDoc = firestoreStub.data()[`${Stubs.CAR}/${carId}`]
+                            const expectedCarDoc = {
+                                [Stubs.WHEEL] : {
+                                    [wheelId] : dataAfter
+                                }
+                            }
+    
+                            expect(carDoc).to.deep.equal(expectedCarDoc)
+                          
+                            expect(firestoreStub.data()[`${Stubs.CAR}/${carId}`][Stubs.WHEEL][wheelId].name)
+                                .to.be.undefined
+                        })
+    
+                        it('Should handle if one nested field is updated and another is deleted', async () => {
+                            
+                            const dataBefore = {
+                                [cachedField] : {
+                                    marts : true,
+                                    april : true
+                                }
+                            }
+    
+                            const dataAfter = {
+                                [cachedField] : {
+                                    marts : false,
+                                }
+                            }
+    
+                            const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+    
+                            const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+    
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                            await wheel.car().updateCache(change)
+                            
+                            const carDoc = firestoreStub.data()[`${Stubs.CAR}/${carId}`]
+                            const expectedCarDoc = {
+                                [Stubs.WHEEL] : {
+                                    [wheelId] : dataAfter
+                                }
+                            }
+    
+                            expect(carDoc).to.deep.equal(expectedCarDoc)
+                        })
+    
+                        it('Cached fields should not be updated if no changes has happend to origin', async () => {
+                            
+                            const dataBefore = {
+                                [cachedField] : 'Mustang'
+                            }
+    
+                            const dataAfter = {
+                                [cachedField] : 'Mustang',
+                                'repaired' : true
+                            }
+    
+                            firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
+                                [Stubs.WHEEL] : {
+                                    [wheelId] : dataBefore
+                                }
+                            }
+    
+                            const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+                            const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+    
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                            await wheel.car().updateCache(change)
+    
+                            const carDoc = firestoreStub.data()[`${Stubs.CAR}/${carId}`]
+                            const expectedCarDoc = {
+                                [Stubs.WHEEL] : {
+                                    [wheelId] : dataBefore
+                                }
+                            }
+    
+                            expect(carDoc).to.deep.equal(expectedCarDoc)
                         })
                     })
                 })
@@ -2652,7 +3218,7 @@ describe('Unit_Test', () => {
                             await car.drivers().updateCache(change)
     
                             const driverDoc = firestoreStub.data()[`${Stubs.DRIVER}/${driverId}`]
-                            const expectedCarDoc = {
+                            const expectedDriverDoc = {
                                 [Stubs.CAR] : {
                                     [carId] : {
                                         [cachedField] : data[cachedField]
@@ -2660,7 +3226,7 @@ describe('Unit_Test', () => {
                                 }
                             }
     
-                            expect(driverDoc).to.deep.equal(expectedCarDoc)
+                            expect(driverDoc).to.deep.equal(expectedDriverDoc)
                         })
 
                         it('Fields defined as cachable should be cached on field update', async () => {
@@ -2828,13 +3394,13 @@ describe('Unit_Test', () => {
                             await car.drivers().updateCache(change)
     
                             const driverDoc = firestoreStub.data()[`${Stubs.DRIVER}/${driverId}`]
-                            const expectedCarDoc = {
+                            const expectedDriverDoc = {
                                 [Stubs.CAR] : {
                                     [carId] : dataAfter
                                 }
                             }
 
-                            expect(driverDoc).to.deep.equal(expectedCarDoc)
+                            expect(driverDoc).to.deep.equal(expectedDriverDoc)
                           
                             expect(firestoreStub.data()[`${Stubs.DRIVER}/${driverId}`][Stubs.CAR][carId].name)
                                 .to.be.undefined
@@ -3118,13 +3684,13 @@ describe('Unit_Test', () => {
                                 await car.drivers().updateCache(change)
         
                                 const driverDoc = firestoreStub.data()[`${Stubs.DRIVER}${Models.SECURE_SURFIX}/${driverId}`]
-                                const expectedCarDoc = {
+                                const expectedDriverDoc = {
                                     [Stubs.CAR] : {
                                         [carId] : dataAfter
                                     }
                                 }
     
-                                expect(driverDoc).to.deep.equal(expectedCarDoc)
+                                expect(driverDoc).to.deep.equal(expectedDriverDoc)
                             })
 
                             it('Cache layer should handle if one nested field is updated and another is deleted (SECURE)', async () => {

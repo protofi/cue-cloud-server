@@ -1,5 +1,5 @@
 import { Change } from "firebase-functions"
-import { asyncForEach, difference } from "../../util"
+import { asyncForEach, difference, printFormattedJson } from "../../util"
 import { Relations } from "../../const"
 import { singular } from "pluralize"
 import ModelImpl, { Models } from "../Models"
@@ -37,11 +37,11 @@ interface SimpleRelation {
     id: string
 }
 
-export interface Relation {
+export interface IRelation {
     cache(id?: string): Promise<any>
 }
 
-export default class RelationImpl implements Relation{
+export default class RelationImpl implements IRelation{
 
     protected db: FirebaseFirestore.Firestore
     protected owner: ModelImpl
@@ -556,6 +556,58 @@ export class One2ManyRelation extends N2ManyRelation {
         if(isEmpty(relLinkChanges)) return
 
         return this.onUpdateAction.execute(this.owner, relLinkChanges)
+    }
+
+    defineCachableFields(cacheOnToProperty: Array<string>): One2ManyRelation
+    {
+        this.cacheOnToProperty = cacheOnToProperty
+        return this
+    }
+
+    protected async getCacheFieldsToUpdateOnProperty(beforeData: FirebaseFirestore.DocumentData, afterData: FirebaseFirestore.DocumentData): Promise<any>
+    {
+        const newCacheData = {}
+
+        this.cacheOnToProperty.forEach((field) => {
+            
+            const fieldPath = field
+
+            const cachableFieldBefore = get(beforeData, fieldPath, deleteFlag) // retrieve data associated with the cached field before update
+            const cachableFieldAfter  = get(afterData, fieldPath, deleteFlag) // retrieve data associated with the cached field after update
+            
+            if(cachableFieldBefore === cachableFieldAfter) return //if the field have not been updated continue to next iteration and do not include it in the data to be cached
+
+            newCacheData[`${this.owner.name}.${field}`] = cachableFieldAfter
+        })
+
+        return {
+            newCacheData : newCacheData
+        }
+    }
+
+    async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<void>
+    {
+        const beforeData: FirebaseFirestore.DocumentData = change.before.data()
+        const afterData: FirebaseFirestore.DocumentData = change.after.data()
+
+        if(this.cacheOnToProperty)
+        {
+            const { newCacheData } = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
+
+            let properties: Array<ModelImpl>
+
+            if(!isEmpty(newCacheData))
+            {
+                properties = (properties) ? properties : await this.get()
+
+                await asyncForEach(properties,
+                    async (property: ModelImpl) => {
+
+                        await property.update(newCacheData, transaction)
+                    }
+                )
+            }
+        }
     }
 }
 
