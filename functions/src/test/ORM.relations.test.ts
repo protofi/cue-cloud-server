@@ -841,12 +841,20 @@ describe('Unit_Test', () => {
 
                 describe('Actionable fields', () => {
 
+                    const car = new Car(firestoreStub.get())
+                    const rel = new One2ManyRelation(car, Stubs.WHEEL, firestoreStub.get())
+
+                    const command = new ActionableFieldCommandStub()
+                    const commandSpy = sinon.spy(command, 'execute')
+
+                    rel.defineActionOnUpdate(command)
+
+                    beforeEach(() => {
+                        commandSpy.resetHistory()
+                    })
+
                     it('Action should be defined on the relation between the owner model and property model', async () => {
 
-                        const car = new Car(firestoreStub.get())
-
-                        const command = new ActionableFieldCommandStub()
-                        const commandSpy = sinon.spy(command, 'execute')
                         class One2ManyRelationStub extends One2ManyRelation
                         {
                             getOnUpdateActions()
@@ -854,12 +862,11 @@ describe('Unit_Test', () => {
                                 return this.onUpdateAction
                             }
                         }
+                        const relStub = new One2ManyRelationStub(car, Stubs.WHEEL, firestoreStub.get())
 
-                        const rel = new One2ManyRelationStub(car, Stubs.WHEEL, firestoreStub.get())
+                        relStub.defineActionOnUpdate(command)
 
-                        rel.defineActionOnUpdate(command)
-
-                        const fieldActions = rel.getOnUpdateActions()
+                        const fieldActions = relStub.getOnUpdateActions()
 
                         expect(fieldActions).to.not.be.null
 
@@ -870,16 +877,7 @@ describe('Unit_Test', () => {
                     
                     it('TakeActionOn should be able to react to changes when before snap is empty', async () => {
 
-                        const car = new Car(firestoreStub.get())
-
                         const wheelId1 = uniqid()
-
-                        const command = new ActionableFieldCommandStub()
-                        const commandSpy = sinon.spy(command, 'execute')
-
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, firestoreStub.get())
-
-                        rel.defineActionOnUpdate(command)
 
                         const data = {
                             [Stubs.WHEEL] : {
@@ -902,13 +900,6 @@ describe('Unit_Test', () => {
 
                     it('TakeActionOn should be able to handle if no changes has been made to the relational data', async () => {
 
-                        const rel = new One2ManyRelation(new Car(firestoreStub.get()), Stubs.WHEEL, firestoreStub.get())
-
-                        const command = new ActionableFieldCommandStub()
-                        const commandSpy = sinon.spy(command, 'execute')
-
-                        rel.defineActionOnUpdate(command)
-
                         const data = {
                             name : 'Mustang'
                         }
@@ -924,15 +915,6 @@ describe('Unit_Test', () => {
                     })
 
                     it('A defined onUpdate action should be executed when changes to the relation link field are passed to takeActionOn', async () => {
-
-                        const car = new Car(firestoreStub.get())
-
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, firestoreStub.get())
-
-                        const command = new ActionableFieldCommandStub()
-                        const commandSpy = sinon.spy(command, 'execute')
-
-                        rel.defineActionOnUpdate(command)
 
                         const data = {
                             name : 'spare'
@@ -957,15 +939,6 @@ describe('Unit_Test', () => {
 
                     it('Changes made to the fields on the owner model should not course the onUpdate action to execute', async () => {
 
-                        const car = new Car(firestoreStub.get())
-
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, firestoreStub.get())
-
-                        const command = new ActionableFieldCommandStub()
-                        const commandSpy = sinon.spy(command, 'execute')
-
-                        rel.defineActionOnUpdate(command)
-
                         const data = {
                             'name' : 'front-left'
                         }
@@ -985,14 +958,7 @@ describe('Unit_Test', () => {
 
                     it('If no changes are made to the relation link it should not course onUpdate action to execute', async () => {
 
-                        const car = new Car(firestoreStub.get())
                         const wheelId1 = uniqid()
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, firestoreStub.get())
-
-                        const command = new ActionableFieldCommandStub()
-                        const commandSpy = sinon.spy(command, 'execute')
-
-                        rel.defineActionOnUpdate(command)
 
                         const data = {
                             name : 'spare',
@@ -1014,15 +980,8 @@ describe('Unit_Test', () => {
 
                     it('If new relational links are added those should be passes to the action', async () => {
 
-                        const car = new Car(firestoreStub.get())
                         const wheelId1 = uniqid()
                         const wheelId2 = uniqid()
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, firestoreStub.get())
-
-                        const command = new ActionableFieldCommandStub()
-                        const commandSpy = sinon.spy(command, 'execute')
-
-                        rel.defineActionOnUpdate(command)
 
                         const data = {
                             name : 'spare',
@@ -1053,15 +1012,8 @@ describe('Unit_Test', () => {
 
                     it('If relational links are changed those should be passes to the action', async () => {
 
-                        const car = new Car(firestoreStub.get())
                         const wheelId1 = uniqid()
                         const wheelId2 = uniqid()
-                        const rel = new One2ManyRelation(car, Stubs.WHEEL, firestoreStub.get())
-
-                        const command = new ActionableFieldCommandStub()
-                        const commandSpy = sinon.spy(command, 'execute')
-
-                        rel.defineActionOnUpdate(command)
 
                         const data = {
                             name : 'spare',

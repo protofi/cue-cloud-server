@@ -25,7 +25,7 @@ export default class Sensor extends ModelImpl {
     {
         return this.haveOne(Models.ROOM)
     }
-
+ 
     events(): One2ManyRelation
     {
         return this.hasMany(Models.EVENT)
