@@ -8,6 +8,9 @@ import DataORMImpl from '../lib/ORM';
 import Household from '../lib/ORM/Models/Household';
 import * as baseStationCode from 'randomatic'
 import * as fakeUuid from 'uuid/v1'
+import User from '../lib/ORM/Models/User';
+import { isEmpty } from 'lodash'
+import { Errors } from '../lib/const';
 const { PubSub } = require('@google-cloud/pubsub')
 
 const apiBasePath = '/api/v1'
@@ -93,6 +96,58 @@ export default (app: Application) => {
             })
         })
 
+    authRouter.route(`/${Models.HOUSEHOLD}/:id/invitations`)
+
+        .post(async (req: Request, res: Response) => {
+
+            const user          = req['auth']
+            const householdId   = req.params.id
+            const inviteeEmail  = req.body.email
+
+            /**
+             * TO DO: validate input
+             */
+
+            try{
+                const inviter = await db.user().find(user.uid) as User
+                const cache = await inviter.household().cache()
+
+                if(cache.id !== householdId) throw new Error(Errors.NOT_RELATED)
+
+                const household = db.household(null, householdId)
+
+                const householdAdmin = await inviter.household().getPivotField(User.f.HOUSEHOLDS.ROLE)
+
+                if(!householdAdmin) throw new Error(Errors.UNAUTHORIZED)
+
+                const invitees = await db.user().where(User.f.EMAIL, '==', inviteeEmail).get()
+        
+                if(invitees.empty) throw new Error(Errors.MODEL_NOT_FOUND)
+
+                const invitee = db.user(invitees.docs[0])
+                
+                const inviteeHouseholdRel = await invitee.household().cache()
+
+                if(!isEmpty(inviteeHouseholdRel)) throw new Error(Errors.GENERAL_ERROR)
+
+                await invitee.household().set(household)
+
+                res.json({
+                    success         : true,
+                    inviteeId       : invitee.getId(),
+                    householdId     : householdId,
+                    inviteeEmail    : inviteeEmail
+                })
+            }
+            catch(e)
+            {
+                res.status(500).json({
+                    success : false,
+                    error : e.message
+                })
+            }
+        })
+    
     /******************************************
      *  ADMIN PROTECTED ROUTES
      ******************************************/
@@ -117,8 +172,7 @@ export default (app: Application) => {
                 res.json({
                     success : true,
                     users   : userIds,
-                })  
-
+                })
             }
             catch(e) {
                 res.json({
