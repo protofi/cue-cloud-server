@@ -123,6 +123,7 @@ export default (app: Application) => {
                 const invitees = await db.user().where(User.f.EMAIL, '==', inviteeEmail).get()
         
                 if(invitees.empty) throw new Error(Errors.MODEL_NOT_FOUND)
+                if(invitees.size > 1) throw new Error(Errors.GENERAL_ERROR)
 
                 const invitee = db.user(invitees.docs[0])
                 
@@ -131,6 +132,12 @@ export default (app: Application) => {
                 if(!isEmpty(inviteeHouseholdRel)) throw new Error(Errors.GENERAL_ERROR)
 
                 await invitee.household().set(household)
+
+                const inviterName = await inviter.getField(User.f.NAME)
+
+                await invitee.household().updatePivot({
+                    [User.f.HOUSEHOLDS.INVITER] : (inviterName) ? inviterName : await inviter.getField(User.f.EMAIL)
+                })
 
                 res.json({
                     success         : true,
