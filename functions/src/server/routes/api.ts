@@ -1,4 +1,4 @@
-import { getStatusText, UNAUTHORIZED, NOT_FOUND } from 'http-status-codes'
+import { getStatusText, UNAUTHORIZED, NOT_FOUND, CONFLICT } from 'http-status-codes'
 import { Router, Application, Request, Response, NextFunction } from 'express'
 import { firestore, auth } from 'firebase-admin'
 
@@ -122,14 +122,14 @@ export default (app: Application) => {
 
                 const invitees = await db.user().where(User.f.EMAIL, '==', inviteeEmail).get()
         
-                if(invitees.empty) throw new Error(Errors.MODEL_NOT_FOUND)
+                if(invitees.empty) throw new Error(`${NOT_FOUND}`)
                 if(invitees.size > 1) throw new Error(Errors.GENERAL_ERROR)
 
                 const invitee = db.user(invitees.docs[0])
                 
                 const inviteeHouseholdRel = await invitee.household().cache()
 
-                if(!isEmpty(inviteeHouseholdRel)) throw new Error(Errors.GENERAL_ERROR)
+                if(!isEmpty(inviteeHouseholdRel)) throw new Error(`${CONFLICT}`)
 
                 await invitee.household().set(household)
 
@@ -148,7 +148,9 @@ export default (app: Application) => {
             }
             catch(e)
             {
-                res.status(500).json({
+                const code = (isNaN(e.message)) ? 500 : e.message
+
+                res.status(code).json({
                     success : false,
                     error : e.message
                 })
