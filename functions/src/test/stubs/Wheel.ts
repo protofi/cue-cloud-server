@@ -21,7 +21,7 @@ export default class Wheel extends ModelImpl {
     {
         if(!this.relations.has(property))
         {
-            const relation: Many2OneRelation = new N2OneRelationStub(this, property, this.db)
+            const relation: Many2OneRelation = new Many2OneRelationStub(this, property, this.db)
             this.relations.set(property, relation)
         }
 
@@ -29,6 +29,6 @@ export default class Wheel extends ModelImpl {
     }
 }
 
-class N2OneRelationStub extends Many2OneRelation {
+class Many2OneRelationStub extends Many2OneRelation {
     importStrategy = new ModelImportStrategyStub('./Car')
 }

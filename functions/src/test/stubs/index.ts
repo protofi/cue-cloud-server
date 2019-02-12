@@ -135,6 +135,7 @@ export class FirestoreStub {
                             get: () => {
                                 return {
                                     get: (data: any) => {
+
                                         try{
                                             if(data)
                                                 return this.mockData[`${col}/${id}`][data]
@@ -152,19 +153,21 @@ export class FirestoreStub {
                             },
                             update: (data: any) => {
                                 
-                                if(!this.mockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${col}/${id}]`)
+                                const _id = (id) ? id : this.nextIdInjection()
+
+                                if(!this.mockData[`${col}/${_id}`]) throw Error(`Mock data is missing: [${col}/${_id}]`)
 
                                 //Handle field deletion
                                 const flattenData = flatten(data)
                                 
                                 _.forOwn(flattenData, (value, key) => {
                                     if(value !== admin.firestore.FieldValue.delete()) return
-                                    _.unset(this.mockData[`${col}/${id}`], key)
+                                    _.unset(this.mockData[`${col}/${_id}`], key)
                                     _.unset(data, key)
                                 })
 
                                 this.mockData = _.merge(this.mockData, {
-                                    [`${col}/${id}`] : unflatten(data)
+                                    [`${col}/${_id}`] : unflatten(data)
                                 })
 
                                 return null

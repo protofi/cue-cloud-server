@@ -25,7 +25,8 @@ export default class User extends ModelImpl {
         },
         HOUSEHOLDS : {
             ACCEPTED    : 'accepted',
-            ROLE        : 'role'
+            ROLE        : 'role',
+            INVITER     : 'name_of_inviter'
         }
     }
 

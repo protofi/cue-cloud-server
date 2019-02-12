@@ -104,7 +104,7 @@
                         try{
 
                             const unsubscribe = firestore.collection('users').doc(user.uid).onSnapshot((snapshot) => {
-                        
+                         
                                 console.log('CHANGE')
 
                                 if(snapshot.ref)
@@ -116,7 +116,7 @@
                                                 context : 'IOS'
                                             }
                                         }
-                                    }, {merge : true})
+                                    }, { merge : true })
                                     .then(() => {
                                         unsubscribe()
                                     })

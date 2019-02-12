@@ -178,6 +178,7 @@ export default class ModelImpl implements Model {
         }
 
         this.docSnap = null
+
         return this
     }
 

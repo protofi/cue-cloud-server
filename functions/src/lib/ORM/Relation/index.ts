@@ -121,7 +121,7 @@ export default class RelationImpl implements IRelation{
 export interface IN2ManyRelation {
 
     get(): Promise<Array<ModelImpl>>
-    attach(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedData): Promise<N2ManyRelation>
+    attach(model: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedData, loop?: boolean): Promise<N2ManyRelation>
     detach(): Promise<void>
     updatePivot(propertyId: string, data: object): Promise<ModelImpl>
     attachBulk(propertyModels: Array<ModelImpl>, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedData): Promise<void>
@@ -145,8 +145,6 @@ export abstract class N2ManyRelation extends RelationImpl implements IN2ManyRela
 
     async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: AttachedData): Promise<N2ManyRelation>
     {
-        this.properties.add(newPropModel)
-        
         const propertyId: string = await newPropModel.getId()
 
         const attachedPropertyData = (data && data.property) ? data.property : true
@@ -185,7 +183,6 @@ export abstract class N2ManyRelation extends RelationImpl implements IN2ManyRela
     {
         const property = await this.importStrategy.import(this.db, this.propertyModelName, propertyId)
         await this.attach(property, transaction)
-
         return
     }
 
@@ -476,9 +473,14 @@ export class One2ManyRelation extends N2ManyRelation {
 
     protected onUpdateAction: IActionableFieldCommand
 
-    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<One2ManyRelation>
+    async attach(newPropModel: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, data?: any, loop?: boolean): Promise<One2ManyRelation>
     {
         await super.attach(newPropModel, transaction)
+
+        if(loop) return this
+
+        const reverseRelation = newPropModel[singular(this.owner.name)]() as Many2OneRelation
+        await reverseRelation.set(this.owner, transaction, true)
 
         await newPropModel.updateOrCreate({
             [this.owner.name] : {
@@ -694,21 +696,21 @@ export class Many2OneRelation extends RelationImpl {
 
     async set(property: ModelImpl, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction, loop?: boolean): Promise<ModelImpl>
     {
-        await this.owner.update({
+        await this.owner.updateOrCreate({
             [property.name] : {
                 id : property.getId()
             }
-        })
+        }, transaction)
 
         if(loop) return this.owner
 
         try{
-            const reverseRelation = property[this.owner.name]()
-            await reverseRelation.attach(this.owner, transaction)
+            const reverseRelation = property[this.owner.name]() as One2ManyRelation
+            await reverseRelation.attach(this.owner, transaction, false, true)
         }
         catch(e)
         {
-            const reverseRelation = property[singular(this.owner.name)]()
+            const reverseRelation = property[singular(this.owner.name)]() as Many2OneRelation
             await reverseRelation.set(this.owner, transaction, true)
         }
 
@@ -742,10 +744,10 @@ export class Many2OneRelation extends RelationImpl {
     }
 }
 
-export class One2OneRelation extends One2ManyRelation {
+// export class One2OneRelation extends One2ManyRelation {
 
-    async updatePivot(data: any): Promise<ModelImpl>
-    {
-        throw new Error("Method not implemented.");
-    }
-}
+//     async updatePivot(data: any): Promise<ModelImpl>
+//     {
+//         throw new Error("Method not implemented.");
+//     }
+// }
