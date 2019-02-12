@@ -11,44 +11,6 @@
 
 			<v-toolbar-title>Households</v-toolbar-title>
 
-			<v-spacer></v-spacer>
-
-                        <v-menu offset-y>
-            
-                <v-btn
-                    slot="activator"
-                    icon
-                >
-                    <v-icon>playlist_add_check</v-icon>
-                
-                </v-btn>
-
-                <v-list>
-
-                    <v-list-tile
-                        ripple
-                        @click.stop="bulkDelete"
-                    >
-                        <v-list-tile-avatar>
-                            <v-progress-circular
-                                v-if="deleteLoading"
-                                indeterminate
-                                color="amber"
-                            ></v-progress-circular>
-                            <v-icon v-else>delete</v-icon>
-                        </v-list-tile-avatar>
-
-                        <v-list-tile-title>
-                            Delete
-                        </v-list-tile-title>
-
-                    </v-list-tile>
-
-                </v-list>
-
-            </v-menu>
-
-
 		</v-toolbar>
 
         <v-layout column fill-height justify-center>
@@ -96,8 +58,36 @@
 
                     </v-container>
 
-                    <v-list two-line>
-                    
+                    <v-list two-line v-if="hasHousehold">
+                        
+                        <v-subheader>
+                            
+                            <v-spacer></v-spacer>
+
+                            <v-list-tile-action v-if="selectedHouseholds.length > 0">
+
+                                <v-layout>
+                                
+                                    <v-btn
+                                        icon
+                                        ripple
+                                        @click.stop="bulkDelete"
+                                    >
+                                        <v-icon color="grey">delete</v-icon>
+                                    </v-btn>
+                                 
+                                </v-layout>
+
+                            </v-list-tile-action>
+
+                            <v-list-tile-action>
+
+                                <v-checkbox v-model="allChecked"></v-checkbox>
+
+                            </v-list-tile-action>
+
+                        </v-subheader>
+
                         <v-list-tile
                             v-for="household in households"
                             :key="household.id"
@@ -117,8 +107,6 @@
                                 <v-list-tile-sub-title></v-list-tile-sub-title>
 
                             </v-list-tile-content>
-
-                            
 
                             <v-list-tile-action>
 
@@ -311,6 +299,7 @@ export default {
             activeHousehold : null,
             selectedHouseholds : [],
             deleteLoading : false,
+            allChecked : false,
             createHouseholdDialog : {
                 show : false,
                 loading : false,
@@ -353,6 +342,20 @@ export default {
     watch : {
         households() {
             this.loading = false
+        },
+        selectedHouseholds(selectedHouseholds) {
+            this.allChecked = (selectedHouseholds.length == this.households.length && this.households.length > 0)
+        },
+        allChecked(value) {
+
+            this.selectedHouseholds = []
+            
+            if(value)
+            {
+                this.households.forEach(household => {
+                    this.selectedHouseholds.push(household.id)
+                })
+            }
         }
     },
     computed: {
@@ -447,6 +450,7 @@ export default {
                 console.log(e)
             }
 
+            this.allChecked = false
             this.deleteLoading = false
         }
     },
