@@ -72,6 +72,7 @@
                                         icon
                                         ripple
                                         @click.stop="bulkDelete"
+                                        :loading="deleteLoading"
                                     >
                                         <v-icon color="grey">delete</v-icon>
                                     </v-btn>
