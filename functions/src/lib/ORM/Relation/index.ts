@@ -70,18 +70,39 @@ export default class RelationImpl implements IRelation{
     {
         const newCacheData = {}
         const newSecureCacheData = {}
-
         const ownerId = await this.owner.getId()
 
-        this.cacheOnToProperty.forEach((field) => {
-            
-            const fieldPath = field
-                        .replace(Relations.PIVOT, `${this.propertyModelName}.${Relations.PIVOT}`) // prepend relevant model name to pivot field path
-                        .replace(Models.SECURE_SURFIX,'') // remove secure surfix
+        const changedFields = keys(difference(beforeData, afterData))
+        const updateIntireCache = includes(changedFields, this.propertyModelName)
 
-            const cachableFieldBefore = get(beforeData, fieldPath, deleteFlag) // retrieve data associated with the cached field before update
+        if(updateIntireCache)
+        {
+            await asyncForEach(this.cacheOnToProperty, async field => {
+
+                const fieldValue = await this.owner.getField(field)
+
+                if(!fieldValue) return // skip iteration
+
+                newCacheData[`${this.owner.name}.${ownerId}.${field}`] = fieldValue
+            })
+    
+            return {
+                newCacheData        : newCacheData,
+                newSecureCacheData  : newSecureCacheData
+            }
+        }
+
+        this.cacheOnToProperty.forEach((field) => {
+            // console.log('field', field)
+            const fieldPath = field
+                        // .replace(Relations.PIVOT, `${this.propertyModelName}.${Relations.PIVOT}`) // prepend relevant model name to pivot field path
+                        .replace(Models.SECURE_SURFIX, '') // remove secure surfix
+
+            // console.log('fieldPath', fieldPath)
+
             let cachableFieldAfter  = get(afterData, fieldPath, deleteFlag) // retrieve data associated with the cached field after update
-            
+            const cachableFieldBefore = get(beforeData, fieldPath, deleteFlag) // retrieve data associated with the cached field before update
+
             // if field is nested
             if(isPlainObject(cachableFieldBefore) && isPlainObject(cachableFieldAfter))
             {
@@ -103,7 +124,7 @@ export default class RelationImpl implements IRelation{
                 cachableFieldAfter = merge(cachableFieldAfter, mapValues(nestedDeletions, () => { return deleteFlag }))
             }
 
-            if(cachableFieldBefore === cachableFieldAfter) return //if the field have not been updated continue to next iteration and do not include it in the data to be cached
+            if(cachableFieldBefore === cachableFieldAfter) return //if the field have not been updated continue to next iteration and do not include the field in the data to be cached
 
             if(includes(field, Models.SECURE_SURFIX))
                 newSecureCacheData[`${this.owner.name}.${ownerId}.${field.replace(Models.SECURE_SURFIX,'')}`] = cachableFieldAfter
@@ -679,8 +700,8 @@ export class Many2OneRelation extends RelationImpl {
 
     async updateCache(change: Change<FirebaseFirestore.DocumentSnapshot>): Promise<ModelImpl>
     {
-        const beforeData: FirebaseFirestore.DocumentData = change.before.data()
-        const afterData: FirebaseFirestore.DocumentData = change.after.data()
+        const beforeData: FirebaseFirestore.DocumentData    = change.before.data()
+        const afterData: FirebaseFirestore.DocumentData     = change.after.data()
 
         const { newCacheData } = await this.getCacheFieldsToUpdateOnProperty(beforeData, afterData)
 

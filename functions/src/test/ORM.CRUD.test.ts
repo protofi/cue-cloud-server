@@ -15,6 +15,7 @@ import * as _ from 'lodash'
 import { Relations } from './lib/const'
 import Car from './stubs/Car'
 import Wheel from './stubs/Wheel'
+import User from './lib/ORM/Models/User';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")

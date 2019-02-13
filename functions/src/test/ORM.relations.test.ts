@@ -1472,18 +1472,18 @@ describe('Unit_Test', () => {
 
                     describe('Cache Layer', () => {
 
-                        const cachedField = 'cacheFieldStub'
-                        class WheelM extends Wheel {
+                        const cachableField = 'cacheFieldStub'
+                        class WheelWithCache extends Wheel {
                             car(): Many2OneRelation
                             {
                                 return this.haveOne(Stubs.CAR)
                                         .defineCachableFields([
-                                            cachedField
+                                            cachableField
                                         ])
                             }
                         }
 
-                        const wheelM = new WheelM(firestoreStub.get(), null, wheelId)
+                        const wheelC = new WheelWithCache(firestoreStub.get(), null, wheelId)
 
                         beforeEach(() => {
                             firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
@@ -1508,9 +1508,9 @@ describe('Unit_Test', () => {
                                 }
                             }
     
-                            const cachedToProperty = [cachedField]
+                            const cachedToProperty = [cachableField]
     
-                            const rel = new Many2OneRelationStub(wheelM, Stubs.CAR, firestoreStub.get())
+                            const rel = new Many2OneRelationStub(wheelC, Stubs.CAR, firestoreStub.get())
     
                             rel.defineCachableFields(cachedToProperty)
        
@@ -1524,6 +1524,7 @@ describe('Unit_Test', () => {
                             firestoreStub.data()[carPath] = {
                                 id : carId
                             }
+
                             firestoreStub.data()[wheelPath] = {
                                 id : wheelId
                             }
@@ -1531,14 +1532,14 @@ describe('Unit_Test', () => {
                             const before = test.firestore.makeDocumentSnapshot({}, '')
     
                             const data = {
-                                [cachedField] : 'Spare'
+                                [cachableField] : 'Spare'
                             }
     
                             const after = test.firestore.makeDocumentSnapshot(data, '')
     
                             const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
                             
-                            await wheelM.car().updateCache(change)
+                            await wheelC.car().updateCache(change)
     
                             const wheelDoc = firestoreStub.data()[wheelPath]
                             const expectedWheelDoc = {
@@ -1560,14 +1561,14 @@ describe('Unit_Test', () => {
                             const before = test.firestore.makeDocumentSnapshot({}, '')
     
                             const data = {
-                                [cachedField] : 'Spare'
+                                [cachableField] : 'Spare'
                             }
     
                             const after = test.firestore.makeDocumentSnapshot(data, '')
     
                             const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
                             
-                            await wheelM.car().updateCache(change)
+                            await wheelC.car().updateCache(change)
     
                             const carDoc = firestoreStub.data()[carPath]
                             const expectedCarDoc = {
@@ -1582,20 +1583,20 @@ describe('Unit_Test', () => {
                         it('Fields defined as cachable should be cached on field update', async () => {
 
                             const beforeData = {
-                                [cachedField] : false
+                                [cachableField] : false
                             }
     
                             const before = test.firestore.makeDocumentSnapshot(beforeData, '')
     
                             const afterData = {
-                                [cachedField] : true
+                                [cachableField] : true
                             }
     
                             const after = test.firestore.makeDocumentSnapshot(afterData, '')
     
                             const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
     
-                            await wheelM.car().updateCache(change)
+                            await wheelC.car().updateCache(change)
     
                             const carDoc = firestoreStub.data()[carPath]
                             const expectedCarDoc = {
@@ -1610,7 +1611,7 @@ describe('Unit_Test', () => {
                         it('When fields defined are cachable is deleted the cached data should be deleted', async () => {
     
                             const data = {
-                                [cachedField] : 'Mustang'
+                                [cachableField] : 'Mustang'
                             }
 
                             firestoreStub.data()[carPath] = {
@@ -1633,9 +1634,9 @@ describe('Unit_Test', () => {
     
                             const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
     
-                            await wheelM.car().updateCache(change)
+                            await wheelC.car().updateCache(change)
                             
-                            const cachedData = firestoreStub.data()[carPath][Stubs.WHEEL][wheelId][cachedField]
+                            const cachedData = firestoreStub.data()[carPath][Stubs.WHEEL][wheelId][cachableField]
     
                             expect(cachedData).to.be.undefined
                         })
@@ -1643,14 +1644,14 @@ describe('Unit_Test', () => {
                         it('When the nested field of origin is deleted the cached field should be deleted', async () => {
                             
                             const dataBefore = {
-                                [cachedField] : {
+                                [cachableField] : {
                                     marts : true,
                                     april : true
                                 }
                             }
     
                             const dataAfter = {
-                                [cachedField] : {
+                                [cachableField] : {
                                     marts : true,
                                 }
                             }
@@ -1661,7 +1662,7 @@ describe('Unit_Test', () => {
     
                             const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
     
-                            await wheelM.car().updateCache(change)
+                            await wheelC.car().updateCache(change)
     
                             const carDoc = firestoreStub.data()[carPath]
                             const expectedCarDoc = {
@@ -1679,14 +1680,14 @@ describe('Unit_Test', () => {
                         it('Should handle if one nested field is updated and another is deleted', async () => {
                             
                             const dataBefore = {
-                                [cachedField] : {
+                                [cachableField] : {
                                     marts : true,
                                     april : true
                                 }
                             }
     
                             const dataAfter = {
-                                [cachedField] : {
+                                [cachableField] : {
                                     marts : false,
                                 }
                             }
@@ -1697,7 +1698,7 @@ describe('Unit_Test', () => {
     
                             const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
     
-                            await wheelM.car().updateCache(change)
+                            await wheelC.car().updateCache(change)
                             
                             const carDoc = firestoreStub.data()[carPath]
                             const expectedCarDoc = {
@@ -1712,11 +1713,11 @@ describe('Unit_Test', () => {
                         it('Cached fields should not be updated if no changes has happend to origin', async () => {
                             
                             const dataBefore = {
-                                [cachedField] : 'Mustang'
+                                [cachableField] : 'Mustang'
                             }
     
                             const dataAfter = {
-                                [cachedField] : 'Mustang',
+                                [cachableField] : 'Mustang',
                                 'repaired' : true
                             }
     
@@ -1731,7 +1732,7 @@ describe('Unit_Test', () => {
     
                             const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
     
-                            await wheelM.car().updateCache(change)
+                            await wheelC.car().updateCache(change)
     
                             const carDoc = firestoreStub.data()[carPath]
                             const expectedCarDoc = {
@@ -1741,6 +1742,118 @@ describe('Unit_Test', () => {
                             }
     
                             expect(carDoc).to.deep.equal(expectedCarDoc)
+                        })
+
+                        it('Should not update cache on newly added relations if cachable field does not exist on model', async () => {
+
+                            const dataAfter = {
+                                [Stubs.CAR] : {
+                                    id : carId
+                                }
+                            }
+
+                            const before = test.firestore.makeDocumentSnapshot([], '')
+                            const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+    
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                            await wheelC.car().updateCache(change)
+
+                            const carDoc = firestoreStub.data()[carPath]
+                            const expectedCarDoc = {
+                                [Stubs.WHEEL] : {
+                                    [wheelId] : true
+                                }
+                            }
+   
+                            expect(carDoc).to.be.deep.equal(expectedCarDoc)
+                        })
+
+                        it('Should update cache on newly added relations', async () => {
+
+                            //mock data
+                            firestoreStub.data()[wheelPath] = {
+                                [Stubs.CAR] : {
+                                    id : carId
+                                },
+                                [cachableField] : 'Spare'
+                            }
+
+                            const dataBefore = {
+                            }
+    
+                            const dataAfter = {
+                                [Stubs.CAR] : {
+                                    id : carId
+                                }
+                            }
+
+                            const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+                            const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+    
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                            await wheelC.car().updateCache(change)
+
+                            const carDoc = firestoreStub.data()[carPath]
+                            const expectedCarDoc = {
+                                [Stubs.WHEEL] : {
+                                    [wheelId] : {
+                                        [cachableField] : 'Spare'
+                                    }
+                                }
+                            }
+   
+                            expect(carDoc).to.be.deep.equal(expectedCarDoc)
+                        })
+
+                        it('Should update cache on newly added relations only for cachable field that exist on model', async () => {
+
+                            const otherCachableField = 'otherCache'
+                            class WheelWithCache2 extends Wheel {
+                                car(): Many2OneRelation
+                                {
+                                    return this.haveOne(Stubs.CAR)
+                                            .defineCachableFields([
+                                                cachableField,
+                                                otherCachableField
+                                            ])
+                                }
+                            }
+    
+                            const wheelC2 = new WheelWithCache2(firestoreStub.get(), null, wheelId)
+    
+                             //mock data
+                             firestoreStub.data()[wheelPath] = {
+                                [Stubs.CAR] : {
+                                    id : carId
+                                },
+                                [otherCachableField] : 'Front'
+                            }
+    
+                            const dataAfter = {
+                                [Stubs.CAR] : {
+                                    id : carId
+                                }
+                            }
+
+                            const before = test.firestore.makeDocumentSnapshot({}, '')
+                            const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+    
+                            const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+    
+                            await wheelC2.car().updateCache(change)
+
+                            const carDoc = firestoreStub.data()[carPath]
+                            const expectedCarDoc = {
+                                [Stubs.WHEEL] : {
+                                    [wheelId] : {
+                                        [otherCachableField] : 'Front'
+                                    }
+                                }
+                            }
+   
+                            expect(carDoc).to.be.deep.equal(expectedCarDoc)
                         })
                     })
                 })

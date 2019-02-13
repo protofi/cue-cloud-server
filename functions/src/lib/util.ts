@@ -14,14 +14,19 @@ export function printFormattedJson(json) {
 
 /**
  * Deep diff between two object, using lodash
- * @param  {Object} object Object compared
  * @param  {Object} base   Object to compare with
+ * @param  {Object} object Object compared
  * @return {Object}        Return a new object who represent the diff
  */
 export function difference(base, object) {
 	return transform(object, (result, value, key) => {
-		if (!isEqual(value, base[key])) {
-			result[key] = isObject(value) && isObject(base[key]) ? difference(base[key], value) : value;
+		if(!base)
+		{
+			result[key] = value
 		}
-	});
+		else if (!isEqual(value, base[key]))
+		{
+			result[key] = (isObject(value) && isObject(base[key])) ? difference(base[key], value) : value
+		}
+	})
 }
