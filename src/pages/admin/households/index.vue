@@ -341,18 +341,26 @@ export default {
 			})
     },
     watch : {
-        households() {
+        households()
+        {
             this.loading = false
         },
-        selectedHouseholds(selectedHouseholds) {
+        selectedHouseholds(selectedHouseholds)
+        {
+            console.log(selectedHouseholds)
             this.allChecked = (selectedHouseholds.length == this.households.length && this.households.length > 0)
         },
-        allChecked(value) {
-
-            this.selectedHouseholds = []
+        allChecked(value)
+        {
+            if(this.selectedHouseholds.length == this.households.length)
+            {
+                this.selectedHouseholds = []
+            }
             
             if(value)
             {
+                this.selectedHouseholds = []
+
                 this.households.forEach(household => {
                     this.selectedHouseholds.push(household.id)
                 })
