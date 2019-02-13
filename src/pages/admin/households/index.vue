@@ -347,7 +347,6 @@ export default {
         },
         selectedHouseholds(selectedHouseholds)
         {
-            console.log(selectedHouseholds)
             this.allChecked = (selectedHouseholds.length == this.households.length && this.households.length > 0)
         },
         allChecked(value)
