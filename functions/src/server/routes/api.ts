@@ -172,7 +172,7 @@ export default (app: Application) => {
 
             try{
                 
-                userIds.forEach(id => {
+                userIds.forEach((id: string) => {
                     deletions.push(auth().deleteUser(id))
                 })
 
@@ -331,7 +331,7 @@ export default (app: Application) => {
 
             const sensorUUID = req.params.id
 
-            const topicName = 'notification'
+            const topicName = 'sensor-notification'
 
             const data = {
                 sensor_UUID : sensorUUID

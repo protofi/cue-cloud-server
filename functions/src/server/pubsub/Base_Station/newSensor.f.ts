@@ -5,8 +5,15 @@ import Household from '../../lib/ORM/Models/Household'
 import BaseStation from '../../lib/ORM/Models/BaseStation'
 import { Errors } from '../../lib/const'
 
+import { kebabCase } from 'lodash'
+import { basename } from 'path'
+
+const file = basename(__filename).slice(0, -5)
+const ctrl = basename(__dirname)
+const topicName = kebabCase(`${ctrl}-${file}`)
+
 exports = module.exports = functions.pubsub
-.topic('new-sensor')
+.topic(topicName)
 .onPublish(async (message: functions.pubsub.Message, context: functions.EventContext) => {
 
     const db = new DataORMImpl(admin.firestore())

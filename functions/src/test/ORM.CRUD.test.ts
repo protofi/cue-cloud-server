@@ -15,7 +15,6 @@ import * as _ from 'lodash'
 import { Relations } from './lib/const'
 import Car from './stubs/Car'
 import Wheel from './stubs/Wheel'
-import User from './lib/ORM/Models/User';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -76,6 +75,10 @@ describe('Unit_Test', () => {
 
         describe('CRUD', async () => {
 
+            const carId = uniqid()
+            const carPath = `${Stubs.CAR}/${carId}`
+            const car = new Car(firestoreStub.get(), null, carId)
+
             describe('Create', async () => {
 
                 it('Create doc new ref', async () => {
@@ -100,35 +103,49 @@ describe('Unit_Test', () => {
                 })
 
                 it('Create model based on doc id', async () => {
-                    const uid = uniqid()
-
-                    const car = new Car(firestoreStub.get(), null, uid)
 
                     const docRef = car.getDocRef()
             
-                    expect(uid).to.equal(docRef.id)
+                    expect(carId).to.equal(docRef.id)
                 })
 
                 it('Create model based on doc snap', async () => {
                     const snap = test.firestore.exampleDocumentSnapshot()
             
-                    const car = new Car(firestoreStub.get(), snap)
-                    const docRef = car.getDocRef()
+                    const carM = new Car(firestoreStub.get(), snap)
+                    const docRef = carM.getDocRef()
             
                     expect(snap.ref.id).to.equal(docRef.id)
                 })
 
-                it('Creating a model with data should be possible', async () => {
-                    const carId = uniqid()
-                    const carName = 'Mustang'
+                it('Create should fail if document already exists', async () => {
     
-                    const car = new Car(firestoreStub.get(), null, carId)
+                    firestoreStub.data()[carPath] = {
+                        id : carId
+                    }
+
+                    let error = null
+
+                    try
+                    {
+                        await car.create({})
+                    }
+                    catch(e)
+                    {
+                        error = e
+                    }
+
+                    expect(error).to.not.be.null
+                })
+
+                it('Creating a model with data should be possible', async () => {
+                    const carName = 'Mustang'
     
                     await car.create({
                         name: carName
                     })
     
-                    const carDoc = firestoreStub.data()[`${Stubs.CAR}/${carId}`]
+                    const carDoc = firestoreStub.data()[carPath]
                     const expectedCarDoc = {
                         name : carName
                     }
@@ -137,16 +154,15 @@ describe('Unit_Test', () => {
                 })
     
                 it('Creating a model using Batch should be possible', async () => {
-                    const carId = uniqid()
                     const carName = 'Mustang'
     
                     const batch = adminFs.batch()
-                    const car = new Car(adminFs, null, carId)
+                    const carL = new Car(adminFs, null, carId)
     
                     //Clean up
-                    docsToBeDeleted.push(car.getDocRef().path)
+                    docsToBeDeleted.push(carL.getDocRef().path)
     
-                    await car.create({
+                    await carL.create({
                         name: carName
                     }, batch)
     
@@ -156,19 +172,18 @@ describe('Unit_Test', () => {
                     const carData = carDoc.data()
                     const expectedCarData = {
                         name : carName
-                    }
+                    } 
     
                     expect(carData).to.deep.equals(expectedCarData)
                 })
     
                 it('Creating a model using Batch should fail if Batch is not commited', async () => {
-                    const carId = uniqid()
                     const carName = 'Mustang'
     
                     const batch = adminFs.batch()
-                    const car = new Car(adminFs, null, carId)
+                    const carL = new Car(adminFs, null, carId)
     
-                    await car.create({
+                    await carL.create({
                         name: carName
                     }, batch)
     
@@ -194,23 +209,18 @@ describe('Unit_Test', () => {
                 })
 
                 it('onCreate should create a secure data collection if enabled', async () => {
-                    class CarM extends Car {
+                    class CarS extends Car {
                         hasSecureData = true
                     }
 
-                    const carId = uniqid()
-                    const car = new CarM(firestoreStub.get(), null, carId)
-                    await car.onCreate()
+                    const carS = new CarS(firestoreStub.get(), null, carId)
+                    await carS.onCreate()
 
                     const carSecureDoc = firestoreStub.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
                     expect(carSecureDoc).to.not.be.undefined
                 })
 
                 it('onCreate should not create a secure data collection if not enabled', async () => {
-
-                    const carId = uniqid()
-
-                    const car = new Car(firestoreStub.get(), null, carId)
 
                     await car.onDelete()
 
@@ -223,108 +233,94 @@ describe('Unit_Test', () => {
             describe('Read', () => {
 
                 it('Get ref returns the same ref after initialization', async () => {
-                    const car = new Car(firestoreStub.get())
-                    const docRef1 = car.getDocRef()
-                    const docRef2 = car.getDocRef()
+                    const carM = new Car(firestoreStub.get())
+                    const docRef1 = carM.getDocRef()
+                    const docRef2 = carM.getDocRef()
     
                     expect(docRef1.id).to.equals(docRef2.id)
                 })
 
                 it('it should be possible to retrieve the Id of a model though method getId', async () => {
-                    const car = new Car(firestoreStub.get())
-                    const id = car.getId()
+                    const carM = new Car(firestoreStub.get())
+                    const id = carM.getId()
     
                     expect(id).exist
                 })
 
                 it('GetId should return the same id a model was created with', async () => {
-                    const carId = uniqid()
-                    const car = new Car(firestoreStub.get(), null, carId)
                     const id = car.getId()
     
                     expect(id).to.be.equal(carId)
                 })
 
                 it('Get ID of created docRef', async () => {
-                    const carId = uniqid()
-    
-                    const car = await new Car(firestoreStub.get(), null, carId).create({
+                    const carM = await car.create({
                         name : 'Mustang'
                     })
     
-                    const carId2 = car.getId()
+                    const carId2 = carM.getId()
                     
                     expect(carId).to.be.equal(carId2)
                 })
 
                 it('Method Find should be able to retrive one particular model by id', async () => {
-                    const carId = uniqid()
                     const carId2 = uniqid()
-                    const car = new Car(firestoreStub.get(), null, carId)
     
-                    const car2 = await car.find(carId2)
+                    const car2 = await new Car(firestoreStub.get()).find(carId2)
     
                     expect(car2.getId()).to.be.equal(carId2)
                 })
 
                 it('Method Find should be able to set the Id of an already instantiated model', async () => {
-                    const carId = uniqid()
-                    const car = new Car(firestoreStub.get())
+                    const carM = new Car(firestoreStub.get())
     
-                    await car.find(carId)
+                    await carM.find(carId)
     
-                    expect(car.getId()).to.be.equal(carId)
+                    expect(carM.getId()).to.be.equal(carId)
                 })
 
                 it('Single data fields on a model should be retrievable through method getField', async () => {
-                    const carId = uniqid()
                     const carName = 'Mustang'
     
-                    firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
+                    firestoreStub.data()[carPath] = {
                         name : carName
                     }
-    
-                    const car = new Car(firestoreStub.get(), null, carId)
-    
+
                     const fetchedName = await car.getField('name')
     
                     expect(carName).to.be.equal(fetchedName)
                 })
 
                 it('GetField should return undefined if field does not exist', async () => {
-                    const carId = uniqid()
-    
-                    const car = new Car(firestoreStub.get(), null, carId)
-    
-                    const fetchedName = await car.getField('name')
+                    let fetchedName
+
+                    try{
+                        fetchedName = await car.getField('name')
+                    }
+                    catch(e){}
     
                     expect(fetchedName).to.be.undefined
                 })
 
                 it('If a model is fetch with method find() already existing in the DB the method exists should return true', async () => {
-                    const carId = uniqid()
                     firestoreStub.data()[`${Stubs.CAR}/${carId}`] = { id: carId }
     
-                    const car = await new Car(firestoreStub.get()).find(carId)
+                    const carM = await new Car(firestoreStub.get()).find(carId)
     
-                    expect(await car.exists()).to.be.true
+                    expect(await carM.exists()).to.be.true
                 })
     
                 it('If a model is fetch with method find() not already existing in the DB the method exists should return false', async () => {
-                    const carId = uniqid()
     
-                    const car = await new Car(firestoreStub.get()).find(carId)
+                    const carM = await new Car(firestoreStub.get()).find(carId)
     
-                    expect(await car.exists()).to.be.false
+                    expect(await carM.exists()).to.be.false
                 })
             })
 
             describe('Update', () => {
 
                 it('It should be possible to update data on an already existing model', async () => {
-                    const carId = uniqid()
-                    const car = new Car(firestoreStub.get(), null, carId)
-    
                     firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
                         name : 'Mustang'
                     }
@@ -341,20 +337,19 @@ describe('Unit_Test', () => {
                 })
     
                 it('It should be possible to update data on an already existing model in batch', async () => {
-                    const carId = uniqid()
     
                     await adminFs.collection(Stubs.CAR).doc(carId).create({
                         name : 'Mustang'
                     })
     
-                    const car = await new Car(adminFs, null, carId)
+                    const carL = await new Car(adminFs, null, carId)
                     
                     //Clean up
-                    docsToBeDeleted.push((car.getDocRef()).path)
+                    docsToBeDeleted.push((carL.getDocRef()).path)
     
                     const batch = adminFs.batch()
     
-                    await car.update({
+                    await carL.update({
                         name : 'Fiesta'
                     }, batch)
     
@@ -369,20 +364,19 @@ describe('Unit_Test', () => {
                 })
     
                 it('If batch commit is not invoked not data should be updated on the model', async () => {
-                    const carId = uniqid()
     
                     await adminFs.collection(Stubs.CAR).doc(carId).create({
                         name : 'Mustang'
                     })
     
-                    const car = await new Car(adminFs, null, carId)
+                    const carL = await new Car(adminFs, null, carId)
                     
                     //Clean up
-                    docsToBeDeleted.push((car.getDocRef()).path)
+                    docsToBeDeleted.push((carL.getDocRef()).path)
     
                     const batch = adminFs.batch()
     
-                    await car.update({
+                    await carL.update({
                         name : 'Fiesta'
                     }, batch)
     
@@ -398,8 +392,6 @@ describe('Unit_Test', () => {
             describe('Delete', () => {
 
                 it('It should be possible to delete a model', async () => {
-                    const carId = uniqid()
-                    const car = new Car(firestoreStub.get(), null, carId)
     
                     firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
                         name : 'Mustang'
@@ -417,13 +409,11 @@ describe('Unit_Test', () => {
                         hasSecureData = true
                     }
 
-                    const carId = uniqid()
-
                     firestoreStub.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
 
-                    const car = new CarM(firestoreStub.get(), null, carId)
+                    const carS = new CarM(firestoreStub.get(), null, carId)
 
-                    await car.onDelete()
+                    await carS.onDelete()
 
                     const carSecureDoc = firestoreStub.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`]
 
@@ -432,11 +422,7 @@ describe('Unit_Test', () => {
 
                 it('onDelete should not delete secure data collection if not enabled', async () => {
 
-                    const carId = uniqid()
-
                     firestoreStub.data()[`${Stubs.CAR}${Models.SECURE_SURFIX}/${carId}`] = {}
-
-                    const car = new Car(firestoreStub.get(), null, carId)
 
                     await car.onDelete()
 
@@ -447,25 +433,20 @@ describe('Unit_Test', () => {
             })
 
             it('If a model is instatiated not already existing in the DB the method exists should return false', async () => {
-                const car = new Car(firestoreStub.get())
+                const carM = new Car(firestoreStub.get())
 
-                expect(await car.exists()).to.be.false
+                expect(await carM.exists()).to.be.false
             })
 
             it('If a model is instatiated with an ID not already existing in the DB the method exists should return false', async () => {
-                const carId = uniqid()
-                const car = new Car(firestoreStub.get(), null, carId)
+                const carM = new Car(firestoreStub.get(), null, carId)
 
-                expect(await car.exists()).to.be.false
+                expect(await carM.exists()).to.be.false
             })
 
             it('If a model is instatiated already existing in the DB the method exists should return true', async () => {
 
-                const carId = uniqid()
-
                 firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {}
-
-                const car = new Car(firestoreStub.get(), null, carId)
 
                 expect(await car.exists()).to.be.true
             })

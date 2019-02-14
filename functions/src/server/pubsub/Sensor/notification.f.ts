@@ -3,12 +3,18 @@ import { firestore, messaging} from 'firebase-admin'
 import DataORMImpl from '../../lib/ORM'
 import Sensor from '../../lib/ORM/Models/Sensor'
 import { Models } from '../../lib/ORM/Models';
-import { forOwn, capitalize, isEmpty } from "lodash"
+import { kebabCase, forOwn, capitalize, isEmpty } from "lodash"
 import { Env } from '../../lib/const';
 import User from '../../lib/ORM/Models/User';
 
+import { basename } from 'path'
+
+const file = basename(__filename).slice(0, -5)
+const ctrl = basename(__dirname)
+const topicName = kebabCase(`${ctrl}-${file}`)
+
 exports = module.exports = pubsub
-.topic('notification').onPublish(async (message: pubsub.Message) => {
+.topic(topicName).onPublish(async (message: pubsub.Message) => {
 
     try{
 		const db = new DataORMImpl(firestore())

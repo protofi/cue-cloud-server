@@ -94,13 +94,11 @@ export default class ModelImpl implements Model {
     
         if(transaction)
         {
-            transaction.set(docRef, data, {
-                merge : false
-            })
+            transaction.create(docRef, data)
         }
-        else await docRef.set(data, {
-            merge : false
-        })
+        else await docRef.create(data)
+
+        this.docSnap = null
     
         return this
     }

@@ -5,7 +5,7 @@ import * as uniqid from 'uniqid'
 import ModelImpl from "../lib/ORM/Models";
 import { IActionableFieldCommand, IModelCommand } from '../lib/Command';
 import { ModelImportStategy } from "../lib/ORM/Relation";
-import { WhereFilterOP } from '../lib/const';
+import { WhereFilterOP, Errors } from '../lib/const';
 
 export enum Stubs {
     CAR         = 'cars',
@@ -134,6 +134,17 @@ export class FirestoreStub {
 
                                 return null
                             },
+                            create: (data: any) => {
+                                const _id = (id) ? id : this.nextIdInjection()
+
+                                if(this.mockData[`${col}/${_id}`]) throw Error(Errors.MODEL_ALREADY_EXISTS)
+
+                                this.mockData = _.merge(this.mockData, {
+                                    [`${col}/${_id}`] : unflatten(data)
+                                })
+
+                                return null
+                            },
                             get: () => {
                                 return {
                                     get: (data: any) => {
@@ -146,8 +157,7 @@ export class FirestoreStub {
                                         }
                                         catch(e)
                                         {
-                                            console.error(`Mock data is missing: ${e.message} [${`${col}/${id}`}]`)
-                                            return undefined
+                                            throw Error(`Mock data is missing: ${e.message} [${`${col}/${id}`}]`)
                                         }
                                     },
                                     exists : (!_.isUndefined(this.mockData[`${col}/${id}`]))
