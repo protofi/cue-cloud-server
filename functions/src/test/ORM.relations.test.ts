@@ -8,9 +8,7 @@ import * as uniqid from 'uniqid'
 
 import DataORMImpl from "./lib/ORM"
 import * as util from './lib/util'
-import Sensor from './lib/ORM/Models/Sensor'
 import ModelImpl, { Models } from './lib/ORM/Models'
-import Room from './lib/ORM/Models/Room'
 import { ActionableFieldCommandStub, Stubs, FirestoreStub } from './stubs'
 import { Many2ManyRelation, One2ManyRelation, Many2OneRelation } from './lib/ORM/Relation'
 import { Pivot } from './lib/ORM/Relation/Pivot'

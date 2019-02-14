@@ -5,6 +5,7 @@ import * as uniqid from 'uniqid'
 import ModelImpl from "../lib/ORM/Models";
 import { IActionableFieldCommand, IModelCommand } from '../lib/Command';
 import { ModelImportStategy } from "../lib/ORM/Relation";
+import { WhereFilterOP } from '../lib/const';
 
 export enum Stubs {
     CAR         = 'cars',
@@ -70,6 +71,7 @@ export class ModelImportStrategyStub implements ModelImportStategy{
     {
         this.path = modulePath
     }
+
     async import(db_: FirebaseFirestore.Firestore, name: string, id: string): Promise<ModelImpl> {
         const model = await import(this.path)
         const property = new model.default(db_, null, id)
@@ -151,23 +153,28 @@ export class FirestoreStub {
                                     exists : (!_.isUndefined(this.mockData[`${col}/${id}`]))
                                 }
                             },
-                            update: (data: any) => {
+                            update: async (data: any) => {
                                 
+                                const deleteFlag = (admin.firestore.FieldValue) ? admin.firestore.FieldValue.delete() : undefined //For testing purposes. Is to be fixed
+                                
+                                const _this = this
                                 const _id = (id) ? id : this.nextIdInjection()
 
-                                if(!this.mockData[`${col}/${_id}`]) throw Error(`Mock data is missing: [${col}/${_id}]`)
+                                if(!this.mockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${`${col}/${id}`}]`)
 
                                 //Handle field deletion
                                 const flattenData = flatten(data)
-                                
+
                                 _.forOwn(flattenData, (value, key) => {
-                                    if(value !== admin.firestore.FieldValue.delete()) return
-                                    _.unset(this.mockData[`${col}/${_id}`], key)
+
+                                    if(value !== deleteFlag) return
+                                    
+                                    _.unset(_this.mockData[`${col}/${_id}`], key)
                                     _.unset(data, key)
                                 })
 
-                                this.mockData = _.merge(this.mockData, {
-                                    [`${col}/${_id}`] : unflatten(data)
+                                _this.mockData = _.merge(_this.mockData, {
+                                    [`${col}/${id}`] : unflatten(data)
                                 })
 
                                 return null
@@ -182,6 +189,8 @@ export class FirestoreStub {
                         return {
                             get: () => {
 
+                                if(operator !== WhereFilterOP.EQUAL) throw Error('OPERATOR NOT IMPLEMENTED IN TEST YET')
+                                
                                 const docs: Array<Object> = new Array<Object>()
 
                                 _.forOwn(this.mockData, (collection, path) => {
@@ -192,16 +201,40 @@ export class FirestoreStub {
                                     
                                     if(_.get(collection, field) !== value) return
 
-                                    docs.push(_.merge(this.mockData[path], {
+                                    docs.push(_.merge({
                                         ref: {
                                             delete: () => {
                                                 _.unset(this.mockData, path)
+                                            },
+                                            id: path.split('/')[1],
+                                            update: (data: any) => {
+                                                if(!this.mockData[path]) throw Error(`Mock data is missing: [${path}]`)
+        
+                                                this.mockData = _.merge(this.mockData, {
+                                                    [path] : unflatten(data)
+                                                })
+                    
+                                                return null
                                             }
+                                        },
+                                        id: path.split('/')[1],
+                                        get: (f: string) => {
+                                            return this.mockData[path][f]
                                         }
-                                    }))
+                                    }, this.mockData[path]))
                                 })
 
-                                return docs
+                                return {
+                                    empty : !(docs.length > 0),  
+                                    size : docs.length,
+                                    docs : docs,
+                                    forEach: (callback) => {
+                                        return docs.forEach(callback)
+                                    },
+                                    update: (data: any) => {
+                                        return null
+                                    }
+                                }
                             }
                         }
                     }
