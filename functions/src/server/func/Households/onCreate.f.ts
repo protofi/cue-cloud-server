@@ -6,7 +6,7 @@ import Household from '../../lib/ORM/Models/Household';
 
 exports = module.exports = functions.firestore
 .document(`${Models.HOUSEHOLD}/{householdId}`)
-.onCreate(async (snap: FirebaseFirestore.DocumentSnapshot, context) => {
+.onCreate((snap: FirebaseFirestore.DocumentSnapshot, context) => {
 
     let household: Household
 
@@ -18,15 +18,12 @@ exports = module.exports = functions.firestore
     }
     catch(e)
     {
-        console.error(e)
-        return
+        return Promise.reject(e).catch(console.error)
     }
 
     return Promise.all([
 
         household.onCreate()
 
-    ]).catch(({message}) => {
-        console.error(message)
-    })
+    ]).catch(console.error)
 })

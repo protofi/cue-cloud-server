@@ -6,7 +6,7 @@ import Sensor from '../../lib/ORM/Models/Sensor';
 
 exports = module.exports = functions.firestore
 .document(`${Models.SENSOR}/{sensorId}`)
-.onDelete(async (snap: FirebaseFirestore.DocumentSnapshot, context) => {
+.onDelete((snap: FirebaseFirestore.DocumentSnapshot, context) => {
 
     let sensor: Sensor
 
@@ -18,8 +18,7 @@ exports = module.exports = functions.firestore
     }
     catch(e)
     {
-        console.error(e)
-        return
+        return Promise.reject(e).catch(console.error)
     }
 
     return Promise.all([

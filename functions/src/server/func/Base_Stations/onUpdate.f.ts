@@ -6,7 +6,7 @@ import BaseStation from '../../lib/ORM/Models/BaseStation';
 
 exports = module.exports = functions.firestore
 .document(`${Models.BASE_STATION}/{baseStationId}`)
-.onUpdate(async (change: functions.Change<FirebaseFirestore.DocumentSnapshot>, context) => {
+.onUpdate((change: functions.Change<FirebaseFirestore.DocumentSnapshot>, context) => {
 
     let baseStation: BaseStation
 
@@ -19,13 +19,12 @@ exports = module.exports = functions.firestore
     }
     catch(e)
     {
-        console.error(e)
-        return
+        return Promise.reject(e).catch(console.error)
     }
 
-    // console.log(change.before.data(), change.after.data())
-  
     return Promise.all([
+
         baseStation.household().takeActionOn(change)
+
     ]).catch(console.error)
 })

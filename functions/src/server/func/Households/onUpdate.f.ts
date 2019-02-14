@@ -6,7 +6,7 @@ import Household from '../../lib/ORM/Models/Household';
 
 exports = module.exports = functions.firestore
 .document(`${Models.HOUSEHOLD}/{householdId}`)
-.onUpdate(async (change: functions.Change<FirebaseFirestore.DocumentSnapshot>, context) => {
+.onUpdate((change: functions.Change<FirebaseFirestore.DocumentSnapshot>, context) => {
 
     let household: Household
 
@@ -19,8 +19,7 @@ exports = module.exports = functions.firestore
     }
     catch(e)
     {
-        console.error(e)
-        return
+        return Promise.reject(e).catch(console.error)
     }
   
     return Promise.all([
