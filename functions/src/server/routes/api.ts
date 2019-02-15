@@ -337,13 +337,13 @@ export default (app: Application) => {
                 sensor_UUID : sensorUUID
             }
 
+            const emptyBuffer = Buffer.from('')
+
             const messageId = await pubsub
                     .topic(topicName)
                     .publisher()
-                    .publish(Buffer.from(''), data)
+                    .publish(emptyBuffer, data)
                     
-            console.log(`Message ${messageId} published.`)
-
             res.json({
                 success: true,
                 sensor: sensorUUID,

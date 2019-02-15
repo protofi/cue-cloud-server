@@ -44,7 +44,7 @@ exports = module.exports = pubsub
 			})
 		})
 
-		const sensorName		= await sensor.getField(Sensor.f.NAME)
+		const sensorName			= await sensor.getField(Sensor.f.NAME)
 		const sensorLocation 	= await sensor.getField(Sensor.f.LOCATION)
 
 		const notificationTitle = (sensorName && sensorLocation) ? `${sensorName} lyder i ${sensorLocation}` : 'UNCONFIGURED SENSOR'
@@ -55,10 +55,6 @@ exports = module.exports = pubsub
 				title : capitalize(notificationTitle),
 				android_channel_id : 'distinct vibration',
 				click_action : 'FLUTTER_NOTIFICATION_CLICK',
-			},
-			notification : {
-				title : capitalize(notificationTitle),
-				sound : 'default'
 			}
 		}
 
