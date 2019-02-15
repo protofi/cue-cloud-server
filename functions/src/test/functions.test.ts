@@ -10,8 +10,8 @@ import * as fakeUUID from 'uuid/v1'
 import * as _ from 'lodash'
 import User from './lib/ORM/Models/User';
 import Sensor from './lib/ORM/Models/Sensor';
+import BaseStation from './lib/ORM/Models/BaseStation';
 const randomstring = require('randomstring')
-
 
 const test: FeaturesList = require('firebase-functions-test')()
 
@@ -1039,17 +1039,28 @@ describe('Integration_Test', () => {
 
     describe('Pub/Sub', () => {
         
-        const nullBuffer = new Buffer('')       
-        const householdId       = uniqid()
-        const baseStationUUID   = fakeUUID()
-        const sensorOneUUID     = fakeUUID()
+        const nullBuffer            = new Buffer('')       
+        const householdId           = uniqid()
+        const baseStationUUID       = fakeUUID()
+        const baseStationTwoUUID    = fakeUUID()
+        const sensorOneUUID         = fakeUUID()
 
-        const baseStationPin   = uniqid()
+        const baseStationPin        = uniqid()
+        const baseStationTwoPin     = uniqid()
+
+        let baseStationPins = []
+        let baseStationPinCount = 0
+
+        function getNextPinCode () {
+            const code = (baseStationPins[baseStationPinCount]) ? baseStationPins[baseStationPinCount] : uniqid()
+            baseStationPinCount++
+            return code
+        }
 
         before(() => {
             sinon.stub(randomstring, 'generate').get(() => {
                 return () => {
-                    return baseStationPin
+                    return getNextPinCode()
                 }
             })
         })
@@ -1057,6 +1068,8 @@ describe('Integration_Test', () => {
         beforeEach(() => {
             messagingSendToDeviceSpy.resetHistory()
             firestoreStub.reset()
+            baseStationPins = []
+            baseStationPinCount = 0
         })
 
         describe('Topic: Base Station New Sensor', () => {
@@ -1315,7 +1328,7 @@ describe('Integration_Test', () => {
                 const pin = uniqid()
 
                 firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`] = {
-                    pin : pin
+                    [BaseStation.f.PIN] : pin
                 }
 
                 const wrappedPubsubBaseStationInit = test.wrap(myFunctions.pubsubBaseStationInit)
@@ -1339,10 +1352,10 @@ describe('Integration_Test', () => {
 
                 const baseStationDoc = firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]
                 const expectedBaseStationDoc = {
-                    pin : pin
+                    [BaseStation.f.PIN] : pin
                 }
 
-                expect(baseStationDoc).to.be.equal(expectedBaseStationDoc)
+                expect(baseStationDoc).to.be.deep.equal(expectedBaseStationDoc)
             })
 
             it('Should create Base Station', async () => {
@@ -1366,7 +1379,79 @@ describe('Integration_Test', () => {
                 expect(error).to.be.null
                 expect(firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]).to.exist
             })
+
+            it('Should create Base Station with a unique pin code', async () => {
+                
+                baseStationPins = [
+                    baseStationPin
+                ]
+                
+                const wrappedPubsubBaseStationInit = test.wrap(myFunctions.pubsubBaseStationInit)
+
+                let error = null
+                
+                try{
+
+                    await wrappedPubsubBaseStationInit({
+                            data: nullBuffer,
+                            attributes: {
+                                base_station_UUID : baseStationUUID
+                            }
+                        })
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.null
+               
+                const baseStationDoc = firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]
+                const expectedBaseStationDoc = {
+                    [BaseStation.f.PIN] : baseStationPin
+                }
+
+                expect(baseStationDoc).to.be.deep.equal(expectedBaseStationDoc)
+            })
+
+            it('Should make sure no two Base Stations get assigned the same code', async () => {
+                
+                //mock data
+                firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`] = {
+                    [BaseStation.f.PIN] : baseStationPin
+                }
+
+                baseStationPins = [
+                    baseStationPin,
+                    baseStationTwoPin
+                ]
+                
+                const wrappedPubsubBaseStationInit = test.wrap(myFunctions.pubsubBaseStationInit)
+                let error = null
+                
+                try{
+
+                    await wrappedPubsubBaseStationInit({
+                            data: nullBuffer,
+                            attributes: {
+                                base_station_UUID : baseStationTwoUUID
+                            }
+                        })
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.null
+               
+                const baseStationDoc = firestoreStub.data()[`${Models.BASE_STATION}/${baseStationTwoUUID}`]
+                const expectedBaseStationDoc = {
+                    [BaseStation.f.PIN] : baseStationTwoPin
+                }
+
+                expect(baseStationDoc).to.be.deep.equal(expectedBaseStationDoc)
+            })
         })
+
 
         describe('Topic: Sensor Notification', () => {
 

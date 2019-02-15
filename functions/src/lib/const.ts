@@ -7,6 +7,7 @@ export enum Relations {
 }
 
 export enum Errors {
+    TOO_MANY_ATTEMPTS           = 'Attempt limit has been exceeded.',
     DATA_MISSING                = 'Some data is missing.',
     NOT_RELATED                 = 'No relation found.',
     UNAUTHORIZED                = 'You do not have sufficient privileges.',

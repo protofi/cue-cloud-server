@@ -3,9 +3,8 @@ import { kebabCase } from 'lodash'
 import * as admin from 'firebase-admin'
 import DataORMImpl from '../../lib/ORM'
 import { basename } from 'path'
-import BaseStation from '../../lib/ORM/Models/BaseStation'
 import { Errors } from '../../lib/const';
-import randomstring from 'randomstring'
+import BaseStation from '../../lib/ORM/Models/BaseStation';
 
 const file = basename(__filename).slice(0, -5)
 const ctrl = basename(__dirname)
@@ -16,15 +15,15 @@ exports = module.exports = pubsub.topic(topicName)
 
     const db = new DataORMImpl(admin.firestore())
 
-    const baseStationUUID   = message.attributes.base_station_UUID
+    const baseStationUUID = message.attributes.base_station_UUID
     
     if(!baseStationUUID)
         throw new Error(Errors.DATA_MISSING)
 
-    // const code = baseStationCode('A0', 5, { exclude: '0Ooil' })
+    
+    const code = await db.baseStation().generateUniquePin()
 
-    // const = await db.baseStation().where(BaseStation.f.PIN, '==', code)
-
-    return db.baseStation(null, baseStationUUID).create({})
-
+    return db.baseStation(null, baseStationUUID).create({
+        [BaseStation.f.PIN] : code
+    })
 })

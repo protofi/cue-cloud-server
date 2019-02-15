@@ -321,7 +321,7 @@ describe('Unit_Test', () => {
             describe('Update', () => {
 
                 it('It should be possible to update data on an already existing model', async () => {
-                    firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
+                    firestoreStub.data()[carPath] = {
                         name : 'Mustang'
                     }
 
@@ -329,7 +329,7 @@ describe('Unit_Test', () => {
                         name : 'Fiesta'
                     })
     
-                    const carDoc = firestoreStub.data()[`${Stubs.CAR}/${carId}`]
+                    const carDoc = firestoreStub.data()[carPath]
                     const expectedCarDoc = {
                         name : 'Fiesta'
                     }
@@ -393,13 +393,13 @@ describe('Unit_Test', () => {
 
                 it('It should be possible to delete a model', async () => {
     
-                    firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
+                    firestoreStub.data()[carPath] = {
                         name : 'Mustang'
                     }
     
                     await car.delete()
     
-                    const carDoc = firestoreStub.data()[`${Stubs.CAR}/${carId}`]
+                    const carDoc = firestoreStub.data()[carPath]
     
                     expect(carDoc).to.not.exist
                 })
