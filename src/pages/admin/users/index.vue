@@ -10,43 +10,6 @@
 
 			<v-toolbar-title>Users</v-toolbar-title>
 
-			<v-spacer></v-spacer>
-            
-            <v-menu offset-y>
-            
-                <v-btn
-                    slot="activator"
-                    icon
-                >
-                    <v-icon>playlist_add_check</v-icon>
-                
-                </v-btn>
-
-                <v-list>
-
-                    <v-list-tile
-                        ripple
-                        @click.stop="bulkDelete"
-                    >
-                        <v-list-tile-avatar>
-                            <v-progress-circular
-                                v-if="deleteLoading"
-                                indeterminate
-                                color="amber"
-                            ></v-progress-circular>
-                            <v-icon v-else>delete</v-icon>
-                        </v-list-tile-avatar>
-
-                        <v-list-tile-title>
-                            Delete
-                        </v-list-tile-title>
-
-                    </v-list-tile>
-
-                </v-list>
-
-            </v-menu>
-
             <!-- <v-tabs
 				slot="extension"
 				v-model="tab"
@@ -76,7 +39,36 @@
                             <v-flex xs12 sm6 md6 lg6 xl6>
                     
                                 <v-list two-line subheader>
-                                    
+                                        
+                                        <v-subheader>
+                                            
+                                            <v-spacer></v-spacer>
+
+                                            <v-list-tile-action v-if="selectedUsers.length > 0">
+
+                                                <v-layout>
+                                                
+                                                    <v-btn
+                                                        icon
+                                                        ripple
+                                                        @click.stop="bulkDelete"
+                                                        :loading="deleteLoading"
+                                                    >
+                                                        <v-icon color="grey">delete</v-icon>
+                                                    </v-btn>
+                                                
+                                                </v-layout>
+
+                                            </v-list-tile-action>
+
+                                            <v-list-tile-action>
+
+                                                <v-checkbox v-model="allChecked"></v-checkbox>
+
+                                            </v-list-tile-action>
+
+                                        </v-subheader>
+
                                         <v-list-tile
                                             v-for="user in users"
                                             :key="user.id"
@@ -107,19 +99,13 @@
 
                                             </v-list-tile-action>
 
-                                            <v-list-tile-action @click.prevent="">
-
-                                                <v-checkbox :value="user.id" v-model="selectedUsers"></v-checkbox>
-
-                                            </v-list-tile-action>
-
                                             <v-list-tile-action v-if="$store.getters['auth/isSuperAdmin']">
 
                                                 <v-layout>
 
                                                     <v-btn
-                                                        icon
-                                                        small color="grey darken-1" dark
+                                                        fab dark
+                                                        small color="teal"
                                                         ripple
                                                         @click.stop.prevent="promotionDialog(user)"
                                                     >
@@ -132,6 +118,12 @@
                                                     
                                                 </v-layout>
                                                     
+                                            </v-list-tile-action>
+
+                                            <v-list-tile-action @click.prevent="">
+
+                                                <v-checkbox :value="user.id" v-model="selectedUsers"></v-checkbox>
+
                                             </v-list-tile-action>
 
                                         </v-list-tile>
@@ -255,6 +247,7 @@
                 
                 selectedUsers : [],
                 deleteLoading : false,
+                allChecked : false,
 
                 tab: null,
                 items: [
@@ -308,6 +301,29 @@
                 return this.users.filter((user) => {
                     return user.data.claims && (user.data.claims.isAdmin || user.data.claims.isSuperAdmin)
                 })
+            }
+        },
+
+        watch : {
+            selectedUsers(selectedUsers)
+            {
+                this.allChecked = (selectedUsers.length == this.users.length && this.users.length > 0)
+            },
+            allChecked(value)
+            {
+                if(this.selectedUsers.length == this.users.length)
+                {
+                    this.selectedUsers = []
+                }
+                
+                if(value)
+                {
+                    this.selectedUsers = []
+
+                    this.users.forEach(user => {
+                        this.selectedUsers.push(user.id)
+                    })
+                }
             }
         },
 
@@ -368,6 +384,7 @@
                 }
 
                 this.deleteLoading = false
+                this.selectedUsers = []
             }
         }
     }
