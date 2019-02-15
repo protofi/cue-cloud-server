@@ -144,7 +144,7 @@ describe('Integration_Test', () => {
 
                 const cacheField = User.f.ID
                 const sensorsId = uniqid()
-                const wrappedUsersOnUpdate = test.wrap(myFunctions.funcUsersOnUpdate)
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
                 
                 firestoreStub.data()[`${Models.SENSOR}/${sensorsId}`] = {}
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorsId}`] = {}
@@ -210,7 +210,7 @@ describe('Integration_Test', () => {
                     }
                 })
 
-                const wrappedUsersOnUpdate = test.wrap(myFunctions.funcUsersOnUpdate)
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
 
 
                 const change = {
@@ -256,7 +256,7 @@ describe('Integration_Test', () => {
                     }
                 })
 
-                const wrappedUsersOnUpdate = test.wrap(myFunctions.funcUsersOnUpdate)
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
 
                 const change = {
                     before : beforeDocSnap,
@@ -308,7 +308,7 @@ describe('Integration_Test', () => {
                     }
                 })
 
-                const wrappedUsersOnUpdate = test.wrap(myFunctions.funcUsersOnUpdate)
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
 
 
                 const change = {
@@ -358,7 +358,7 @@ describe('Integration_Test', () => {
             //         }
             //     })
 
-            //     const wrappedUsersOnUpdate = test.wrap(myFunctions.funcUsersOnUpdate)
+            //     const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
 
 
             //     const change = {
@@ -415,7 +415,7 @@ describe('Integration_Test', () => {
                     }
                 })
 
-                const wrappedUsersOnUpdate = test.wrap(myFunctions.funcUsersOnUpdate)
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
 
                 const change = {
                     before : beforeUserDocSnap,
@@ -467,7 +467,7 @@ describe('Integration_Test', () => {
                     }
                 })
 
-                const wrappedHouseholdsOnCreate = test.wrap(myFunctions.funcHouseholdsOnCreate)
+                const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
 
                 await wrappedHouseholdsOnCreate(householdSnap)
 
@@ -508,7 +508,7 @@ describe('Integration_Test', () => {
                     }
                 })
 
-                const wrappedHouseholdsOnCreate = test.wrap(myFunctions.funcHouseholdsOnCreate)
+                const wrappedHouseholdsOnCreate = test.wrap(myFunctions.ctrlHouseholdsOnCreate)
 
                 await wrappedHouseholdsOnCreate(householdSnap)
 
@@ -524,7 +524,7 @@ describe('Integration_Test', () => {
         describe('On Update', () => {
 
             it('Should create relation between newly added sensor and already added users if reation is accepted', async () => {
-                const wrappedHouseholdsOnUpdate = test.wrap(myFunctions.funcHouseholdsOnUpdate)
+                const wrappedHouseholdsOnUpdate = test.wrap(myFunctions.ctrlHouseholdsOnUpdate)
 
                 const householdId = uniqid()
                 const sensorId = uniqid()
@@ -595,7 +595,7 @@ describe('Integration_Test', () => {
             })
 
             it('Should not create relation between newly added Sensor and already added User if reation is not accepted', async () => {
-                const wrappedHouseholdsOnUpdate = test.wrap(myFunctions.funcHouseholdsOnUpdate)
+                const wrappedHouseholdsOnUpdate = test.wrap(myFunctions.ctrlHouseholdsOnUpdate)
 
                 const householdId = uniqid()
                 const sensorId = uniqid()
@@ -644,7 +644,7 @@ describe('Integration_Test', () => {
             })
 
             it('Should be able to correct relations between newly added Sensor and Users that either have or have not accepted the relation to the Household', async () => {
-                const wrappedHouseholdsOnUpdate = test.wrap(myFunctions.funcHouseholdsOnUpdate)
+                const wrappedHouseholdsOnUpdate = test.wrap(myFunctions.ctrlHouseholdsOnUpdate)
 
                 const householdId = uniqid()
                 const sensorId = uniqid()
@@ -736,7 +736,7 @@ describe('Integration_Test', () => {
         describe('On Delete', () => {
 
             it('Should delete relations to all Users when deleted', async () => {
-                const wrappedHouseholdsOnDelete = test.wrap(myFunctions.funcHouseholdsOnDelete)
+                const wrappedHouseholdsOnDelete = test.wrap(myFunctions.ctrlHouseholdsOnDelete)
 
                 const userId = uniqid()
                 const userIdTwo = uniqid()
@@ -781,7 +781,7 @@ describe('Integration_Test', () => {
             })
             
             it('Should delete relations to all Sensors when deleted and delete Sensors', async () => {
-                const wrappedHouseholdsOnDelete = test.wrap(myFunctions.funcHouseholdsOnDelete)
+                const wrappedHouseholdsOnDelete = test.wrap(myFunctions.ctrlHouseholdsOnDelete)
 
                 const householdId = uniqid()
                 const sensorId = uniqid()
@@ -824,7 +824,7 @@ describe('Integration_Test', () => {
             })
 
             it('Should delete relations to all Base Station when deleted', async () => {
-                const wrappedHouseholdsOnDelete = test.wrap(myFunctions.funcHouseholdsOnDelete)
+                const wrappedHouseholdsOnDelete = test.wrap(myFunctions.ctrlHouseholdsOnDelete)
 
                 const householdId = uniqid()
                 const baseStationId = uniqid()
@@ -876,7 +876,7 @@ describe('Integration_Test', () => {
 
             it('When Sensor is create the secure data should be created', async () => {
                 const sensorId      = uniqid()
-                const wrappedSensorsOnCreate = test.wrap(myFunctions.funcSensorsOnCreate)
+                const wrappedSensorsOnCreate = test.wrap(myFunctions.ctrlSensorsOnCreate)
 
                 const sensorSnap = new OfflineDocumentSnapshotStub({
                     ref: {
@@ -899,7 +899,7 @@ describe('Integration_Test', () => {
 
             it('When Sensor is delete the secure data should also be deleted', async () => {
                 const sensorId      = uniqid()
-                const wrappedSensorsOnDelete = test.wrap(myFunctions.funcSensorsOnDelete)
+                const wrappedSensorsOnDelete = test.wrap(myFunctions.ctrlSensorsOnDelete)
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {}
 
@@ -930,7 +930,7 @@ describe('Integration_Test', () => {
             const cacheField    = Sensor.f.USERS.MUTED
             const pivotId       = `${sensorId}_${userId}`
 
-            const wrappedSensorsUsersOnUpdate = test.wrap(myFunctions.funcSensorsUsersOnUpdate)
+            const wrappedSensorsUsersOnUpdate = test.wrap(myFunctions.ctrlSensorsUsersOnUpdate)
 
             // mock data
             firestoreStub.data()[`${Models.SENSOR}/${sensorId}`] = {
@@ -986,7 +986,7 @@ describe('Integration_Test', () => {
             const sensorId      = uniqid()
             const pivotId       = `${sensorId}_${userId}`
 
-            const wrappedSensorsUsersOnUpdate = test.wrap(myFunctions.funcSensorsUsersOnUpdate)
+            const wrappedSensorsUsersOnUpdate = test.wrap(myFunctions.ctrlSensorsUsersOnUpdate)
 
             // mock data
             firestoreStub.data()[`${Models.SENSOR}/${sensorId}`] = {
