@@ -1,19 +1,20 @@
-import Household from "./Models/Household";
-import Sensor from "./Models/Sensor";
-import Event from "./Models/Event";
-import Room from "./Models/Room";
-import User from "./Models/User";
-import { Pivot } from "./Relation/Pivot";
+import Household from "./Models/Household"
+import Sensor from "./Models/Sensor"
+import User from "./Models/User"
+import { Pivot } from "./Relation/Pivot"
 import { singular } from 'pluralize'
-import BaseStation from "./Models/BaseStation";
+import BaseStation from "./Models/BaseStation"
 
-export interface DataORM {
+export interface IDataORM {
+    baseStation(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): BaseStation
+    batch(): FirebaseFirestore.WriteBatch
+    pivot(path: string): Pivot
     user(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): User
     household(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Household
-    batch(): FirebaseFirestore.WriteBatch
+    sensor(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Sensor
 }
 
-export default class DataORMImpl implements DataORM{
+export default class DataORM implements IDataORM{
     private db: FirebaseFirestore.Firestore
 
     constructor(db: FirebaseFirestore.Firestore)
@@ -40,16 +41,6 @@ export default class DataORMImpl implements DataORM{
     sensor(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Sensor
     {
         return new Sensor(this.db, snap, id)
-    }
-
-    room(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Room
-    {
-        return new Room(this.db, snap, id)
-    }
-
-    event(snap?: FirebaseFirestore.DocumentSnapshot, id?: string): Event
-    {
-        return new Event(this.db, snap, id)
     }
 
     batch(): FirebaseFirestore.WriteBatch

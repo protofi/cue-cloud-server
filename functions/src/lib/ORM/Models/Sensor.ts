@@ -22,16 +22,6 @@ export default class Sensor extends ModelImpl {
         super(Models.SENSOR, db, snap, id)
     }
 
-    room(): Many2OneRelation
-    {
-        return this.haveOne(Models.ROOM)
-    }
- 
-    events(): One2ManyRelation
-    {
-        return this.hasMany(Models.EVENT)
-    }
-
     users(): Many2ManyRelation
     {
         return this
