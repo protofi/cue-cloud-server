@@ -458,7 +458,6 @@ export default {
                 console.log(e)
             }
 
-            this.allChecked = false
             this.deleteLoading = false
             this.selectedHouseholds = []
         }
