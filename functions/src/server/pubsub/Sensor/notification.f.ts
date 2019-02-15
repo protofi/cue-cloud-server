@@ -45,6 +45,7 @@ exports = module.exports = pubsub
 		})
 
 		const sensorName			= await sensor.getField(Sensor.f.NAME)
+		const sensorVibration	= await sensor.getField(Sensor.f.VIBRATION)
 		const sensorLocation 	= await sensor.getField(Sensor.f.LOCATION)
 
 		const notificationTitle = (sensorName && sensorLocation) ? `${sensorName} lyder i ${sensorLocation}` : 'UNCONFIGURED SENSOR'
@@ -52,8 +53,9 @@ exports = module.exports = pubsub
 		const androidPayload = {
 			data : {
 				sensor_id : sensorUUID,
+				vibration : sensorVibration,
 				title : capitalize(notificationTitle),
-				android_channel_id : 'distinct vibration',
+				android_channel_id : sensorVibration,
 				click_action : 'FLUTTER_NOTIFICATION_CLICK',
 			}
 		}
@@ -61,9 +63,7 @@ exports = module.exports = pubsub
 		const iOSPayload = {
 			data : {
 				sensor_id : sensorUUID,
-				title : capitalize(notificationTitle),
-				android_channel_id : 'distinct vibration',
-				click_action : 'FLUTTER_NOTIFICATION_CLICK',
+				title : capitalize(notificationTitle)
 			},
 			notification : {
 				title : capitalize(notificationTitle),

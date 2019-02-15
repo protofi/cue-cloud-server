@@ -6,7 +6,6 @@ import ModelImpl, { Models } from '../lib/ORM/Models';
 import { asyncForEach } from '../lib/util';
 import DataORMImpl from '../lib/ORM';
 import Household from '../lib/ORM/Models/Household';
-import * as baseStationCode from 'randomatic'
 import * as fakeUuid from 'uuid/v1'
 import User from '../lib/ORM/Models/User';
 import { isEmpty } from 'lodash'
@@ -355,34 +354,38 @@ export default (app: Application) => {
 
         .put(async (req: Request, res: Response) => {
         
-            const code = baseStationCode('A0', 5, { exclude: '0Ooil' })
+            const pubsub = new PubSub()
             
             const uuid = fakeUuid()
     
-            const baseStation = await db.baseStation().find(uuid)
-    
-            if(await baseStation.exists())
+            const topicName = 'base-station-init'
+
+            const data = {
+                base_station_UUID : uuid
+            }
+
+            const emptyBuffer = Buffer.from('')
+
+            try{
+                await pubsub
+                    .topic(topicName)
+                    .publisher()
+                    .publish(emptyBuffer, data)
+
+            }
+            catch(e)
             {
                 res.status(500).json({
                     success: false,
-                    uuid: uuid,
-                    message: 'A Base Station with this UUID already exists.'
+                    error : e
                 })
-    
-                return
             }
-    
-            await baseStation.updateOrCreate({
-                pin: code
-            })
-    
+
             res.json({
-                success : true,
-                baseStationId: baseStation.getId(),
-                pin : code
+                success: true
             })
         })
-    
+
     /******************************************
      *  ROUTES NOT FOUND
      ******************************************/

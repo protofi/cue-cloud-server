@@ -460,6 +460,7 @@ export default {
 
             this.allChecked = false
             this.deleteLoading = false
+            this.selectedHouseholds = []
         }
     },
 }
