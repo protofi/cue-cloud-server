@@ -1,6 +1,5 @@
 import ModelImpl, { Models } from "./";
 import { Many2OneRelation } from "../Relation";
-import { UnlinkBaseStationFromHousehold } from "../../Command/UnlinkBaseStationFromHousehold";
 import { Errors } from "../../const";
 const randomstring = require('randomstring')
 
@@ -24,7 +23,6 @@ export default class BaseStation extends ModelImpl {
     household(): Many2OneRelation
     {
         return this.haveOne(Models.HOUSEHOLD)
-            .defineActionableField(Models.HOUSEHOLD, new UnlinkBaseStationFromHousehold())
     }
 
     /**
