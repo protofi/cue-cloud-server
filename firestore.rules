@@ -6,7 +6,7 @@ service cloud.firestore{
 			allow write: if false
 		}
 
-		match /users/{userId} {
+		match /users/{ user } {
 			allow create: if false
 
 			allow read: if isSelf() || isAdmin()
@@ -29,10 +29,10 @@ service cloud.firestore{
 
 			allow delete: if false
 
-			function isSelf() { return request.auth.uid == userId }
+			function isSelf() { return request.auth.uid == user }
 		}
 
-		match /households/{householdId} {
+		match /households/{ household } {
 			allow create: if (isAuth() && (
 								reqHasUsersField()
 								&& request.resource.data.users.keys().hasOnly([request.auth.uid])
@@ -55,7 +55,7 @@ service cloud.firestore{
 			function reqHasUsersField() { return request.resource.data.keys().hasAll(['users']) }
 		}
 
-		match /sensors/{sensorId} {
+		match /sensors/{ sensor } {
 			allow create: if false
 			allow read:   if isAdmin() || isRelationed()
 			allow update: if !requestHasAny(['id', 'users']) && (isAdmin() || isRelationed())
@@ -64,7 +64,7 @@ service cloud.firestore{
 			function isRelationed() { return resource.data.users.keys().hasAll([request.auth.uid]) }
 		}
 
-		match /sensors_users/{sensorUserId} {
+		match /sensors_users/{ sensorUser } {
 			allow create: if false
 			allow read:   if false
 			allow update: if true
@@ -73,16 +73,24 @@ service cloud.firestore{
 			function isRelationed() { return resource.data.users.keys().hasAll([request.auth.uid]) }
 		}
 
-		match /base_stations/{baseStationId} {
+		match /base_stations/{ baseStation } {
 			allow create: if false
-			allow read:   if isAdmin()
-			allow update: if isAdmin()
+			allow read:   if isAuth() && (!baseStationIsClaimed() || isRelatedHouseholdResident())
+			allow update: if isAuth() && (
+									!baseStationIsClaimed() // only fields of unclaimed Base Stations can be updated
+								&& 	request.resource.data.households.id is string // update data must contain households field with an id key of type string
+								&& 	!requestHasAny(['id', 'pin', 'websocket']) // update data cannot contain fields: id, pin, websocket
+							) || isAdmin()
 			allow delete: if false
+
+			function baseStationIsClaimed() { return resourceHasAny(['households']) }
+			function isRelatedHouseholdResident() { return get(/databases/$(database)/documents/households/$(resource.data.households.id)).data.users.keys().hasAll([request.auth.uid]) }
 		}
 
-		function requestHasAny(fields) { return request.writeFields.hasAny(fields) }
 		function isAuth() { return (request.auth.uid != null) }
 		function isAdmin() { return request.auth.token.isAdmin || request.auth.token.isSuperAdmin }
 		function isSuperAdmin() { return request.auth.token.isSuperAdmin }
+		function requestHasAny(fields) { return request.writeFields.hasAny(fields) }
+		function resourceHasAny(fields) { return resource.data.keys().hasAny(fields) }
 	}
 }

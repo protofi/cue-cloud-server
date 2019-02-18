@@ -55,6 +55,10 @@ describe('Emulated_Rules', () => {
         uid: "test-household-1"
     }
 
+    const testBaseStationDataOne = {
+        uid: "test-base-station-1"
+    }
+
     const testSensorDataOne = {
         uid: "test-sensor-1"
     }
@@ -359,6 +363,332 @@ describe('Emulated_Rules', () => {
         })
     })
 
+    describe('Base Stations', async () => {
+
+        describe('Create', async () => {
+
+            it(' Unautherized users should not be able to create Base Station', async () => {
+                const db = await setup()
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.add({})))
+            })
+
+            it('Users should not be able to create Base Station', async () => {
+                const db = await setup(testUserDataOne)
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.add({})))
+            })
+
+            it('Admin Users should not be able to create Base Station', async () => {
+                const db = await setup(testAdminUserData)
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.add({})))
+            })
+
+            it('Super Admin Users should not be able to create Base Station', async () => {
+                const db = await setup(testSuperAdminUserData)
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.add({})))
+            })
+        })
+
+        describe('Read', async () => {
+            
+            it('Should not allow unautherized Users to read from Base Stations', async () => {
+                const db = await setup()
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.doc().get()))
+            })
+
+            it('Should not allow Users to read from Base Stations claimed by other Household than the one they are resident in', async () => {
+                const db = await setup(testUserDataOne, {
+
+                        [`${Models.HOUSEHOLD}/${testHouseDataOne.uid}`] : {
+                            [Models.USER] : {
+                                [testUserDataTwo.uid] : true
+                            },
+                            [Models.BASE_STATION] : {
+                                [testBaseStationDataOne.uid] : true
+                            }
+                        },
+                        [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {
+                            [Models.HOUSEHOLD] : {
+                                id : testHouseDataOne.uid
+                            }
+                        }
+                    })
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).get()))
+            })
+
+            it('Should allow Users to read from unclaimed Base Stations', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {}
+                })
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertSucceeds(ref.doc(testBaseStationDataOne.uid).get()))
+            })
+
+            
+            it('Should allow Users to read from Base Stations related to their resident Household', async () => {
+                const db = await setup(testUserDataOne, {
+
+                    [`${Models.HOUSEHOLD}/${testHouseDataOne.uid}`] : {
+                        [Models.USER] : {
+                            [testUserDataOne.uid] : true
+                        },
+                        [Models.BASE_STATION] : {
+                            [testBaseStationDataOne.uid] : true
+                        }
+                    },
+                    [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {
+                        [Models.HOUSEHOLD] : {
+                            id : testHouseDataOne.uid
+                        }
+                    }
+                })
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertSucceeds(ref.doc(testBaseStationDataOne.uid).get()))
+            })
+
+            it('Admin Users should be able to read data', async () => {
+                const db = await setup(testAdminUserData)
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertSucceeds(ref.get()))
+            })
+
+            it('Super Admin Users should not be able to read data', async () => {
+                const db = await setup(testSuperAdminUserData)
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertSucceeds(ref.get()))
+            })
+        })
+
+        describe('Update', async () => {
+
+            it('Should not allow unautherized Users to update data', async () => {
+                const db = await setup()
+                
+                const ref = db.collection(Models.BASE_STATION)
+                expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({})))
+            })
+
+            it('Should not allow Users to update data on non-related Base Stations', async () => {
+                const db = await setup(testUserDataOne, {
+
+                    [`${Models.HOUSEHOLD}/${testHouseDataOne.uid}`] : {
+                        [Models.USER] : {
+                            [testUserDataTwo.uid] : true
+                        },
+                        [Models.BASE_STATION] : {
+                            [testBaseStationDataOne.uid] : true
+                        }
+                    },
+                    [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {
+                        [Models.HOUSEHOLD] : {
+                            id : testHouseDataOne.uid
+                        }
+                    }
+                })
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({})))
+            })
+
+            it('Should not allow related Users to update field: id', async () => {
+
+                const db = await setup(testUserDataOne, {
+                    [`${Models.HOUSEHOLD}/${testHouseDataOne.uid}`] : {
+                        [Models.USER] : {
+                            [testUserDataOne.uid] : true
+                        },
+                        [Models.BASE_STATION] : {
+                            [testBaseStationDataOne.uid] : true
+                        }
+                    },
+                    [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {
+                        [Models.HOUSEHOLD] : {
+                            id : testHouseDataOne.uid
+                        }
+                    }
+                })
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
+                    id : '123'
+                })))
+            })
+
+            it('Should not allow related Users to update field: pin', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.HOUSEHOLD}/${testHouseDataOne.uid}`] : {
+                        [Models.USER] : {
+                            [testUserDataOne.uid] : true
+                        },
+                        [Models.BASE_STATION] : {
+                            [testBaseStationDataOne.uid] : true
+                        }
+                    },
+                    [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {
+                        [Models.HOUSEHOLD] : {
+                            id : testHouseDataOne.uid
+                        }
+                    }
+                })
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
+                    pin : '123'
+                })))
+            })
+            
+            it('Should not allow related Users to update field: websocket', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.HOUSEHOLD}/${testHouseDataOne.uid}`] : {
+                        [Models.USER] : {
+                            [testUserDataOne.uid] : true
+                        },
+                        [Models.BASE_STATION] : {
+                            [testBaseStationDataOne.uid] : true
+                        }
+                    },
+                    [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {
+                        [Models.HOUSEHOLD] : {
+                            id : testHouseDataOne.uid
+                        }
+                    }
+                })
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
+                    websocket : '123'
+                })))
+            })
+
+            it('Should not allow related Users to update field: household', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.HOUSEHOLD}/${testHouseDataOne.uid}`] : {
+                        [Models.USER] : {
+                            [testUserDataOne.uid] : true
+                        },
+                        [Models.BASE_STATION] : {
+                            [testBaseStationDataOne.uid] : true
+                        }
+                    },
+                    [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {
+                        [Models.HOUSEHOLD] : {
+                            id : testHouseDataOne.uid
+                        }
+                    }
+                })
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
+                    household : '123'
+                })))
+            })
+
+            it('Should not allow Users to update field "id" of unclaimed Base Stations', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {}
+                })
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
+                    id : '123'
+                })))
+            })
+
+            it('Should not allow Users to update field "pin" of unclaimed Base Stations', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {}
+                })
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
+                    pin : '123'
+                })))
+            })
+
+            it('Should not allow Users to update field "websocket" of unclaimed Base Stations', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {}
+                })
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
+                    websocket : '123'
+                })))
+            })
+            
+            it('Should not allow Users to update field "households" of unclaimed Base Stations if field is no map only containing id:string', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {}
+                })
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
+                    households : '123'
+                })))
+            })
+
+            it('Should allow Users to update field "households" of unclaimed Base Stations', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {}
+                })
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertSucceeds(ref.doc(testBaseStationDataOne.uid).update({
+                    households : {
+                        id : '123'
+                    }
+                })))
+            })
+        })
+
+        describe('Delete', async () => {
+            it('Unautherized Users should not be able the delete', async () => {
+                const db = await setup()
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.doc().delete()))
+            })
+
+            it('Users should not be able the delete', async () => {
+                const db = await setup(testHouseDataOne)
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertFails(ref.doc().delete()))
+            })
+        })
+    })
+    
     describe('Households', async () => {
 
         describe('Create', async () => {
@@ -435,7 +765,7 @@ describe('Emulated_Rules', () => {
                 ))
             })
 
-            it('Users not included in a household should not be able to read data about it', async () => {
+            it('Users not included in a household should not be able to read data', async () => {
                 const db = await setup(testUserDataOne)
 
                 const ref = db.collection(Models.HOUSEHOLD)
