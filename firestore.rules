@@ -34,17 +34,17 @@ service cloud.firestore{
 
 		match /households/{ household } {
 			allow create: if (isAuth() && (
-								reqHasUsersField()
-								&& request.resource.data.users.keys().hasOnly([request.auth.uid])
-								&& request.resource.data.users[request.auth.uid] == true
+									requestHasAll(['users', 'base_stations'])
+								&&	request.resource.data.users.keys().hasOnly([request.auth.uid])
+								&& 	request.resource.data.users[request.auth.uid] == true
 							) || isAdmin())
 
 			allow read: if isResident() || isAdmin()
 
 			allow update: if (isAuth()
 							&& (
-								!reqHasUsersField()
-								|| isHouseholdAdmin()
+								!requestHasAny(['users', 'sensors', 'base_stations']) // residents cannot update any relations
+								|| (isHouseholdAdmin() && !requestHasAny(['base_stations'])) // household admins can update users and sensors
 							)
 						) || isAdmin()
 
@@ -52,7 +52,6 @@ service cloud.firestore{
 
 			function isHouseholdAdmin() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.households.pivot.role == "admin" }
 			function isResident() { return resource.data.users.keys().hasAll([request.auth.uid]) }
-			function reqHasUsersField() { return request.resource.data.keys().hasAll(['users']) }
 		}
 
 		match /sensors/{ sensor } {
@@ -91,6 +90,7 @@ service cloud.firestore{
 		function isAdmin() { return request.auth.token.isAdmin || request.auth.token.isSuperAdmin }
 		function isSuperAdmin() { return request.auth.token.isSuperAdmin }
 		function requestHasAny(fields) { return request.writeFields.hasAny(fields) }
+		function requestHasAll(fields) { return request.resource.data.keys().hasAll(fields) }
 		function resourceHasAny(fields) { return resource.data.keys().hasAny(fields) }
 	}
 }
