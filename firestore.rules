@@ -56,20 +56,20 @@ service cloud.firestore{
 
 		match /sensors/{ sensor } {
 			allow create: if false
-			allow read:   if isAdmin() || isRelationed()
-			allow update: if !requestHasAny(['id', 'users']) && (isAdmin() || isRelationed())
+			allow read:   if isAdmin() || isRelated()
+			allow update: if !requestHasAny(['id', 'users']) && (isAdmin() || isRelated())
 			allow delete: if false
 
-			function isRelationed() { return resource.data.users.keys().hasAll([request.auth.uid]) }
+			function isRelated() { return resource.data.users.keys().hasAll([request.auth.uid]) }
 		}
 
 		match /sensors_users/{ sensorUser } {
 			allow create: if false
-			allow read:   if false
-			allow update: if true
+			allow read:   if isRelated()
+			allow update: if isRelated() && !requestHasAny(['users', 'sensors'])
 			allow delete: if false
 
-			function isRelationed() { return resource.data.users.keys().hasAll([request.auth.uid]) }
+			function isRelated() { return resource.data.users.id == request.auth.uid }
 		}
 
 		match /base_stations/{ baseStation } {

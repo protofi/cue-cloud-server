@@ -5,7 +5,7 @@ import * as firestore from '@firebase/testing'
 import { Models } from './lib/ORM/Models';
 import User from './lib/ORM/Models/User';
 import { setup } from './helpers'
-import { Roles } from './lib/const';
+import { Roles, Relations } from './lib/const';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -67,17 +67,17 @@ describe('Emulated_Rules', () => {
         Promise.all(firestore.apps().map(app => app.delete()))
     })
 
-    it('Writes to a random collection should fail', async () => {
+    it('Should not allow writes to a random collection', async () => {
         const db = await setup()
 
-        const ref = db.collection('random-collection')
+        const ref = db.collection('some-collection')
         expect(await firestore.assertFails(ref.add({})))
     })
 
-    it('Reads from a random collection should fail', async () => {
+    it('Shouls not allow reads from a random collection', async () => {
         const db = await setup()
 
-        const ref = db.collection('random-collection')
+        const ref = db.collection('some-collection')
         expect(await firestore.assertFails(ref.get()))
     })
 
@@ -345,7 +345,7 @@ describe('Emulated_Rules', () => {
 
         describe('Delete', async () => {
 
-            it('Unautherized users should not be able the delete users', async () => {
+            it('Should not allow unautherized Users to delete Users', async () => {
                 const db = await setup()
 
                 const ref = db.collection(Models.USER)
@@ -353,13 +353,14 @@ describe('Emulated_Rules', () => {
                 expect(await firestore.assertFails(ref.doc().delete()))
             })
 
-            it('Users should not be able the delete users', async () => {
+            it('Should not allow Users to delete Users', async () => {
                 const db = await setup(testHouseDataOne)
 
                 const ref = db.collection(Models.USER)
 
                 expect(await firestore.assertFails(ref.doc().delete()))
             })
+
         })
     })
 
@@ -671,7 +672,8 @@ describe('Emulated_Rules', () => {
         })
 
         describe('Delete', async () => {
-            it('Unautherized Users should not be able the delete', async () => {
+
+            it('Should not allow unautherized Users to delete Base Stations', async () => {
                 const db = await setup()
 
                 const ref = db.collection(Models.BASE_STATION)
@@ -679,7 +681,7 @@ describe('Emulated_Rules', () => {
                 expect(await firestore.assertFails(ref.doc().delete()))
             })
 
-            it('Users should not be able the delete', async () => {
+            it('Should not allow Users to delete Base Stations', async () => {
                 const db = await setup(testHouseDataOne)
 
                 const ref = db.collection(Models.BASE_STATION)
@@ -769,21 +771,52 @@ describe('Emulated_Rules', () => {
 
         describe('Read', async () => {
             
-            it('Unautherized users should not be able to read from Households', async () => {
+            it('Should not allow Unautherized Users to read data', async () => {
                 const db = await setup()
 
                 const ref = db.collection(Models.HOUSEHOLD)
 
-                expect(await firestore.assertFails(ref.doc().get()
-                ))
+                expect(await firestore.assertFails(ref.doc(testHouseDataOne.uid).get()))
             })
 
-            it('Users not included in a household should not be able to read data', async () => {
-                const db = await setup(testUserDataOne)
-
+            it('Should not allow Users not resident of a Household to read data', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.HOUSEHOLD}/${testHouseDataOne.uid}`] : {
+                        [Models.USER] : {
+                            [testUserDataTwo.uid] : true
+                        }
+                    }
+                })
                 const ref = db.collection(Models.HOUSEHOLD)
 
-                expect(await firestore.assertFails(ref.doc().get()))
+                expect(await firestore.assertFails(ref.doc(testHouseDataOne.uid).get()))
+            })
+
+            it('Should allow resident Users to read data', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.HOUSEHOLD}/${testHouseDataOne.uid}`] : {
+                        [Models.USER] : {
+                            [testUserDataOne.uid] : true
+                        }
+                    }
+                })
+                const ref = db.collection(Models.HOUSEHOLD)
+
+                expect(await firestore.assertSucceeds(ref.doc(testHouseDataOne.uid).get()))
+            })
+
+            it('Should allow Admin Users to read data from all Households', async () => {
+                const db = await setup(testAdminUserData, {
+                    [`${Models.HOUSEHOLD}/${testHouseDataOne.uid}`] : {
+                        [Models.USER] : {
+                            [testUserDataOne.uid] : true
+                        }
+                    }
+                })
+                const ref = db.collection(Models.HOUSEHOLD)
+
+                expect(await firestore.assertSucceeds(ref.doc(testHouseDataOne.uid).get()))
+
             })
         })
 
@@ -965,28 +998,28 @@ describe('Emulated_Rules', () => {
 
         describe('Create', async () => {
 
-            it('Unautherized users should not be able to create Sensors', async () => {
+            it('Should not allow unautherized Users to create Sensors', async () => {
                 const db = await setup()
                 const ref = db.collection(Models.SENSOR)
 
                 expect(await firestore.assertFails(ref.add({})))
             })
 
-            it('Users should not be able to create Sensors', async () => {
+            it('Should not allow Users to create Sensors', async () => {
                 const db = await setup(testUserDataOne)
                 const ref = db.collection(Models.SENSOR)
 
                 expect(await firestore.assertFails(ref.add({})))
             })
 
-            it('Admin Users should not be able to create Sensors', async () => {
+            it('Should not allow admin Users to create Sensors', async () => {
                 const db = await setup(testAdminUserData)
                 const ref = db.collection(Models.SENSOR)
 
                 expect(await firestore.assertFails(ref.add({})))
             })
 
-            it('Super Admin Users should not be able to create Sensors', async () => {
+            it('Should not allow super admin Users to create Sensors', async () => {
                 const db = await setup(testSuperAdminUserData)
                 const ref = db.collection(Models.SENSOR)
 
@@ -1117,34 +1150,183 @@ describe('Emulated_Rules', () => {
         })
         
         describe('Delete', async () => {
-            return
+            it('Should not allow unautherized Users to delete Sensors', async () => {
+                const db = await setup()
+
+                const ref = db.collection(Models.SENSOR)
+
+                expect(await firestore.assertFails(ref.doc().delete()))
+            })
+
+            it('Should not allow Users to delete Sensors', async () => {
+                const db = await setup(testHouseDataOne)
+
+                const ref = db.collection(Models.SENSOR)
+
+                expect(await firestore.assertFails(ref.doc().delete()))
+            })
         })
     })
 
     describe('Sensors_Users', async () => {
 
         describe('Create', async () => {
-            return
+
+            it('Should not allow unautherized Users to create Sensors-Users collections', async () => {
+                const db = await setup()
+                const ref = db.collection(`${Models.SENSOR}_${Models.USER}`)
+
+                expect(await firestore.assertFails(ref.add({})))
+            })
+
+            it('Should not allow Users to create Sensors-Users collections', async () => {
+                const db = await setup(testUserDataOne)
+                const ref = db.collection(`${Models.SENSOR}_${Models.USER}`)
+
+                expect(await firestore.assertFails(ref.add({})))
+            })
+
+            it('Should not allow admin Users to create Sensors-Users collections', async () => {
+                const db = await setup(testAdminUserData)
+                const ref = db.collection(`${Models.SENSOR}_${Models.USER}`)
+
+                expect(await firestore.assertFails(ref.add({})))
+            })
+
+            it('Should not allow super admin Users to create Sensors-Users collections', async () => {
+                const db = await setup(testSuperAdminUserData)
+                const ref = db.collection(`${Models.SENSOR}_${Models.USER}`)
+
+                expect(await firestore.assertFails(ref.add({})))
+            })
         })
         
         describe('Read', async () => {
-            return
+
+            it('Should not allow unautherized Users to read data from Sensors_Users', async () => {
+                const db = await setup(testUserDataTwo, {
+                    [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {
+                        [Models.USER] : {
+                            id: testUserDataOne.uid
+                        }
+                    }
+                })
+                const ref = db.collection(`${Models.SENSOR}_${Models.USER}`)
+
+                expect(await firestore.assertFails(ref.doc(`${testSensorDataOne.uid}_${testUserDataOne.uid}`).get()))
+            })
+
+            it('Should allow the User of the relation to read data from Sensors_Users', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {
+                        [Models.USER] : {
+                            id: testUserDataOne.uid
+                        }
+                    }
+                })
+                const ref = db.collection(`${Models.SENSOR}_${Models.USER}`)
+
+                expect(await firestore.assertSucceeds(ref.doc(`${testSensorDataOne.uid}_${testUserDataOne.uid}`).get()))
+            })
         })
         
         describe('Update', async () => {
-            it('Unautherized users should not be able to update data on Sensors_Users relation', async () => {
+
+            it('Should not allow unautherized Users to update data on Sensors_Users', async () => {
                 const db = await setup(null, {
-                    [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {}
+                    [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {
+                        [Models.USER] : {
+                            id : testUserDataOne.uid
+                        }
+                    }
                 })
 
-                const ref = db.collection(Models.USER)
+                const ref = db.collection(`${Models.SENSOR}_${Models.USER}`)
 
                 expect(await firestore.assertFails(ref.doc(`${testSensorDataOne.uid}_${testUserDataOne.uid}`).update({})))
+            })
+            
+            it('Should not allow Users to update field: users', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {
+                        [Models.USER] : {
+                            id : testUserDataOne.uid
+                        }
+                    }
+                })
+
+                const ref = db.collection(`${Models.SENSOR}_${Models.USER}`)
+
+                expect(await firestore.assertFails(ref.doc(`${testSensorDataOne.uid}_${testUserDataOne.uid}`).update({
+                    [Models.USER] : {}
+                })))
+            })
+
+            it('Should not allow Users to update field: sensors', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {
+                        [Models.USER] : {
+                            id : testUserDataOne.uid
+                        }
+                    }
+                })
+
+                const ref = db.collection(`${Models.SENSOR}_${Models.USER}`)
+
+                expect(await firestore.assertFails(ref.doc(`${testSensorDataOne.uid}_${testUserDataOne.uid}`).update({
+                    [Models.SENSOR] : {}
+                })))
+            })
+
+            it('Should not allow not related Users to update field: pivot', async () => {
+                const db = await setup(testUserDataTwo, {
+                    [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {
+                        [Models.USER] : {
+                            id : testUserDataOne.uid
+                        }
+                    }
+                })
+
+                const ref = db.collection(`${Models.SENSOR}_${Models.USER}`)
+
+                expect(await firestore.assertFails(ref.doc(`${testSensorDataOne.uid}_${testUserDataOne.uid}`).update({
+                    [Relations.PIVOT] : {}
+                })))
+            })
+
+            it('Should allow Users to update field: pivot', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {
+                        [Models.USER] : {
+                            id : testUserDataOne.uid
+                        }
+                    }
+                })
+
+                const ref = db.collection(`${Models.SENSOR}_${Models.USER}`)
+
+                expect(await firestore.assertSucceeds(ref.doc(`${testSensorDataOne.uid}_${testUserDataOne.uid}`).update({
+                    [Relations.PIVOT] : {}
+                })))
             })
         })
         
         describe('Delete', async () => {
-            return
+            it('Should not allow unautherized Users to delete Sensors_Users', async () => {
+                const db = await setup()
+
+                const ref = db.collection(`${Models.SENSOR}_${Models.USER}`)
+
+                expect(await firestore.assertFails(ref.doc().delete()))
+            })
+
+            it('Should not allow Users to delete Sensors_Users', async () => {
+                const db = await setup(testHouseDataOne)
+
+                const ref = db.collection(`${Models.SENSOR}_${Models.USER}`)
+
+                expect(await firestore.assertFails(ref.doc().delete()))
+            })
         })
     })
 })
