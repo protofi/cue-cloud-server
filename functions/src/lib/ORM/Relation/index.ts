@@ -73,9 +73,9 @@ export default class RelationImpl implements IRelation{
         const ownerId = await this.owner.getId()
 
         const changedFields = keys(difference(beforeData, afterData))
-        const updateIntireCache = includes(changedFields, this.propertyModelName)
+        const updateEntireCache = includes(changedFields, this.propertyModelName)
 
-        if(updateIntireCache)
+        if(updateEntireCache)
         {
             await asyncForEach(this.cacheOnToProperty, async field => {
 
@@ -87,8 +87,7 @@ export default class RelationImpl implements IRelation{
             })
     
             return {
-                newCacheData        : newCacheData,
-                newSecureCacheData  : newSecureCacheData
+                newCacheData : newCacheData
             }
         }
 

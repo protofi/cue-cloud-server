@@ -11,6 +11,9 @@ import * as _ from 'lodash'
 import User from './lib/ORM/Models/User';
 import Sensor from './lib/ORM/Models/Sensor';
 import BaseStation from './lib/ORM/Models/BaseStation';
+import * as faker from 'faker'
+import { printFormattedJson } from './lib/util';
+
 const randomstring = require('randomstring')
 
 const test: FeaturesList = require('firebase-functions-test')()
@@ -26,24 +29,17 @@ describe('Integration_Test', () => {
     let myFunctions
     const firestoreStub = new FirestoreStub()
 
-    const testUserDataOne = {
-        uid: "test-user-1",
-        name: "Andy",
-        email: "andy@mail.com",
+    const userOneData = {
+        uid: uniqid(),
+        name: faker.name.firstName(),
+        email: faker.internet.email(),
         token: null
     }
 
-    const testUserDataTwo = {
-        uid: "test-user-2",
-        name: "Benny",
-        email: "Benny@mail.com",
-        token: null
-    }
-
-    const testSensorDataOne = {
-        uid: "test-user-1",
-        name: "Andy",
-        email: "andy@mail.com",
+    const userTwoData = {
+        uid: uniqid(),
+        name: faker.name.firstName(),
+        email: faker.internet.email(),
         token: null
     }
 
@@ -87,29 +83,29 @@ describe('Integration_Test', () => {
 
             it('When a new user is registered a Users record should be created', async () => {
 
-                const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(testUserDataOne)
+                const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(userOneData)
                 const wrappedAuthUsersOnCreate = test.wrap(myFunctions.authUsersOnCreate)
 
                 await wrappedAuthUsersOnCreate(userRecord)
 
-                const userDoc = firestoreStub.data()[`${Models.USER}/${testUserDataOne.uid}`]
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userOneData.uid}`]
 
                 expect(userDoc).to.exist
             })
 
             it('When a new user is registered a Users record should be created with an ID and email field', async () => {
 
-                const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(testUserDataOne)
+                const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(userOneData)
                 const wrappedAuthUsersOnCreate = test.wrap(myFunctions.authUsersOnCreate)
 
                 await wrappedAuthUsersOnCreate(userRecord)
 
                 const expectedUserDoc = {
-                    id : testUserDataOne.uid,
-                    email : testUserDataOne.email
+                    id : userOneData.uid,
+                    email : userOneData.email
                 }
 
-                const userDoc = firestoreStub.data()[`${Models.USER}/${testUserDataOne.uid}`]
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userOneData.uid}`]
 
                 expect(userDoc).to.be.deep.equal(expectedUserDoc)
             })
@@ -119,17 +115,17 @@ describe('Integration_Test', () => {
 
             it('When a user is delete the corresponding Users record should be deleted', async () => {
 
-                firestoreStub.data()[`${Models.USER}/${testUserDataOne.uid}`] = {
-                    id : testUserDataOne.uid,
-                    email : testUserDataOne.email
+                firestoreStub.data()[`${Models.USER}/${userOneData.uid}`] = {
+                    id : userOneData.uid,
+                    email : userOneData.email
                 }
 
-                const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(testUserDataOne)
+                const userRecord: admin.auth.UserRecord = test.auth.makeUserRecord(userOneData)
                 const wrappedAuthUsersOnDelete = test.wrap(myFunctions.authUsersOnDelete)
 
                 await wrappedAuthUsersOnDelete(userRecord)
 
-                const userDoc = firestoreStub.data()[`${Models.USER}/${testUserDataOne.uid}`]
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userOneData.uid}`]
 
                 expect(userDoc).to.not.exist
             })
@@ -140,7 +136,7 @@ describe('Integration_Test', () => {
 
         describe('On Update', () => {
 
-            it('Id should be cached on related sensors', async () => {
+            it('Should cache field "id" to related sensors', async () => {
 
                 const cacheField = User.f.ID
                 const sensorsId = uniqid()
@@ -151,13 +147,13 @@ describe('Integration_Test', () => {
 
                 const afterDocSnap = new OfflineDocumentSnapshotStub({
                     data : {
-                        [cacheField] : testUserDataOne.uid,
+                        [cacheField] : userOneData.uid,
                         [Models.SENSOR] : {
                             [sensorsId] : true
                         }
                     },
                     ref : {
-                        [cacheField] : testUserDataOne.uid
+                        [cacheField] : userOneData.uid
                     }
                 })
 
@@ -171,8 +167,8 @@ describe('Integration_Test', () => {
                 const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorsId}`]
                 const expectedSensorDoc = {
                     [Models.USER]: {
-                        [testUserDataOne.uid] : {
-                            [cacheField] : testUserDataOne.uid
+                        [userOneData.uid] : {
+                            [cacheField] : userOneData.uid
                         }
                     }
                 }
@@ -188,25 +184,25 @@ describe('Integration_Test', () => {
 
                 const beforeDocSnap = new OfflineDocumentSnapshotStub({
                     data : {
-                        [cacheField] : testUserDataOne.name,
+                        [cacheField] : userOneData.name,
                         [Models.HOUSEHOLD] : {
                             id : householdId
                         }
                     },
                     ref : {
-                        id : testUserDataOne.uid,
+                        id : userOneData.uid,
                     }
                 })
 
                 const afterDocSnap = new OfflineDocumentSnapshotStub({
                     data : {
-                        [cacheField] : testUserDataOne.name,
+                        [cacheField] : userOneData.name,
                         [Models.HOUSEHOLD] : {
                             id : householdId
                         }
                     },
                     ref : {
-                        id : testUserDataOne.uid,
+                        id : userOneData.uid,
                     }
                 })
 
@@ -240,19 +236,19 @@ describe('Integration_Test', () => {
                         }
                     },
                     ref : {
-                        id : testUserDataOne.uid,
+                        id : userOneData.uid,
                     }
                 })
 
                 const afterDocSnap = new OfflineDocumentSnapshotStub({
                     data : {
-                        [cacheField] : testUserDataOne.name,
+                        [cacheField] : userOneData.name,
                         [Models.HOUSEHOLD] : {
                             id : householdId
                         }
                     },
                     ref : {
-                        id : testUserDataOne.uid,
+                        id : userOneData.uid,
                     }
                 })
 
@@ -268,8 +264,8 @@ describe('Integration_Test', () => {
                 const householdDoc = firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`]
                 const expectedHouseholdDoc = {
                     [Models.USER]: {
-                        [testUserDataOne.uid] : {
-                            [cacheField] : testUserDataOne.name
+                        [userOneData.uid] : {
+                            [cacheField] : userOneData.name
                         }
                     }
                 }
@@ -292,19 +288,19 @@ describe('Integration_Test', () => {
                         }
                     },
                     ref : {
-                        id : testUserDataOne.uid,
+                        id : userOneData.uid,
                     }
                 })
 
                 const afterDocSnap = new OfflineDocumentSnapshotStub({
                     data : {
-                        [cacheField] : testUserDataOne.name,
+                        [cacheField] : userOneData.name,
                         [Models.HOUSEHOLD] : {
                             id : householdId
                         }
                     },
                     ref : {
-                        id : testUserDataOne.uid,
+                        id : userOneData.uid,
                     }
                 })
 
@@ -321,8 +317,8 @@ describe('Integration_Test', () => {
                 const householdDoc = firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`]
                 const expectedHouseholdDoc = {
                     [Models.USER]: {
-                        [testUserDataOne.uid] : {
-                            [cacheField] : testUserDataOne.name
+                        [userOneData.uid] : {
+                            [cacheField] : userOneData.name
                         }
                     }
                 }
@@ -330,57 +326,105 @@ describe('Integration_Test', () => {
                 expect(householdDoc).to.deep.equal(expectedHouseholdDoc)
             })
 
-            // it('Name should be cached on related Household when Household is linked to User', async () => {
+            it('Should create cache of field "name" on newly added Household', async() => {
+               
+                const householdId = uniqid()
 
-            //     const cacheField = User.f.NAME
-            //     const householdId = uniqid()
+                firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {}
 
-            //     firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {}
+                const beforeDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [User.f.NAME] : userOneData.name,
+                    },
+                    ref : {
+                        id : userOneData.uid
+                    }
+                })
 
-            //     const beforeDocSnap = new OfflineDocumentSnapshotStub({
-            //         data : {
-            //             [cacheField] : testUserDataOne.name,
-            //         },
-            //         ref : {
-            //             id : testUserDataOne.uid,
-            //         }
-            //     })
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [User.f.NAME] : userOneData.name,
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    },
+                    ref : {
+                        id : userOneData.uid
+                    }
+                })
 
-            //     const afterDocSnap = new OfflineDocumentSnapshotStub({
-            //         data : {
-            //             [cacheField] : testUserDataOne.name,
-            //             [Models.HOUSEHOLD] : {
-            //                 id : householdId
-            //             }
-            //         },
-            //         ref : {
-            //             id : testUserDataOne.uid,
-            //         }
-            //     })
-
-            //     const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
 
 
-            //     const change = {
-            //         before : beforeDocSnap,
-            //         after : afterDocSnap
-            //     }
+                const change = {
+                    before : beforeDocSnap,
+                    after : afterDocSnap
+                }
 
-            //     await wrappedUsersOnUpdate(change)
-                
-            //     util.printFormattedJson(firestoreStub.data())
+                await wrappedUsersOnUpdate(change)
 
-            //     const householdDoc = firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`]
-            //     const expectedHouseholdDoc = {
-            //         [Models.USER]: {
-            //             [testUserDataOne.uid] : {
-            //                 [cacheField] : testUserDataOne.name
-            //             }
-            //         }
-            //     }
+                const householdDoc = firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`]
 
-            //     expect(householdDoc).to.deep.equal(expectedHouseholdDoc)
-            // })
+                const expectedHouseholdDoc = {
+                    [Models.USER]: {
+                        [userOneData.uid] : {
+                            [User.f.NAME] : userOneData.name
+                        }
+                    }
+                }
+
+                expect(householdDoc).to.deep.equal(expectedHouseholdDoc)
+            })
+
+            it('Should create cache of field "email" on newly added Household', async() => {
+               
+                const householdId = uniqid()
+
+                firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {}
+
+                const beforeDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [User.f.EMAIL] : userOneData.email,
+                    },
+                    ref : {
+                        id : userOneData.uid
+                    }
+                })
+
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [User.f.EMAIL] : userOneData.email,
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    },
+                    ref : {
+                        id : userOneData.uid
+                    }
+                })
+
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+
+
+                const change = {
+                    before : beforeDocSnap,
+                    after : afterDocSnap
+                }
+
+                await wrappedUsersOnUpdate(change)
+
+                const householdDoc = firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`]
+
+                const expectedHouseholdDoc = {
+                    [Models.USER]: {
+                        [userOneData.uid] : {
+                            [User.f.EMAIL] : userOneData.email
+                        }
+                    }
+                }
+
+                expect(householdDoc).to.deep.equal(expectedHouseholdDoc)
+            })
 
             it('Changes to FCM_tokens should be cached onto Sensors_secure', async () => {
     
@@ -397,7 +441,7 @@ describe('Integration_Test', () => {
                         }
                     },
                     ref : {
-                        id : testUserDataOne.uid,
+                        id : userOneData.uid,
                     }
                 })
 
@@ -411,7 +455,7 @@ describe('Integration_Test', () => {
                         }
                     },
                     ref : {
-                        id : testUserDataOne.uid,
+                        id : userOneData.uid,
                     }
                 })
 
@@ -428,7 +472,7 @@ describe('Integration_Test', () => {
                 
                 const expectedSensorSecureDoc = {
                     [Models.USER]: {
-                        [testUserDataOne.uid] : {
+                        [userOneData.uid] : {
                             [cacheField] : {
                                 [FCMToken] : true
                             }
@@ -449,8 +493,8 @@ describe('Integration_Test', () => {
                 
                 const householdId = uniqid()
 
-                firestoreStub.data()[`${Models.USER}/${testUserDataOne.uid}`] = {
-                    id: testUserDataOne.uid,
+                firestoreStub.data()[`${Models.USER}/${userOneData.uid}`] = {
+                    id: userOneData.uid,
                     [Models.HOUSEHOLD] : {
                         id : householdId
                     }
@@ -459,7 +503,7 @@ describe('Integration_Test', () => {
                 const householdSnap = new OfflineDocumentSnapshotStub({
                     data : {
                         [Models.USER] : {
-                            [testUserDataOne.uid] : true
+                            [userOneData.uid] : true
                         }
                     },
                     ref : {
@@ -471,10 +515,10 @@ describe('Integration_Test', () => {
 
                 await wrappedHouseholdsOnCreate(householdSnap)
 
-                const userDoc = firestoreStub.data()[`${Models.USER}/${testUserDataOne.uid}`]
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userOneData.uid}`]
 
                 const expectedUserDoc = {
-                    id: testUserDataOne.uid,
+                    id: userOneData.uid,
                     [Models.HOUSEHOLD] : {
                         id : householdId,
                         [Relations.PIVOT] : {
@@ -492,14 +536,14 @@ describe('Integration_Test', () => {
                 const householdIdOne = uniqid()
                 const householdIdTwo = uniqid()
 
-                firestoreStub.data()[`${Models.USER}/${testUserDataOne.uid}`] = {
+                firestoreStub.data()[`${Models.USER}/${userOneData.uid}`] = {
                     [Models.HOUSEHOLD] : {
                         id : householdIdOne
                     }
                 }
 
                 const householdSnap = new OfflineDocumentSnapshotStub({
-                    data : { [Models.USER] : { [testUserDataOne.uid] : true } },
+                    data : { [Models.USER] : { [userOneData.uid] : true } },
                     ref: {
                         id : householdIdTwo,
                         delete : () => {
@@ -512,7 +556,7 @@ describe('Integration_Test', () => {
 
                 await wrappedHouseholdsOnCreate(householdSnap)
 
-                expect(firestoreStub.data()[`${Models.USER}/${testUserDataOne.uid}`])
+                expect(firestoreStub.data()[`${Models.USER}/${userOneData.uid}`])
                     .to.deep.equal({
                         [Models.HOUSEHOLD] : {
                             id : householdIdOne
@@ -872,10 +916,12 @@ describe('Integration_Test', () => {
 
     describe('Sensors', () => {
 
+        const sensorId = uniqid()
+                
         describe('On Create', async () => { 
 
-            it('When Sensor is create the secure data should be created', async () => {
-                const sensorId      = uniqid()
+            it('Should create Secure Sensor collection', async () => {
+
                 const wrappedSensorsOnCreate = test.wrap(myFunctions.ctrlSensorsOnCreate)
 
                 const sensorSnap = new OfflineDocumentSnapshotStub({
@@ -893,12 +939,106 @@ describe('Integration_Test', () => {
 
                 expect(sensorSecureDoc).to.not.be.undefined
             })
+
+            // it('Should create cache of field "name" on Household', async() => {
+               
+            //     const wrappedSensorsOnCreate = test.wrap(myFunctions.ctrlSensorsOnCreate)
+
+            //     const householdId = uniqid()
+            //     const sensorName = faker.name.jobDescriptor()
+
+            //     firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {}
+
+            //     const sensorSnap = new OfflineDocumentSnapshotStub({
+            //         ref: {
+            //             id : sensorId,
+            //             update : () => {
+            //                 return
+            //             }
+            //         }, data: {
+            //             [Sensor.f.NAME] : sensorName,
+            //             [Models.HOUSEHOLD] : {
+            //                 id : householdId
+            //             }
+            //         }
+            //     })
+
+            //     printFormattedJson(firestoreStub.data())
+
+            //     await wrappedSensorsOnCreate(sensorSnap)
+
+            //     printFormattedJson(firestoreStub.data())
+
+            //     const householdDoc = firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`]
+
+            //     const expectedHouseholdDoc = {
+            //         [Models.SENSOR]: {
+            //             [sensorId] : {
+            //                 [Sensor.f.NAME] : sensorName
+            //             }
+            //         }
+            //     }
+
+            //     expect(householdDoc).to.deep.equal(expectedHouseholdDoc)
+            // })
+        })
+
+        describe('On Update', async () => {
+
+            it('Should create cache of field "name" on newly added Household', async() => {
+               
+                const householdId = uniqid()
+                const sensorName = faker.name.jobType()
+
+                firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {}
+
+                const beforeDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [Sensor.f.NAME] : sensorName,
+                    },
+                    ref : {
+                        id : sensorId
+                    }
+                })
+
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [Sensor.f.NAME] : sensorName,
+                        [Models.HOUSEHOLD] : {
+                            id : householdId
+                        }
+                    },
+                    ref : {
+                        id : sensorId
+                    }
+                })
+
+                const wrappedSensorsOnUpdate = test.wrap(myFunctions.ctrlSensorsOnUpdate)
+
+                const change = {
+                    before : beforeDocSnap,
+                    after : afterDocSnap
+                }
+
+                await wrappedSensorsOnUpdate(change)
+
+                const householdDoc = firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`]
+
+                const expectedHouseholdDoc = {
+                    [Models.SENSOR]: {
+                        [sensorId] : {
+                            [Sensor.f.NAME] : sensorName
+                        }
+                    }
+                }
+
+                expect(householdDoc).to.deep.equal(expectedHouseholdDoc)
+            })
         })
 
         describe('On Delete', async () => { 
 
             it('When Sensor is delete the secure data should also be deleted', async () => {
-                const sensorId      = uniqid()
                 const wrappedSensorsOnDelete = test.wrap(myFunctions.ctrlSensorsOnDelete)
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {}
@@ -1478,7 +1618,7 @@ describe('Integration_Test', () => {
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
-                        [testUserDataOne.uid] : {
+                        [userOneData.uid] : {
                             [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
                                     [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.IOS 
@@ -1516,7 +1656,7 @@ describe('Integration_Test', () => {
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
-                        [testUserDataOne.uid] : {}
+                        [userOneData.uid] : {}
                     }
                 }
 
@@ -1546,7 +1686,7 @@ describe('Integration_Test', () => {
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
-                        [testUserDataOne.uid] : {
+                        [userOneData.uid] : {
                             [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
                                     [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.ANDROID
@@ -1587,7 +1727,7 @@ describe('Integration_Test', () => {
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
-                        [testUserDataOne.uid] : {
+                        [userOneData.uid] : {
                             [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
                                     [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.IOS
@@ -1628,7 +1768,7 @@ describe('Integration_Test', () => {
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
-                        [testUserDataOne.uid] : {
+                        [userOneData.uid] : {
                             [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
                                     [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.ANDROID
@@ -1669,7 +1809,7 @@ describe('Integration_Test', () => {
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
-                        [testUserDataOne.uid] : {
+                        [userOneData.uid] : {
                             [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
                                     [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.IOS
@@ -1714,7 +1854,7 @@ describe('Integration_Test', () => {
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
-                        [testUserDataOne.uid] : {
+                        [userOneData.uid] : {
                             [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
                                     [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.IOS
@@ -1762,7 +1902,7 @@ describe('Integration_Test', () => {
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
-                        [testUserDataOne.uid] : {
+                        [userOneData.uid] : {
                             [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
                                     [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.ANDROID
@@ -1804,7 +1944,7 @@ describe('Integration_Test', () => {
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
-                        [testUserDataOne.uid] : {
+                        [userOneData.uid] : {
                             [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
                                     [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.ANDROID
@@ -1844,7 +1984,7 @@ describe('Integration_Test', () => {
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
-                        [testUserDataOne.uid] : {
+                        [userOneData.uid] : {
                             [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
                                     [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.IOS
@@ -1884,14 +2024,14 @@ describe('Integration_Test', () => {
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {
-                        [testUserDataOne.uid] : {
+                        [userOneData.uid] : {
                             [User.f.FCM_TOKENS._] : {
                                 [FCMTokenOne] : {
                                     [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.IOS
                                 }
                             }
                         },
-                        [testUserDataTwo.uid] : {
+                        [userTwoData.uid] : {
                             [User.f.FCM_TOKENS._] : {
                                 [FCMTokenTwo] : {
                                     [User.f.FCM_TOKENS.CONTEXT._] : User.f.FCM_TOKENS.CONTEXT.ANDROID

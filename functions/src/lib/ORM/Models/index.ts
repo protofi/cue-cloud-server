@@ -35,6 +35,7 @@ export interface Model{
 export default class ModelImpl implements Model {
 
     protected hasSecureData: Boolean = false
+    
     private ref: FirebaseFirestore.DocumentReference
     private docSnap: FirebaseFirestore.DocumentSnapshot
     readonly name: string
@@ -125,18 +126,14 @@ export default class ModelImpl implements Model {
 
     async getField(key: string): Promise<any>
     {
-        //if Document Snapshot exist fetch field from that
-        if(this.docSnap) return this.docSnap.get(key)
+        if(this.docSnap) return this.docSnap.get(key) //if Document Snapshot exist fetch field from that
 
-        //If not get Id and return null, if Id does not exist (model)
         const id = this.getId()
-        if(!id) return null
+        if(!id) return null //if Id does not exist
 
-        //If Id exists fetch model
-        await this.find(id)
-
-        //Recursive call
-        return this.getField(key)
+        await this.find(id) //If Id exists fetch model
+        
+        return this.getField(key) //Recursive call
     }
 
     async update(data: object, transaction?: FirebaseFirestore.WriteBatch | FirebaseFirestore.Transaction): Promise<ModelImpl>
