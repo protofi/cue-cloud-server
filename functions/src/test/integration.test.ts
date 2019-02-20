@@ -16,6 +16,7 @@ import UpdateFCMTokenSecureCache from './lib/Command/UpdateFCMTokenSecureCache';
 import CreateUserNewSensorRelationsCommand from './lib/Command/CreateUserNewSensorRelationsCommand';
 import CreateUserSensorRelationsCommand from './lib/Command/CreateUserSensorRelationsCommand';
 import { printFormattedJson } from './lib/util';
+import { FirestoreStub } from './stubs';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -30,70 +31,16 @@ const expect = chai.expect
 describe('Integration_Test', () => {
 
     let test: FeaturesList
-    let firestoreMockData: any
 
-    let firestoreStub: any
-
-    firestoreStub = {
-        settings: () => { return null },
-        collection: (col : any) => {
-            return {
-                doc: (id : any) => {
-                    return {
-                        id: (id) ? id : uniqid(),
-                        set: (data : any, { merge }) => {
-
-                            if(merge)
-                            {
-                                firestoreMockData = _.merge(firestoreMockData, {
-                                    [`${col}/${id}`] : unflatten(data)
-                                })
-                            }
-                            else firestoreMockData[`${col}/${id}`] = unflatten(data)
-
-                            return null
-                        },
-                        get: () => {
-                            return {
-                                get: (data: any) => {
-                                    try{
-                                        if(data)
-                                            return firestoreMockData[`${col}/${id}`][data]
-                                        else
-                                            return firestoreMockData[`${col}/${id}`]
-                                    }
-                                    catch(e)
-                                    {
-                                        throw Error(`Mock data is missing: ${e} [${`${col}/${id}`}]`)
-                                    }
-                                }
-                            }
-                        },
-                        update: (data: any) => {
-                            if(!firestoreMockData[`${col}/${id}`]) throw Error(`Mock data is missing: [${`${col}/${id}`}]`)
-
-                            firestoreMockData = _.merge(firestoreMockData, {
-                                [`${col}/${id}`] : unflatten(data)
-                            })
-
-                            return null
-                        },
-                        delete: () => {
-                            delete firestoreMockData[`${col}/${id}`]
-                        }
-                    }
-                }
-            }
-        }
-    }
+    const firestoreStub = new FirestoreStub()
 
     beforeEach(() => {
-        firestoreMockData = {}
         test = functionsTest()
     })
 
-    after(async () => {
+    afterEach(async () => {
         test.cleanup()
+        firestoreStub.reset()
     })
 
     describe('Actionable Field Commands', async () => {
@@ -108,21 +55,21 @@ describe('Integration_Test', () => {
 
             beforeEach(() => {
 
-                user = new User(firestoreStub, null, userId)
+                user = new User(firestoreStub.get(), null, userId)
 
-                firestoreMockData[`${Models.USER}/${userId}`] = {
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {
                     [Models.HOUSEHOLD] : {
                         id : householdId
                     }
                 }
 
-                firestoreMockData[`${Models.SENSOR}/${sensorId}`] = {
+                firestoreStub.data()[`${Models.SENSOR}/${sensorId}`] = {
                     [Models.HOUSEHOLD] : {
                         id : householdId
                     }
                 }
 
-                firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
+                firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {
                     [Models.SENSOR] : {
                         [sensorId] : true
                     }
@@ -132,7 +79,7 @@ describe('Integration_Test', () => {
             it('Should not create relation between Users and Sensors of Household if value is not string:true', async () => {
                 await command.execute(user, 'false')
 
-                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userId}`]
 
                 const expectedUserDoc = {
                     [Models.HOUSEHOLD] : {
@@ -143,7 +90,7 @@ describe('Integration_Test', () => {
                 expect(userDoc).to.deep.equals(expectedUserDoc)
             })
 
-            it('Should trhow error if value of not a Stringified boolean', async () => {
+            it('Should throw error if value of not a Stringified boolean', async () => {
 
                 let error = null
 
@@ -157,7 +104,7 @@ describe('Integration_Test', () => {
 
                 expect(error).to.not.be.null
 
-                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userId}`]
 
                 const expectedUserDoc = {
                     [Models.HOUSEHOLD] : {
@@ -171,11 +118,11 @@ describe('Integration_Test', () => {
             it('Should not create relation between Users and Sensors of Household if Household relation does not exist', async () => {
 
                 //delete mock data
-                delete firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`][Models.SENSOR]
+                delete firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`][Models.SENSOR]
 
                 await command.execute(user, 'true')
 
-                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userId}`]
 
                 const expectedUserDoc = {
                     [Models.HOUSEHOLD] : {
@@ -189,11 +136,11 @@ describe('Integration_Test', () => {
             it('Should not create relation between Users and Sensors of Household if no Sensor relations exists', async () => {
 
                 //delete mock data
-                delete firestoreMockData[`${Models.USER}/${userId}`][Models.HOUSEHOLD]
+                delete firestoreStub.data()[`${Models.USER}/${userId}`][Models.HOUSEHOLD]
 
                 await command.execute(user, 'true')
 
-                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userId}`]
 
                 const expectedUserDoc = {}
 
@@ -204,7 +151,7 @@ describe('Integration_Test', () => {
 
                 await command.execute(user, 'true')
 
-                const userDoc = firestoreMockData[`${Models.USER}/${userId}`][Models.SENSOR]
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userId}`][Models.SENSOR]
 
                 const expectedUserDoc = {
                     [sensorId] : true
@@ -212,7 +159,7 @@ describe('Integration_Test', () => {
 
                 expect(userDoc).to.deep.equals(expectedUserDoc)
 
-                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`][Models.USER]
+                const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorId}`][Models.USER]
 
                 const expectedSensorDoc = {
                     [userId] : {
@@ -222,7 +169,7 @@ describe('Integration_Test', () => {
 
                 expect(sensorDoc).to.deep.equals(expectedSensorDoc)
 
-                const pivotDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
+                const pivotDoc = firestoreStub.data()[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
 
                 const expectedPivotDoc = {
                     [Models.USER] : {
@@ -247,15 +194,15 @@ describe('Integration_Test', () => {
 
             beforeEach(() => {
 
-                household = new Household(firestoreStub, null, householdId)
+                household = new Household(firestoreStub.get(), null, householdId)
 
-                firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
+                firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {
                     [Models.USER] : {
                         [userId] : true
                     }
                 }
 
-                firestoreMockData[`${Models.USER}/${userId}`] = {
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {
                     [Models.HOUSEHOLD] : {
                         [Relations.PIVOT] : {
                             accepted : true
@@ -268,7 +215,7 @@ describe('Integration_Test', () => {
 
                 await command.execute(household, {[sensorId] : true})
 
-                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userId}`]
 
                 const expectedUserDoc = {
                     [Models.HOUSEHOLD] : {
@@ -288,7 +235,7 @@ describe('Integration_Test', () => {
 
                 await command.execute(household, {[sensorId] : true})
 
-                const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`]
+                const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorId}`]
 
                 const expectedSensorDoc = {
                     [Models.USER] : {
@@ -305,7 +252,7 @@ describe('Integration_Test', () => {
 
                 await command.execute(household, {[sensorId] : true})
 
-                const sensorUserDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
+                const sensorUserDoc = firestoreStub.data()[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
 
                 const expectedSensorUserDoc = {
                     [Models.USER] : {
@@ -320,11 +267,11 @@ describe('Integration_Test', () => {
             })
 
             it('New sensors added to the Household should not be added to Users not having accepted the Household invitaion' , async () => {
-                firestoreMockData[`${Models.USER}/${userId}`] = {}
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {}
 
                 await command.execute(household, {[sensorId] : true})
 
-                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userId}`]
                 const expectedUserDoc = {}
 
                 expect(userDoc).to.be.deep.equal(expectedUserDoc)
@@ -343,9 +290,9 @@ describe('Integration_Test', () => {
 
             beforeEach(() => {
 
-                household = new Household(firestoreStub, null, householdId)
+                household = new Household(firestoreStub.get(), null, householdId)
 
-                firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`] = {
+                firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {
                     [Models.USER] : {
                         [userId] : true
                     }
@@ -354,7 +301,7 @@ describe('Integration_Test', () => {
             
             it('Execution should not create a Pivot field between the first User and the Household if the User is not member of any household', async () => {
 
-                firestoreMockData[`${Models.USER}/${userId}`] = {}
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {}
 
                 let error: Error
 
@@ -369,7 +316,7 @@ describe('Integration_Test', () => {
                 expect(error).to.exist
                 expect(error.message).to.be.equal(Errors.NOT_RELATED)
 
-                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userId}`]
 
                 const expectedUserDoc = {}
 
@@ -378,7 +325,7 @@ describe('Integration_Test', () => {
 
             it('Execution should delete the newly created Household if the User is not member of any household', async () => {
 
-                firestoreMockData[`${Models.USER}/${userId}`] = {}
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {}
 
                 let error: Error
 
@@ -393,7 +340,7 @@ describe('Integration_Test', () => {
                 expect(error).to.exist
                 expect(error.message).to.be.equal(Errors.NOT_RELATED)
 
-                const householdDoc = firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`]
+                const householdDoc = firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`]
 
                 expect(householdDoc).to.not.exist
             })
@@ -402,7 +349,7 @@ describe('Integration_Test', () => {
 
                 const differentHousehold = uniqid()
                 
-                firestoreMockData[`${Models.USER}/${userId}`] = {
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {
                     [Models.HOUSEHOLD] : {
                         id : differentHousehold
                     }
@@ -420,7 +367,7 @@ describe('Integration_Test', () => {
 
                 expect(error.message).to.be.equal(Errors.UNAUTHORIZED)
 
-                const sensorUserDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                const sensorUserDoc = firestoreStub.data()[`${Models.USER}/${userId}`]
 
                 const expectedSensorUserDoc = {
                     [Models.HOUSEHOLD] : {
@@ -433,7 +380,7 @@ describe('Integration_Test', () => {
 
                 it('Execution should create a Pivot field between the first User and the household', async () => {
 
-                firestoreMockData[`${Models.USER}/${userId}`] = {
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {
                     [Models.HOUSEHOLD] : {
                         id : householdId
                     }
@@ -441,7 +388,7 @@ describe('Integration_Test', () => {
 
                 await command.execute(household)
 
-                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userId}`]
 
                 const expectedUserDoc = {
                     [Models.HOUSEHOLD] : {
@@ -464,11 +411,11 @@ describe('Integration_Test', () => {
             const sensorOneId   = uniqid()
             const FCMToken      = uniqid()
             const sensorTwoId   = uniqid()
-            const user : User   = new User(firestoreStub, null, userId)
+            const user : User   = new User(firestoreStub.get(), null, userId)
 
             it('When a new sensor is added to the User, FCM token should be cached to the Sensors secure data', async () => {
 
-                firestoreMockData[`${Models.USER}/${userId}`] = {
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {
                     [Models.SENSOR] : {
                         [sensorOneId] : true
                     },
@@ -477,7 +424,7 @@ describe('Integration_Test', () => {
                     }
                 }
 
-                firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`] = {}
+                firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`] = {}
 
                 const changes = {
                     [sensorOneId] : true
@@ -485,7 +432,7 @@ describe('Integration_Test', () => {
 
                 await command.execute(user, changes)
 
-                const sensorSecureDoc = firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`]
+                const sensorSecureDoc = firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`]
                 const expectedSensorSecureDoc = {
                     [Models.USER] : {
                         [userId] : {
@@ -501,7 +448,7 @@ describe('Integration_Test', () => {
 
             // it('When a sensor is removed from a User, FCM tokens should be removed from the Sensors secure data', async () => {
                 
-            //     firestoreMockData[`${Models.USER}/${userId}`] = {
+            //     firestoreStub.data()[`${Models.USER}/${userId}`] = {
             //         [Models.SENSOR] : {
             //             [sensorOneId] : true
             //         },
@@ -510,7 +457,7 @@ describe('Integration_Test', () => {
             //         }
             //     }
 
-            //     firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`] = {
+            //     firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`] = {
             //         [Models.USER] : {
             //             [userId] : {
             //                 FCM_tokens : {
@@ -524,7 +471,7 @@ describe('Integration_Test', () => {
 
             //     await command.execute(user, changes)
 
-            //     const sensorSecureDoc = firestoreMockData[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`]
+            //     const sensorSecureDoc = firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneId}`]
             //     const expectedSensorSecureDoc = {
             //         [Models.USER] : {
             //             [userId] : {
@@ -548,7 +495,7 @@ describe('Integration_Test', () => {
         //     beforeEach(() => {
 
         //         user = new User(firestoreStub, null, userId)
-        //         firestoreMockData[`${Models.HOUSEHOLD}/${userId}`] = {}
+        //         firestoreStub.data()[`${Models.HOUSEHOLD}/${userId}`] = {}
         //     })
 
         //     it('', async () => {

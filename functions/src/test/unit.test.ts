@@ -9,6 +9,9 @@ import { FirestoreStub } from './stubs';
 import BaseStation from './lib/ORM/Models/BaseStation';
 import { Models } from './lib/ORM/Models';
 import { Errors } from './lib/const';
+import Household from './lib/ORM/Models/Household';
+import * as _ from 'lodash';
+import { One2ManyRelation } from './lib/ORM/Relation';
 const randomstring = require('randomstring')
 
 const chaiThings = require("chai-things")
@@ -67,6 +70,41 @@ describe('Unit_Test', () => {
         firestoreStub.reset()
         baseStationPins = []
         baseStationPinCount = 0
+    })
+
+    describe('Household', () => {
+
+        const householdId = uniqid()
+        let household: Household
+
+        beforeEach(() => {
+            household = new Household(firestoreStub.get(), null, householdId)
+        })
+
+        it('Should have method of baseStations', () => {
+            expect(_.isFunction(household.baseStations)).to.be.true
+        })
+
+        it('Should have method of base stations returning type One2ManyRelation', () => {
+            expect(household.baseStations() instanceof One2ManyRelation).to.be.true
+        })
+
+        it('Should have method of users', () => {
+            expect(_.isFunction(household.users)).to.be.true
+        })
+
+        it('Should have method of users returning type One2ManyRelation', () => {
+            expect(household.users() instanceof One2ManyRelation).to.be.true
+        })
+
+        it('Should have method of sensors', () => {
+            expect(_.isFunction(household.sensors)).to.be.true
+        })
+
+        it('Should have method of sensors returning type One2ManyRelation', () => {
+            expect(household.sensors() instanceof One2ManyRelation).to.be.true
+        })
+
     })
 
     describe('Base Station', () => {

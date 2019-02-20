@@ -19,7 +19,6 @@ import Car from './stubs/Car'
 import Wheel from './stubs/Wheel'
 import Driver from './stubs/Driver'
 import Windshield from './stubs/Windshield';
-import User from './lib/ORM/Models/User';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
