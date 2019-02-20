@@ -1,6 +1,7 @@
 import * as chai from 'chai'
 import * as sinon from 'sinon'
 import * as mocha from 'mocha'
+import * as admin from 'firebase-admin'
 import * as functionsTest from 'firebase-functions-test'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
 import * as uniqid from 'uniqid'
@@ -30,27 +31,40 @@ const expect = chai.expect
 
 describe('Integration_Test', () => {
 
-    let test: FeaturesList
-
     const firestoreStub = new FirestoreStub()
+    let adminInitStub: sinon.SinonStub
+    let adminFirestoreStub: sinon.SinonStub
 
-    beforeEach(() => {
-        test = functionsTest()
+    before(async () => {
+
+        adminInitStub = sinon.stub(admin, 'initializeApp')
+
+        adminFirestoreStub = sinon.stub(admin, 'firestore')
+        .get(() => {
+            return () => {
+                return firestoreStub.get()
+            }
+        })
+
     })
 
     afterEach(async () => {
-        test.cleanup()
         firestoreStub.reset()
+    })
+
+    after(async () => {
+        adminInitStub.restore()
+        adminFirestoreStub.restore()
     })
 
     describe('Actionable Field Commands', async () => {
 
         describe('Create-User-Sensor-Relations-Command', () => {
 
-            const userId        = uniqid()
+            const command       = new CreateUserSensorRelationsCommand()
             const householdId   = uniqid()
             const sensorId      = uniqid()
-            const command       = new CreateUserSensorRelationsCommand()
+            const userId        = uniqid()
             let user: User
 
             beforeEach(() => {

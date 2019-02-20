@@ -27,7 +27,6 @@ const expect = chai.expect
 describe('Unit_Test', () => {
 
     let test: FeaturesList
-    let adminFs: FirebaseFirestore.Firestore
     const firestoreStub = new FirestoreStub()
 
     before(async () => {
@@ -38,11 +37,6 @@ describe('Unit_Test', () => {
             databaseURL: `https://${stageProjectId}.firebaseio.com`,
             projectId: stageProjectId,
         }, `./${stageProjectId}.serviceAccountKey.json`)
-
-        try {
-            admin.initializeApp()
-        } catch (e) {}
-
     })
 
     after(async () => {

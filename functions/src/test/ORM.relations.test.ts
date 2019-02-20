@@ -60,6 +60,7 @@ describe('Unit_Test', () => {
 
     after(async () => {
         test.cleanup()
+        admin.app().delete()
     })
 
     describe('ORM', async () => {

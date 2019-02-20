@@ -25,6 +25,7 @@ describe('Integration_Test', () => {
 
     let adminInitStub: sinon.SinonStub
     let adminFirestoreStub: sinon.SinonStub
+    let adminMessagingStub: sinon.SinonStub
     const messagingSendToDeviceSpy = sinon.spy()
     let myFunctions
     const firestoreStub = new FirestoreStub()
@@ -54,7 +55,7 @@ describe('Integration_Test', () => {
             }
         })
 
-        sinon.stub(admin, 'messaging')
+        adminMessagingStub = sinon.stub(admin, 'messaging')
         .get(() => {
             return () => {
                 return {
@@ -70,7 +71,7 @@ describe('Integration_Test', () => {
         test.cleanup()
         adminInitStub.restore()
         adminFirestoreStub.restore()
-        firestoreStub.reset()
+        adminMessagingStub.restore()
     })
 
     beforeEach(() => {
