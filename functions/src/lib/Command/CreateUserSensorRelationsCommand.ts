@@ -4,8 +4,10 @@ import { Models } from "./../ORM/Models";
 
 export default class CreateUserSensorRelationsCommand extends AbstractActionableFieldCommand
 {
-    async execute(user: User, accepted: string): Promise<void>
+    async execute(user: User, value: string): Promise<void>
     {
+        const accepted = JSON.parse(value)
+
         if(!accepted) return
 
         const household = await user.household().get()

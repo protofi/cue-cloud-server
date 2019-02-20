@@ -129,7 +129,78 @@ describe('Integration_Test', () => {
                 }
             })
 
-            it('Execution with a Value of true should create relations on User to all Sensors attached to the Household', async () => {
+            it('Should not create relation between Users and Sensors of Household if value is not string:true', async () => {
+                await command.execute(user, 'false')
+
+                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                const expectedUserDoc = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                expect(userDoc).to.deep.equals(expectedUserDoc)
+            })
+
+            it('Should trhow error if value of not a Stringified boolean', async () => {
+
+                let error = null
+
+                try{
+                    await command.execute(user, 'some-value')
+                }
+                catch(e)
+                {
+                    error = e
+                }
+
+                expect(error).to.not.be.null
+
+                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                const expectedUserDoc = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                expect(userDoc).to.deep.equals(expectedUserDoc)
+            })
+
+            it('Should not create relation between Users and Sensors of Household if Household relation does not exist', async () => {
+
+                //delete mock data
+                delete firestoreMockData[`${Models.HOUSEHOLD}/${householdId}`][Models.SENSOR]
+
+                await command.execute(user, 'true')
+
+                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                const expectedUserDoc = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                expect(userDoc).to.deep.equals(expectedUserDoc)
+            })
+
+            it('Should not create relation between Users and Sensors of Household if no Sensor relations exists', async () => {
+
+                //delete mock data
+                delete firestoreMockData[`${Models.USER}/${userId}`][Models.HOUSEHOLD]
+
+                await command.execute(user, 'true')
+
+                const userDoc = firestoreMockData[`${Models.USER}/${userId}`]
+
+                const expectedUserDoc = {}
+
+                expect(userDoc).to.deep.equals(expectedUserDoc)
+            })
+
+            it('Should not create relation between Users and Sensors of Household if value is true', async () => {
 
                 await command.execute(user, 'true')
 
@@ -140,11 +211,6 @@ describe('Integration_Test', () => {
                 }
 
                 expect(userDoc).to.deep.equals(expectedUserDoc)
-            })
-
-            it('Execution with a Value of true should create relations on all Sensors attached to the Household to the User', async () => {
-
-                await command.execute(user, 'true')
 
                 const sensorDoc = firestoreMockData[`${Models.SENSOR}/${sensorId}`][Models.USER]
 
@@ -155,11 +221,6 @@ describe('Integration_Test', () => {
                 }
 
                 expect(sensorDoc).to.deep.equals(expectedSensorDoc)
-            })
-
-            it('Execution with a Value of true should create Pivot Collections between all Sensors attached to the Household to the User', async () => {
-
-                await command.execute(user, 'true')
 
                 const pivotDoc = firestoreMockData[`${Models.SENSOR}_${Models.USER}/${sensorId}_${userId}`]
 
