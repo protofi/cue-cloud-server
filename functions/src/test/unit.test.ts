@@ -26,22 +26,7 @@ const expect = chai.expect
 
 describe('Unit_Test', () => {
 
-    let test: FeaturesList
     const firestoreStub = new FirestoreStub()
-
-    before(async () => {
-
-        const stageProjectId = 'staging-cue-iot-cloud'
-
-        test = functionsTest({
-            databaseURL: `https://${stageProjectId}.firebaseio.com`,
-            projectId: stageProjectId,
-        }, `./${stageProjectId}.serviceAccountKey.json`)
-    })
-
-    after(async () => {
-        test.cleanup()
-    })
 
     let baseStationPins = []
     let baseStationPinCount = 0

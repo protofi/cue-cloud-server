@@ -34,6 +34,8 @@ describe('Integration_Test', () => {
     const firestoreStub = new FirestoreStub()
     let adminInitStub: sinon.SinonStub
     let adminFirestoreStub: sinon.SinonStub
+    let adminAuthStub: sinon.SinonStub
+    const setCustomUserClaimsSpy = sinon.spy()
 
     before(async () => {
 
@@ -46,6 +48,15 @@ describe('Integration_Test', () => {
             }
         })
 
+        adminAuthStub = sinon.stub(admin, 'auth')
+        .get(() => {
+            return () => {
+                return {
+                    setCustomUserClaims : setCustomUserClaimsSpy
+                }
+            }
+        })
+
     })
 
     afterEach(async () => {
@@ -55,6 +66,7 @@ describe('Integration_Test', () => {
     after(async () => {
         adminInitStub.restore()
         adminFirestoreStub.restore()
+        adminAuthStub.restore()
     })
 
     describe('Actionable Field Commands', async () => {
@@ -508,13 +520,13 @@ describe('Integration_Test', () => {
 
         //     beforeEach(() => {
 
-        //         user = new User(firestoreStub, null, userId)
+        //         user = new User(firestoreStub.get(), null, userId)
         //         firestoreStub.data()[`${Models.HOUSEHOLD}/${userId}`] = {}
         //     })
 
         //     it('', async () => {
 
-        //         await command.execute(user)
+        //         await command.execute(user, {}, {})
         //         return
         //     })
         // })
