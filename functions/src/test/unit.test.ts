@@ -83,7 +83,6 @@ describe('Unit_Test', () => {
         it('Should have method of sensors returning type One2ManyRelation', () => {
             expect(household.sensors() instanceof One2ManyRelation).to.be.true
         })
-
     })
 
     describe('Base Station', () => {

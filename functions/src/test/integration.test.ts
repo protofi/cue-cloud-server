@@ -37,7 +37,7 @@ describe('Integration_Test', () => {
     let adminAuthStub: sinon.SinonStub
     const setCustomUserClaimsSpy = sinon.spy()
 
-    before(async () => {
+    before((done) => {
 
         adminInitStub = sinon.stub(admin, 'initializeApp')
 
@@ -57,6 +57,7 @@ describe('Integration_Test', () => {
             }
         })
 
+        done()
     })
 
     afterEach(async () => {
@@ -512,23 +513,34 @@ describe('Integration_Test', () => {
             // })
         })
         
-        // describe('Update Custom Claims', () => {
+        describe('Update Custom Claims', () => {
 
-        //     const command       = new UpdateCustomClaims()
-        //     const userId        = uniqid()
-        //     let user : User
+            const command       = new UpdateCustomClaims()
+            const userId        = uniqid()
+            let user : User
 
-        //     beforeEach(() => {
+            beforeEach(() => {
 
-        //         user = new User(firestoreStub.get(), null, userId)
-        //         firestoreStub.data()[`${Models.HOUSEHOLD}/${userId}`] = {}
-        //     })
+                user = new User(firestoreStub.get(), null, userId)
+                firestoreStub.data()[`${Models.HOUSEHOLD}/${userId}`] = {}
+            })
 
-        //     it('', async () => {
+            it('Should invoke setCustomUserClaims with arguments userId and claims map', async () => {
 
-        //         await command.execute(user, {}, {})
-        //         return
-        //     })
-        // })
+                const claims = {
+                    isAdmin : true
+                }
+
+                const changes = {}
+                await command.execute(user, changes, claims) 
+
+                const argOne = setCustomUserClaimsSpy.getCall(0).args[0]
+                const argTwo = setCustomUserClaimsSpy.getCall(0).args[1]
+
+                expect(argOne).to.be.equal(userId)
+                expect(argTwo).to.be.deep.equal(claims)
+
+            })
+        })
     })
 })

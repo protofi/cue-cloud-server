@@ -1,5 +1,6 @@
 import * as chai from 'chai'
 import * as sinon from 'sinon'
+import * as mocha from 'mocha'
 import * as admin from 'firebase-admin'
 import * as uniqid from 'uniqid'
 import { FeaturesList } from 'firebase-functions-test/lib/features'
@@ -27,8 +28,8 @@ describe('Integration_Test', () => {
     let adminFirestoreStub: sinon.SinonStub
     let adminMessagingStub: sinon.SinonStub
     const messagingSendToDeviceSpy = sinon.spy()
-    let myFunctions
     const firestoreStub = new FirestoreStub()
+    let myFunctions
 
     const userOneData = {
         uid: uniqid(),
@@ -44,7 +45,7 @@ describe('Integration_Test', () => {
         token: null
     }
 
-    before(async () => {
+    before((done) => {
 
         adminInitStub = sinon.stub(admin, 'initializeApp')
 
@@ -65,6 +66,8 @@ describe('Integration_Test', () => {
         })
 
         myFunctions = require('../lib/index')
+
+        done()
     })
 
     after(async () => {
