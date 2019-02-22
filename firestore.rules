@@ -25,7 +25,7 @@ service cloud.firestore{
 										) 
 									)
 								)
-							)) || isSuperAdmin()
+							)) || isAdmin()
 
 			allow delete: if false
 

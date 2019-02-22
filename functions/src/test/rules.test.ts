@@ -332,8 +332,8 @@ describe('Emulated_Rules', () => {
                 })))
             })
 
-            it('Super Admin users should be able to update data on other users', async () => {
-                const db = await setup(testSuperAdminUserData, {
+            it('Admin users should be able to update data on other users', async () => {
+                const db = await setup(testAdminUserData, {
                     [`${Models.USER}/${testUserDataOne.uid}`] : {}
                 })
 
