@@ -37,7 +37,7 @@ describe('Integration_Test', () => {
     let adminAuthStub: sinon.SinonStub
     const setCustomUserClaimsSpy = sinon.spy()
 
-    before((done) => {
+    before(() => {
 
         adminInitStub = sinon.stub(admin, 'initializeApp')
 
@@ -56,8 +56,6 @@ describe('Integration_Test', () => {
                 }
             }
         })
-
-        done()
     })
 
     afterEach(async () => {
@@ -65,14 +63,14 @@ describe('Integration_Test', () => {
     })
 
     after(async () => {
-        adminInitStub.restore()
         adminFirestoreStub.restore()
+        adminInitStub.restore()
         adminAuthStub.restore()
     })
 
     describe('Actionable Field Commands', async () => {
 
-        describe('Create-User-Sensor-Relations-Command', () => {
+        describe('Create User Sensor Relations Command', () => {
 
             const command       = new CreateUserSensorRelationsCommand()
             const householdId   = uniqid()
@@ -174,7 +172,7 @@ describe('Integration_Test', () => {
                 expect(userDoc).to.deep.equals(expectedUserDoc)
             })
 
-            it('Should not create relation between Users and Sensors of Household if value is true', async () => {
+            it('Should create relation between Users and Sensors of Household if value is true', async () => {
 
                 await command.execute(user, 'true')
 
@@ -211,11 +209,11 @@ describe('Integration_Test', () => {
             })
         })
 
-        describe('Create-User-New-Sensor-Relations-Command', () => {
+        describe('Create User New Sensor Relations Command', () => {
             
-            const userId        = uniqid()
             const householdId   = uniqid()
             const sensorId      = uniqid()
+            const userId        = uniqid()
             const command       = new CreateUserNewSensorRelationsCommand()
             let household: Household
 
@@ -303,6 +301,10 @@ describe('Integration_Test', () => {
 
                 expect(userDoc).to.be.deep.equal(expectedUserDoc)
             })
+        })
+
+        describe('Should thow error if undo is call on abstract class', async () => {
+            return 
         })
     })
 

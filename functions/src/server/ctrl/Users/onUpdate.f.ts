@@ -31,5 +31,7 @@ exports = module.exports = functions.firestore
         user.household().updateCache(change),
         user.household().takeActionOn(change),
 
-    ]).catch(console.error)
+    ]).catch(e => {
+        console.error(e.message)
+    })
 })

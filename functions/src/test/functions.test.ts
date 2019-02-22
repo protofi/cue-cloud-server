@@ -9,6 +9,7 @@ import { OfflineDocumentSnapshotStub, FirestoreStub } from './stubs'
 import { Relations, Roles, Errors, WhereFilterOP } from './lib/const'
 import * as fakeUUID from 'uuid/v1'
 import * as _ from 'lodash'
+import { unflatten, flatten } from 'flat'
 import User from './lib/ORM/Models/User';
 import Sensor from './lib/ORM/Models/Sensor';
 import BaseStation from './lib/ORM/Models/BaseStation';
@@ -45,7 +46,7 @@ describe('Integration_Test', () => {
         token: null
     }
 
-    before((done) => {
+    before(() => {
 
         adminInitStub = sinon.stub(admin, 'initializeApp')
 
@@ -66,8 +67,6 @@ describe('Integration_Test', () => {
         })
 
         myFunctions = require('../lib/index')
-
-        done()
     })
 
     after(async () => {
@@ -77,7 +76,7 @@ describe('Integration_Test', () => {
         adminMessagingStub.restore()
     })
 
-    beforeEach(() => {
+    afterEach(() => {
         firestoreStub.reset()
     })
 
@@ -138,22 +137,283 @@ describe('Integration_Test', () => {
 
     describe('Users', () => {
 
+        const householdId = uniqid()
+        const userId = uniqid()
+        const sensorId = uniqid()
+
         describe('On Update', () => {
+
+            it('Should not create relation between Users and Sensors of Household if households.pivot.accepted is not changed to string:true', async () => {
+                
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                firestoreStub.data()[`${Models.SENSOR}/${sensorId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {
+                    [Models.SENSOR] : {
+                        [sensorId] : true
+                    }
+                }
+
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [Models.HOUSEHOLD] : {
+                            [Relations.PIVOT] : {
+                                [User.f.HOUSEHOLDS.ACCEPTED] : 'false'
+                            }
+                        }
+                    },
+                    ref : {
+                    }
+                })
+
+                const change = {
+                    before : new OfflineDocumentSnapshotStub(),
+                    after : afterDocSnap 
+                }
+
+                await wrappedUsersOnUpdate(change)
+
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userId}`]
+
+                const expectedUserDoc = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                expect(userDoc).to.deep.equals(expectedUserDoc)
+            })
+
+            it('Should not create relation between Users and Sensors of Household if households.pivot.accepted is not changed to string:boolean', async () => {
+                
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                firestoreStub.data()[`${Models.SENSOR}/${sensorId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {
+                    [Models.SENSOR] : {
+                        [sensorId] : true
+                    }
+                }
+
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [Models.HOUSEHOLD] : {
+                            [Relations.PIVOT] : {
+                                [User.f.HOUSEHOLDS.ACCEPTED] : 'some-value'
+                            }
+                        }
+                    },
+                    ref : {
+                    }
+                })
+
+                const change = {
+                    before : new OfflineDocumentSnapshotStub(),
+                    after : afterDocSnap 
+                }
+
+                await wrappedUsersOnUpdate(change)
+
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userId}`]
+
+                const expectedUserDoc = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                expect(userDoc).to.deep.equals(expectedUserDoc)
+            })
+
+            it('Should not create relation between Users and Sensors of Household if Household relation does not exist', async () => {
+                
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {}
+
+                firestoreStub.data()[`${Models.SENSOR}/${sensorId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {
+                    [Models.SENSOR] : {
+                        [sensorId] : true
+                    }
+                }
+
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [Models.HOUSEHOLD] : {
+                            [Relations.PIVOT] : {
+                                [User.f.HOUSEHOLDS.ACCEPTED] : true
+                            }
+                        }
+                    },
+                    ref : {
+                        id : userId
+                    }
+                })
+
+                const change = {
+                    before : new OfflineDocumentSnapshotStub(),
+                    after : afterDocSnap 
+                }
+
+                await wrappedUsersOnUpdate(change)
+
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userId}`]
+
+                const expectedUserDoc = {}
+
+                expect(userDoc).to.deep.equals(expectedUserDoc)
+            })
+
+            it('Should not create relation between Users and Sensors of Household if no Sensor relations exists', async () => {
+
+                firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {
+                    [Models.SENSOR] : {}
+                }
+
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId,
+                            [Relations.PIVOT] : {
+                                [User.f.HOUSEHOLDS.ACCEPTED] : true
+                            }
+                        }
+                    },
+                    ref : {
+                    }
+                })
+
+                const change = {
+                    before : new OfflineDocumentSnapshotStub(),
+                    after : afterDocSnap 
+                }
+
+                await wrappedUsersOnUpdate(change)
+
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userId}`]
+
+                const expectedUserDoc = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                expect(userDoc).to.deep.equals(expectedUserDoc)
+            })
+
+            it('Should create relation between Users and Sensors of Household if value is true', async () => {
+                const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
+
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                firestoreStub.data()[`${Models.SENSOR}/${sensorId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    }
+                }
+
+                firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {
+                    [Models.SENSOR] : {
+                        [sensorId] : true
+                    }
+                }
+
+                const afterDocSnap = new OfflineDocumentSnapshotStub({
+                    data : {
+                        [Models.HOUSEHOLD] : {
+                            id : householdId,
+                            [Relations.PIVOT] : {
+                                [User.f.HOUSEHOLDS.ACCEPTED] : true
+                            }
+                        }
+                    },
+                    ref : {
+                        set: (data : any, {merge}) => {
+    
+                            if(merge)
+                            {
+                                firestoreStub.data()[`${Models.USER}/${userId}`] = _.merge(firestoreStub.data()[`${Models.USER}/${userId}`], unflatten(data))
+                            }
+                            else firestoreStub.data()[`${Models.USER}/${userId}`] = unflatten(data)
+                        }
+                    }
+                })
+
+                const change = {
+                    before : new OfflineDocumentSnapshotStub(),
+                    after : afterDocSnap 
+                }
+
+                await wrappedUsersOnUpdate(change)
+
+                const userDoc = firestoreStub.data()[`${Models.USER}/${userId}`]
+
+                const expectedUserDoc = {
+                    [Models.HOUSEHOLD] : {
+                        id : householdId
+                    },
+                    [Models.SENSOR] : {
+                        [sensorId] : true
+                    },
+                }
+
+                expect(userDoc).to.deep.equals(expectedUserDoc)
+
+            })
 
             it('Should cache field "id" to related sensors', async () => {
 
                 const cacheField = User.f.ID
-                const sensorsId = uniqid()
                 const wrappedUsersOnUpdate = test.wrap(myFunctions.ctrlUsersOnUpdate)
                 
-                firestoreStub.data()[`${Models.SENSOR}/${sensorsId}`] = {}
-                firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorsId}`] = {}
+                firestoreStub.data()[`${Models.SENSOR}/${sensorId}`] = {}
+                firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {}
 
                 const afterDocSnap = new OfflineDocumentSnapshotStub({
                     data : {
                         [cacheField] : userOneData.uid,
                         [Models.SENSOR] : {
-                            [sensorsId] : true
+                            [sensorId] : true
                         }
                     },
                     ref : {
@@ -168,7 +428,7 @@ describe('Integration_Test', () => {
 
                 await wrappedUsersOnUpdate(change)
 
-                const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorsId}`]
+                const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorId}`]
                 const expectedSensorDoc = {
                     [Models.USER]: {
                         [userOneData.uid] : {
@@ -182,7 +442,6 @@ describe('Integration_Test', () => {
             it('Should not update Name cache on Household if Name is not changed', async () => {
 
                 const cacheField = User.f.NAME
-                const householdId = uniqid()
 
                 firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {}
 
@@ -229,7 +488,6 @@ describe('Integration_Test', () => {
             it('Name should be cached on related household when Name is added', async () => {
 
                 const cacheField = User.f.NAME
-                const householdId = uniqid()
 
                 firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {}
 
@@ -280,7 +538,6 @@ describe('Integration_Test', () => {
             it('Name should be cached on related household when Name is changed', async () => {
 
                 const cacheField = User.f.NAME
-                const householdId = uniqid()
 
                 firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {}
 
@@ -332,8 +589,6 @@ describe('Integration_Test', () => {
 
             it('Should create cache of field "name" on newly added Household', async() => {
                
-                const householdId = uniqid()
-
                 firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {}
 
                 const beforeDocSnap = new OfflineDocumentSnapshotStub({
@@ -382,8 +637,6 @@ describe('Integration_Test', () => {
 
             it('Should create cache of field "email" on newly added Household', async() => {
                
-                const householdId = uniqid()
-
                 firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {}
 
                 const beforeDocSnap = new OfflineDocumentSnapshotStub({
@@ -434,7 +687,6 @@ describe('Integration_Test', () => {
     
                 const cacheField = User.f.FCM_TOKENS._
                 const FCMToken = uniqid()
-                const sensorId = uniqid()
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorId}`] = {}
                 

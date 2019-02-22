@@ -1,5 +1,5 @@
 import { Change } from "firebase-functions"
-import { asyncForEach, difference } from "../../util"
+import { asyncForEach, difference, printFormattedJson } from "../../util"
 import { Relations } from "../../const"
 import { singular } from "pluralize"
 import ModelImpl, { Models } from "../Models"
@@ -658,7 +658,7 @@ export class Many2OneRelation extends RelationImpl {
 
         const beforePivotData   = change.before.get(pivotPath)
         const afterPivotData    = change.after.get(pivotPath)
-        
+
         if(!afterPivotData) return
         
         const pivotDataChanges = (beforePivotData) ? difference(beforePivotData, afterPivotData) : afterPivotData
@@ -679,7 +679,9 @@ export class Many2OneRelation extends RelationImpl {
     async get(): Promise<ModelImpl>
     {
         const property = await this.owner.getField(this.propertyModelName) as SimpleRelation
-        if(!property) return null
+        
+        if(isEmpty(property) || property.id === undefined) return null
+
         return await this.importStrategy.import(this.db, this.propertyModelName, property.id)
     }
 

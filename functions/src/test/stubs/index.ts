@@ -42,7 +42,7 @@ export class OfflineDocumentSnapshotStub {
 
     get(field): any
     {
-        return this.docData[field]
+        return _.get(this.docData, field)
     }
 }
 
@@ -157,7 +157,7 @@ export class FirestoreStub {
                                         }
                                         catch(e)
                                         {
-                                            throw Error(`Mock data is missing: ${e.message} [${`${col}/${id}`}]`)
+                                            // throw Error(`Mock data is missing: ${e.message} [${`${col}/${id}`}]`)
                                         }
                                     },
                                     exists : (!_.isUndefined(this.mockData[`${col}/${id}`]))

@@ -211,6 +211,28 @@ describe('Unit_Test', () => {
                         expect(wheels[0].car).to.exist
                         expect(typeof wheels[0].car).to.be.equal(typeof Function)
                     })
+
+                    it('Should return null if relational link does not contain field id', async () => {
+                        firestoreStub.data()[wheelPath] = {
+                            [Stubs.CAR] : {
+                                
+                            }
+                        }
+                        
+                        const carM = await wheel.car().get()
+                        expect(carM).to.be.null
+                    })
+
+                    it('Should return null if relational link does not contain field id but other data', async () => {
+                        firestoreStub.data()[wheelPath] = {
+                            [Stubs.CAR] : {
+                                hello : true
+                            }
+                        }
+                        
+                        const carM = await wheel.car().get()
+                        expect(carM).to.be.null
+                    })
                 })
 
                 describe('Update', () => {

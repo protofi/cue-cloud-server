@@ -1,5 +1,6 @@
 import { AbstractActionableFieldCommand } from ".";
 import User from "./../ORM/Models/User";
+import { isEmpty } from "lodash"
 import { Models } from "./../ORM/Models";
 
 export default class CreateUserSensorRelationsCommand extends AbstractActionableFieldCommand
@@ -14,7 +15,7 @@ export default class CreateUserSensorRelationsCommand extends AbstractActionable
         if(!household) return
 
         const sensors: any = await household.getField(Models.SENSOR)
-        if(!sensors) return
+        if(isEmpty(sensors)) return
 
         const sensorIds = Object.keys(sensors)
 
