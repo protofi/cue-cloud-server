@@ -3,7 +3,7 @@ import { unflatten, flatten } from 'flat'
 import * as _ from 'lodash'
 import * as uniqid from 'uniqid'
 import ModelImpl from "../lib/ORM/Models";
-import { IActionableFieldCommand, IModelCommand } from '../lib/Command';
+import { IActionableFieldCommand, IModelCommand, AbstractActionableFieldCommand, AbstractModelCommand } from '../lib/Command';
 import { ModelImportStategy } from "../lib/ORM/Relation";
 import { WhereFilterOP, Errors } from '../lib/const';
 
@@ -46,20 +46,14 @@ export class OfflineDocumentSnapshotStub {
     }
 }
 
-export class ActionableFieldCommandStub implements IActionableFieldCommand {
+export class ActionableFieldCommandStub extends AbstractActionableFieldCommand implements IActionableFieldCommand {
     async execute(owner: ModelImpl, field: string): Promise<void> {
-        return
-    }
-    async undo(): Promise<void> {
         return
     }
 }
 
-export class ModelCommandStub implements IModelCommand {
+export class ModelCommandStub extends AbstractModelCommand implements IModelCommand {
     async execute(owner: ModelImpl): Promise<void> {
-        return
-    }
-    async undo(): Promise<void> {
         return
     }
 }

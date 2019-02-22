@@ -17,7 +17,8 @@ import UpdateFCMTokenSecureCache from './lib/Command/UpdateFCMTokenSecureCache';
 import CreateUserNewSensorRelationsCommand from './lib/Command/CreateUserNewSensorRelationsCommand';
 import CreateUserSensorRelationsCommand from './lib/Command/CreateUserSensorRelationsCommand';
 import { printFormattedJson } from './lib/util';
-import { FirestoreStub } from './stubs';
+import { FirestoreStub, ModelCommandStub, ActionableFieldCommandStub } from './stubs';
+import { getStatusText, NOT_IMPLEMENTED } from 'http-status-codes'
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -303,8 +304,20 @@ describe('Integration_Test', () => {
             })
         })
 
-        describe('Should thow error if undo is call on abstract class', async () => {
-            return 
+        it('Should thow error if undo is call on abstract class', async () => {
+            const command = new ActionableFieldCommandStub()
+            
+            let error = null
+
+            try{
+                await command.undo(null) 
+            }
+            catch(e)
+            {
+                error = e
+            }
+
+            expect(error.message).to.be.equal(getStatusText(NOT_IMPLEMENTED))
         })
     })
 
@@ -543,6 +556,22 @@ describe('Integration_Test', () => {
                 expect(argTwo).to.be.deep.equal(claims)
 
             })
+        })
+
+        it('Should thow error if undo is call on abstract class', async () => {
+            const command = new ModelCommandStub()
+            
+            let error = null
+
+            try{
+                await command.undo(null) 
+            }
+            catch(e)
+            {
+                error = e
+            }
+
+            expect(error.message).to.be.equal(getStatusText(NOT_IMPLEMENTED))
         })
     })
 })
