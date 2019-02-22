@@ -116,16 +116,16 @@
 							{{user.name ? user.name : user.id }}
 						</v-list-tile-title>
 						
-						<!-- <v-list-tile-action>
+						<v-list-tile-action>
 
 							<v-btn icon ripple
-							@click.stop="">
+							@click.stop="kickUser(user)">
 							<v-icon color="grey lighten-1">
 								clear
 							</v-icon>
 							</v-btn>
 
-						</v-list-tile-action> -->
+						</v-list-tile-action>
 						
 					</v-list-tile>
 
@@ -731,13 +731,15 @@ export default {
 		{
 			event.preventDefault()
 
+			if (!this.$refs.inviteUserForm.validate()) return
+
+			this.userInviteDialog.loading = true
+
 			try{
 
 				const { data } = await this.$axios.post(`/households/${this.activeHousehold.id}/invitations`, {
 					email : this.userInviteDialog.inviteeEmail
 				})
-
-				console.log(data)
 
 				if(data.success)
 				{
@@ -752,11 +754,26 @@ export default {
 						}, { merge : true })
 					}
 				}
+
+                this.userInviteDialog.loading = false
+                this.userInviteDialog.inviteeEmail = null
+                this.userInviteDialog.accept = false
+				this.$refs.inviteUserForm.reset()
+				this.userInviteDialog.show = false
 			}
 			catch(e)
 			{
 				console.log(e)
 			}
+		},
+
+		async kickUser(user)
+		{
+			const userId = user.id
+			
+			// await firestore.collection('users').doc(userId).set({
+
+			// })
 		},
 
 		async pairSensor(householdId)
@@ -766,7 +783,7 @@ export default {
 			try{
 				const response = await this.$axios.$put(`households/${householdId}/sensors`)
 
-				this.showSensorConfigDialog = true;
+				this.showSensorConfigDialog = true
 				this.sensorIdToBeConfigured = response.sensor
 			}
 			catch(e)

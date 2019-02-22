@@ -428,15 +428,15 @@ export default {
                         [this.createHouseholdDialog.owner] : true
                     }
                 })
+
+                this.createHouseholdDialog.loading = false
+                this.createHouseholdDialog.owner = null
+                this.createHouseholdDialog.show = false
             }
             catch(e)
             {
                 console.log(e)
             }
-
-            this.createHouseholdDialog.loading = false
-            this.createHouseholdDialog.owner = null
-            this.createHouseholdDialog.show = false
         },
         
         async bulkDelete()
