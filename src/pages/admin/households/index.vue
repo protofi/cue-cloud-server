@@ -390,7 +390,9 @@ export default {
             this.householdsDetailDrawer = !(this.activeHousehold && this.activeHousehold.id == household.id && this.householdsDetailDrawer)
             this.activeHousehold = household
         },
-        async showCreateHouseholdDialog() {
+        
+        async showCreateHouseholdDialog()
+        {
             this.createHouseholdDialog.show = true
 
             try{
@@ -401,9 +403,10 @@ export default {
                 console.log('LISTEN ON USER', e)
             }
         },
-        async createHosueholdSubmit(e) {
-            
-            e.preventDefault()
+
+        async createHosueholdSubmit(event)
+        {
+            event.preventDefault()
             
             if (!this.$refs.createHouseholdForm.validate()) return
 

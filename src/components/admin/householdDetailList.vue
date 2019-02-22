@@ -129,6 +129,28 @@
 						
 					</v-list-tile>
 
+					<v-list-group
+						sub-group
+						no-action
+					>
+						<v-list-tile slot="activator">
+						<v-list-tile-title>Actions</v-list-tile-title>
+						</v-list-tile>
+
+						<v-list-tile
+						@click="showInviteUserDialog"
+						ripple
+						>
+							<v-list-tile-title>Invite</v-list-tile-title>
+							
+							<v-list-tile-action>
+								<v-icon>mail</v-icon>
+							</v-list-tile-action>
+						
+						</v-list-tile>
+
+					</v-list-group>
+
 				</v-list-group> <!-- Users Section End -->
 		
 				<!-- Sensors Section -->
@@ -257,7 +279,82 @@
 
 		</v-list>
 
-		 <v-dialog v-model="showBaseStationDialog" max-width="600px">
+		<v-dialog v-model="userInviteDialog.show" max-width="600px">
+            
+            <v-form
+                ref="inviteUserForm"
+                >
+
+                <v-card>
+        
+                    <v-card-title
+                        class="headline white--text pink"
+                        >
+                            Invite User to Household
+                    </v-card-title>
+
+                    <v-card-text>
+
+                        <v-container grid-list-md>
+
+                            <v-layout wrap>
+
+                                Pick an existing User to invite.
+
+                            </v-layout>
+
+                            <v-layout wrap>
+
+                                <v-flex xs12 sm6>
+                                    <v-select
+                                    :items="users"
+                                    no-data-text="No users found"
+                                    label="Invitee"
+                                    v-model="userInviteDialog.inviteeEmail"
+                                    required
+                                    :rules="userInviteDialog.inviteeRules"
+                                    ></v-select>
+
+									<v-checkbox
+										v-model="userInviteDialog.accept"
+										label="Accept invitaion immediately"
+									></v-checkbox>
+                                </v-flex>
+
+                            </v-layout>
+
+                        </v-container>
+
+                        <p> 
+                            Only users not already assigned a Household can be invited.
+                        </p>
+
+                    </v-card-text>
+        
+                    <v-card-actions>
+        
+                        <v-spacer></v-spacer>
+            
+                        <v-btn color="blue darken-1" flat @click="userInviteDialog.show = false">Cancel</v-btn>
+                        <v-btn
+                            color="blue darken-1"
+                            flat
+                            type="submit"
+							@click="inviteUser"
+                            :loading="userInviteDialog.loading"
+                            >
+                            Send invite
+                        </v-btn>
+        
+                    </v-card-actions>
+        
+                </v-card>
+            
+            </v-form>
+
+        </v-dialog>
+
+		<v-dialog v-model="showBaseStationDialog" max-width="600px">
 				
 			<v-card>
 
@@ -463,9 +560,21 @@ export default {
 			baseStationPinErrorMessage : '',
 			baseStationPinError : false,
 
-			sensorNotificationLoading : false
+			sensorNotificationLoading : false,
+
+			userInviteDialog : {
+				show : false,
+                loading : false,
+				inviteeEmail : null,
+				accept : false,
+                inviteeRules: [
+                    v => !!v || 'You need to choose an invitee',
+                ],
+                userDocs : []
+			}
 		}
 	},
+	
 	watch : {
 		baseStationPinErrorMessage (v) {
 			this.baseStationPinError = (v.length > 0)
@@ -474,6 +583,7 @@ export default {
 			this.sensorConfigError = (v.length > 0)
 		},
 	},
+
 	computed : {
 		activeHouseholdUsers () {
 			const users = []
@@ -517,70 +627,25 @@ export default {
 			})
 
 			return sensors
-		}
+		},
+		users () {
+            return this.userInviteDialog.userDocs.filter(user => {
+                return !((user.data()).households)
+            }).map(user => {
+                const data = user.data()
+                return {
+                    text : (data.name) ? data.name : data.email,
+                    value : user.email
+                }
+            })
+        }
 	},
 		
 	methods : {
 		
-		sensorNotification(sensor) {
-			this.sensorNotificationLoading = true
-
-			this.$axios.$put(`sensors/${sensor.id}/notifications`)
-			.finally(() =>
-			{
-				this.sensorNotificationLoading = false
-			}).catch(e => {
-					
-			})
-		},
-
-		async pairSensor(householdId) {
-			
-			this.sensorConfigLoading = true
-
-			try{
-				const response = await this.$axios.$put(`households/${householdId}/sensors`)
-
-				this.showSensorConfigDialog = true;
-				this.sensorIdToBeConfigured = response.sensor
-			}
-			catch(e)
-			{
-				console.log(e)
-			}
-
-			this.sensorConfigLoading = false
-		},
-
-		async saveSensorData (e)
+		async claimBaseStation (event)
 		{
-			e.preventDefault()
-		
-			try{
-				console.log(this.sensorIdToBeConfigured)
-				await firestore.collection('sensors').doc(this.sensorIdToBeConfigured).set({
-					name : this.sensorName,
-					location : this.sensorLocation,
-					icon_string : this.sensorIcon
-				}, {
-					merge : true
-				})
-
-				this.sensorName = ''
-				this.sensorLocation = ''
-				this.sensorIcon = ''
-			
-				this.showSensorConfigDialog = false
-			}
-			catch(e)
-			{
-				console.log(e)
-			}
-		},
-
-		async claimBaseStation (e)
-		{
-			e.preventDefault()
+			event.preventDefault()
 			
 			this.baseStationPinErrorMessage = ''
 			this.claimBaseStationLoading = true
@@ -647,9 +712,98 @@ export default {
 				this.claimBaseStationLoading = false
 			}
 		},
-		
-		async deleteSensors(householdId) {
 
+
+		async showInviteUserDialog()
+		{
+			this.userInviteDialog.show = true
+
+			try{
+                this.userInviteDialog.userDocs = (await firestore.collection('users').get()).docs
+            }
+            catch(e)
+            {
+                console.log('LISTEN ON USER', e)
+            }
+		},
+
+		async inviteUser(event)
+		{
+			event.preventDefault()
+
+			try{
+
+				const { data } = await this.$axios.post(`/households/${this.activeHousehold.id}/invitations`, {
+					email : this.userInviteDialog.inviteeEmail
+				})
+
+				console.log(data)
+
+				if(data.success)
+				{
+					if(this.userInviteDialog.accept)
+					{
+						await firestore.collection('users').doc(data.inviteeId).set({
+							households : {
+								pivot : {
+									accepted : true
+								}
+							}
+						}, { merge : true })
+					}
+				}
+			}
+			catch(e)
+			{
+				console.log(e)
+			}
+		},
+
+		async pairSensor(householdId)
+		{
+			this.sensorConfigLoading = true
+
+			try{
+				const response = await this.$axios.$put(`households/${householdId}/sensors`)
+
+				this.showSensorConfigDialog = true;
+				this.sensorIdToBeConfigured = response.sensor
+			}
+			catch(e)
+			{
+				console.log(e)
+			}
+
+			this.sensorConfigLoading = false
+		},
+
+		async saveSensorData (event)
+		{
+			event.preventDefault()
+		
+			try{
+				await firestore.collection('sensors').doc(this.sensorIdToBeConfigured).set({
+					name : this.sensorName,
+					location : this.sensorLocation,
+					icon_string : this.sensorIcon
+				}, {
+					merge : true
+				})
+
+				this.sensorName = ''
+				this.sensorLocation = ''
+				this.sensorIcon = ''
+			
+				this.showSensorConfigDialog = false
+			}
+			catch(e)
+			{
+				console.log(e)
+			}
+		},
+
+		async deleteSensors(householdId)
+		{
 			this.deleteSensorsLoading = true
 		
 			this.$axios.$delete(`households/${householdId}/sensors`)
@@ -660,20 +814,20 @@ export default {
 					this.deleteSensorsLoading = false
 				})
 		},
-		// async unlinkBaseStation(id)
-		// {
-		// 	try{
-		// 		await firestore.collection('base_stations').doc(id).set({
-		// 			households : firebase.firestore.FieldValue.delete()
-		// 		}, {
-		// 			merge : true
-		// 		})
-		// 	}
-		// 	catch(e)
-		// 	{
-		// 		console.log(e)
-		// 	}
-		// }
+	
+		sensorNotification(sensor)
+		{
+			this.sensorNotificationLoading = true
+
+			this.$axios.$put(`sensors/${sensor.id}/notifications`)
+			.finally(() =>
+			{
+				this.sensorNotificationLoading = false
+			}).catch(e => {
+					
+			})
+		},
+
 	},
 }
 </script>
