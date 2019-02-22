@@ -113,9 +113,9 @@
 						<v-list-tile-action></v-list-tile-action>
 
 						<v-list-tile-title>
-							{{user.name ? user.name : user.id }}
+							{{user.name ? user.name : ((user.email ? user.email : user.id)) }}
 						</v-list-tile-title>
-						
+<!-- 						
 						<v-list-tile-action>
 
 							<v-btn icon ripple
@@ -125,7 +125,7 @@
 							</v-icon>
 							</v-btn>
 
-						</v-list-tile-action>
+						</v-list-tile-action> -->
 						
 					</v-list-tile>
 
@@ -591,9 +591,11 @@ export default {
 			if(!this.activeHousehold || !this.activeHousehold.data.users) return users
 
 			Object.keys(this.activeHousehold.data.users).forEach(id => {
+				const userData = this.activeHousehold.data.users[id]
 				users.push({
 					id : id,
-					name: this.activeHousehold.data.users[id].name
+					name: userData.name,
+					email: userData.email
 				})
 			})
 
@@ -735,8 +737,8 @@ export default {
 
 			this.userInviteDialog.loading = true
 
-			try{
-
+			try
+			{
 				const { data } = await this.$axios.post(`/households/${this.activeHousehold.id}/invitations`, {
 					email : this.userInviteDialog.inviteeEmail
 				})
@@ -755,11 +757,12 @@ export default {
 					}
 				}
 
-                this.userInviteDialog.loading = false
-                this.userInviteDialog.inviteeEmail = null
-                this.userInviteDialog.accept = false
+                this.userInviteDialog.inviteeEmail 	= null
+                this.userInviteDialog.loading 		= false
+                this.userInviteDialog.accept 		= false
+				this.userInviteDialog.show 			= false
+
 				this.$refs.inviteUserForm.reset()
-				this.userInviteDialog.show = false
 			}
 			catch(e)
 			{
@@ -770,10 +773,30 @@ export default {
 		async kickUser(user)
 		{
 			const userId = user.id
+			const batch = firestore.batch()
 			
-			// await firestore.collection('users').doc(userId).set({
+			batch.set(firestore.collection('users').doc(userId), {
+				households : firebase.firestore.FieldValue.delete()
+			}, {
+				merge: true
+			})
 
-			// })
+			batch.set(firestore.collection('households').doc(this.activeHousehold.id), {
+				users : {
+					[userId] : firebase.firestore.FieldValue.delete()
+				}
+			}, {
+				merge : true
+			})
+
+			try{
+				await batch.commit()
+			}
+			catch(e)
+			{
+				console.log(e)
+			}
+
 		},
 
 		async pairSensor(householdId)
@@ -800,8 +823,8 @@ export default {
 		
 			try{
 				await firestore.collection('sensors').doc(this.sensorIdToBeConfigured).set({
-					name : this.sensorName,
-					location : this.sensorLocation,
+					name 		: this.sensorName,
+					location 	: this.sensorLocation,
 					icon_string : this.sensorIcon
 				}, {
 					merge : true
@@ -811,6 +834,8 @@ export default {
 				this.sensorLocation = ''
 				this.sensorIcon = ''
 			
+				this.$refs.sensorForm.reset()
+
 				this.showSensorConfigDialog = false
 			}
 			catch(e)
