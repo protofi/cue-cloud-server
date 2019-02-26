@@ -1954,7 +1954,9 @@ describe('Integration_Test', () => {
             it('Should update port number of Base Station', async () => {
 
                 // mock data
-                firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`] = {}
+                firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`] = {
+                    [BaseStation.f.PIN] : 123
+                }
 
                 const wrappedPubsubBaseStationSetPort = test.wrap(myFunctions.pubsubBaseStationSetPort)
 
@@ -1977,6 +1979,7 @@ describe('Integration_Test', () => {
                 
                 const baseStationDoc = firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]
                 const expectedBaseStationDoc = {
+                    [BaseStation.f.PIN] : 123,
                     [BaseStation.f.WEBSOCKET._] : {
                         [BaseStation.f.WEBSOCKET.PORT] : 8080
                     }
