@@ -1848,6 +1848,143 @@ describe('Integration_Test', () => {
             })
         })
 
+        describe('Topic: Base Station Set Port', () => {
+            
+            it('Should throw error if message with no Base Station UUID is send', async () => {
+                const wrappedPubsubBaseStationSetPort = test.wrap(myFunctions.pubsubBaseStationSetPort)
+
+                let error = null
+                
+                try{
+                    await wrappedPubsubBaseStationSetPort({
+                            data: nullBuffer,
+                            attributes: {}
+                        })
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.equal(Errors.DATA_MISSING)
+            })
+
+            it('Should throw error if message is send with Base Station UUID but no port', async () => {
+                const wrappedPubsubBaseStationSetPort = test.wrap(myFunctions.pubsubBaseStationSetPort)
+
+                let error = null
+                
+                try{
+                    await wrappedPubsubBaseStationSetPort({
+                            data: nullBuffer,
+                            attributes: {
+                                base_station_UUID : baseStationUUID
+                            }
+                        })
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.equal(Errors.DATA_MISSING)
+            })
+
+            it('Should throw error if Base Station port is not a number', async () => {
+                const wrappedPubsubBaseStationSetPort = test.wrap(myFunctions.pubsubBaseStationSetPort)
+
+                let error = null
+                
+                try{
+                    await wrappedPubsubBaseStationSetPort({
+                            data: nullBuffer,
+                            attributes: {
+                                base_station_UUID : baseStationUUID,
+                                base_station_port : 'abc'
+                            }
+                        })
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.equal(Errors.DATA_VALIATION_ERROR)
+            })
+
+            it('Should throw error if Base Station port is larger than 65535', async () => {
+                const wrappedPubsubBaseStationSetPort = test.wrap(myFunctions.pubsubBaseStationSetPort)
+
+                let error = null
+                
+                try{
+                    await wrappedPubsubBaseStationSetPort({
+                            data: nullBuffer,
+                            attributes: {
+                                base_station_UUID : baseStationUUID,
+                                base_station_port : 65536
+                            }
+                        })
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.equal(Errors.DATA_VALIATION_ERROR)
+            })
+
+            it('Should throw error if Base Station is found with the particular Base Station UUID', async () => {
+                const wrappedPubsubBaseStationSetPort = test.wrap(myFunctions.pubsubBaseStationSetPort)
+
+                let error = null
+                
+                try{
+                    await wrappedPubsubBaseStationSetPort({
+                            data: nullBuffer,
+                            attributes: {
+                                base_station_UUID : baseStationUUID,
+                                base_station_port : 8080
+                            }
+                        })
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.equal(Errors.MODEL_NOT_FOUND)
+            })
+
+            it('Should update port number of Base Station', async () => {
+
+                // mock data
+                firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`] = {}
+
+                const wrappedPubsubBaseStationSetPort = test.wrap(myFunctions.pubsubBaseStationSetPort)
+
+                let error = null
+                
+                try{
+                    await wrappedPubsubBaseStationSetPort({
+                            data: nullBuffer,
+                            attributes: {
+                                base_station_UUID : baseStationUUID,
+                                base_station_port : 8080
+                            }
+                        })
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.null
+                
+                const baseStationDoc = firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]
+                const expectedBaseStationDoc = {
+                    [BaseStation.f.WEBSOCKET._] : {
+                        [BaseStation.f.WEBSOCKET.PORT] : 8080
+                    }
+                }
+
+                expect(baseStationDoc).to.be.deep.equal(expectedBaseStationDoc)
+            })
+        })
 
         describe('Topic: Sensor Notification', () => {
 
@@ -1869,8 +2006,7 @@ describe('Integration_Test', () => {
                 const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
 
                 // mock data
-                firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`] = {
-                }
+                firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`] = {}
 
                 firestoreStub.data()[`${Models.SENSOR}${Models.SECURE_SURFIX}/${sensorOneUUID}`] = {
                     [Models.USER] : {

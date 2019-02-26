@@ -33,8 +33,8 @@ const expect = chai.expect
 describe('Integration_Test', () => {
 
     const firestoreStub = new FirestoreStub()
-    let adminInitStub: sinon.SinonStub
     let adminFirestoreStub: sinon.SinonStub
+    let adminInitStub: sinon.SinonStub
     let adminAuthStub: sinon.SinonStub
     const setCustomUserClaimsSpy = sinon.spy()
 
