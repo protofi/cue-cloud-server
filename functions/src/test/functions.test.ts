@@ -1700,15 +1700,15 @@ describe('Integration_Test', () => {
             })
         })
 
-        describe('Topic: Base Station Init', () => {
+        describe('Topic: Base Station Initialize', () => {
 
             it('Sending a message with no Base Station UUID should fail', async () => {
-                const wrappedPubsubBaseStationInit = test.wrap(myFunctions.pubsubBaseStationInit)
+                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
 
                 let error = null
                 
                 try{
-                    await wrappedPubsubBaseStationInit({
+                    await wrappedPubsubBaseStationInitialize({
                             data: nullDataBuffer
                         })
                 }
@@ -1729,7 +1729,7 @@ describe('Integration_Test', () => {
                     [BaseStation.f.PIN] : pin
                 }
 
-                const wrappedPubsubBaseStationInit = test.wrap(myFunctions.pubsubBaseStationInit)
+                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
 
                 let error = null
 
@@ -1739,7 +1739,7 @@ describe('Integration_Test', () => {
                         base_station_UUID : baseStationUUID
                     }
 
-                    await wrappedPubsubBaseStationInit({
+                    await wrappedPubsubBaseStationInitialize({
                             data: Buffer.from(JSON.stringify(payload)).toString("base64")
                         })
                 }
@@ -1763,7 +1763,7 @@ describe('Integration_Test', () => {
 
             it('Should create Base Station', async () => {
 
-                const wrappedPubsubBaseStationInit = test.wrap(myFunctions.pubsubBaseStationInit)
+                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
 
                 let error = null
                 
@@ -1773,7 +1773,7 @@ describe('Integration_Test', () => {
                         base_station_UUID : baseStationUUID
                     }
 
-                    await wrappedPubsubBaseStationInit({
+                    await wrappedPubsubBaseStationInitialize({
                             data: Buffer.from(JSON.stringify(payload)).toString("base64")
                         })
                 }
@@ -1791,7 +1791,7 @@ describe('Integration_Test', () => {
                     baseStationPin
                 ]
                 
-                const wrappedPubsubBaseStationInit = test.wrap(myFunctions.pubsubBaseStationInit)
+                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
 
                 let error = null
                 
@@ -1800,7 +1800,7 @@ describe('Integration_Test', () => {
                         base_station_UUID : baseStationUUID
                     }
 
-                    await wrappedPubsubBaseStationInit({
+                    await wrappedPubsubBaseStationInitialize({
                         data: Buffer.from(JSON.stringify(payload)).toString("base64")
                     })
                 }
@@ -1830,7 +1830,7 @@ describe('Integration_Test', () => {
                     baseStationTwoPin
                 ]
                 
-                const wrappedPubsubBaseStationInit = test.wrap(myFunctions.pubsubBaseStationInit)
+                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
                 let error = null
                 
                 try{
@@ -1838,7 +1838,7 @@ describe('Integration_Test', () => {
                         base_station_UUID : baseStationTwoUUID
                     }
 
-                    await wrappedPubsubBaseStationInit({
+                    await wrappedPubsubBaseStationInitialize({
                             data: Buffer.from(JSON.stringify(payload)).toString("base64")
                         })
                 }
@@ -1860,12 +1860,12 @@ describe('Integration_Test', () => {
         describe('Topic: Base Station Set Port', () => {
             
             it('Should throw error if message with no Base Station UUID is send', async () => {
-                const wrappedPubsubBaseStationSetPort = test.wrap(myFunctions.pubsubBaseStationSetPort)
+                const wrappedPubsubBaseStationUpdateWebsocket = test.wrap(myFunctions.pubsubBaseStationUpdateWebsocket)
 
                 let error = null
                 
                 try{
-                    await wrappedPubsubBaseStationSetPort({
+                    await wrappedPubsubBaseStationUpdateWebsocket({
                             data: nullDataBuffer,
                             attributes: {}
                         })
@@ -1878,12 +1878,12 @@ describe('Integration_Test', () => {
             })
 
             it('Should throw error if message is send with Base Station UUID but no port', async () => {
-                const wrappedPubsubBaseStationSetPort = test.wrap(myFunctions.pubsubBaseStationSetPort)
+                const wrappedPubsubBaseStationUpdateWebsocket = test.wrap(myFunctions.pubsubBaseStationUpdateWebsocket)
 
                 let error = null
                 
                 try{
-                    await wrappedPubsubBaseStationSetPort({
+                    await wrappedPubsubBaseStationUpdateWebsocket({
                             data: nullDataBuffer,
                             attributes: {
                                 base_station_UUID : baseStationUUID
@@ -1898,12 +1898,12 @@ describe('Integration_Test', () => {
             })
 
             it('Should throw error if Base Station port is not a number', async () => {
-                const wrappedPubsubBaseStationSetPort = test.wrap(myFunctions.pubsubBaseStationSetPort)
+                const wrappedPubsubBaseStationUpdateWebsocket = test.wrap(myFunctions.pubsubBaseStationUpdateWebsocket)
 
                 let error = null
                 
                 try{
-                    await wrappedPubsubBaseStationSetPort({
+                    await wrappedPubsubBaseStationUpdateWebsocket({
                             data: nullDataBuffer,
                             attributes: {
                                 base_station_UUID : baseStationUUID,
@@ -1919,12 +1919,12 @@ describe('Integration_Test', () => {
             })
 
             it('Should throw error if Base Station port is larger than 65535', async () => {
-                const wrappedPubsubBaseStationSetPort = test.wrap(myFunctions.pubsubBaseStationSetPort)
+                const wrappedPubsubBaseStationUpdateWebsocket = test.wrap(myFunctions.pubsubBaseStationUpdateWebsocket)
 
                 let error = null
                 
                 try{
-                    await wrappedPubsubBaseStationSetPort({
+                    await wrappedPubsubBaseStationUpdateWebsocket({
                             data: nullDataBuffer,
                             attributes: {
                                 base_station_UUID : baseStationUUID,
@@ -1940,12 +1940,12 @@ describe('Integration_Test', () => {
             })
 
             it('Should throw error if Base Station is found with the particular Base Station UUID', async () => {
-                const wrappedPubsubBaseStationSetPort = test.wrap(myFunctions.pubsubBaseStationSetPort)
+                const wrappedPubsubBaseStationUpdateWebsocket = test.wrap(myFunctions.pubsubBaseStationUpdateWebsocket)
 
                 let error = null
                 
                 try{
-                    await wrappedPubsubBaseStationSetPort({
+                    await wrappedPubsubBaseStationUpdateWebsocket({
                             data: nullDataBuffer,
                             attributes: {
                                 base_station_UUID : baseStationUUID,
@@ -1967,12 +1967,12 @@ describe('Integration_Test', () => {
                     [BaseStation.f.PIN] : 123
                 }
 
-                const wrappedPubsubBaseStationSetPort = test.wrap(myFunctions.pubsubBaseStationSetPort)
+                const wrappedPubsubBaseStationUpdateWebsocket = test.wrap(myFunctions.pubsubBaseStationUpdateWebsocket)
 
                 let error = null
                 
                 try{
-                    await wrappedPubsubBaseStationSetPort({
+                    await wrappedPubsubBaseStationUpdateWebsocket({
                             data: nullDataBuffer,
                             attributes: {
                                 base_station_UUID : baseStationUUID,
