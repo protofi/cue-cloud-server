@@ -13,7 +13,7 @@ export enum Errors {
     NOT_RELATED                 = 'No relation found.',
     UNAUTHORIZED                = 'You do not have sufficient privileges.',
     NO_SENSOR_UUID              = 'Sensor UUID cannot be undefined or null.',
-    MODEL_ALREADY_EXISTS        = 'A model to the given ID already exists.',
+    MODEL_ALREADY_EXISTS        = 'A model with the given ID already exists.',
     MODEL_NOT_FOUND             = 'No model was found.',
     NO_BASE_STATION             = 'No Base Station was found.',
     SENSOR_ALREADY_PAIRED       = 'The sensor UUID is already paired.',

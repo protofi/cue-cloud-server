@@ -15,7 +15,9 @@ exports = module.exports = pubsub.topic(topicName)
 
     const db = new DataORMImpl(admin.firestore())
 
-    const baseStationUUID = JSON.parse(message.data).base_station_UUID
+    const decodePayload = Buffer.from(message.data, 'base64').toString('ascii')
+
+    const baseStationUUID = JSON.parse(decodePayload).base_station_UUID
     
     if(!baseStationUUID)
         throw new Error(Errors.DATA_MISSING)
@@ -24,5 +26,5 @@ exports = module.exports = pubsub.topic(topicName)
 
     return db.baseStation(null, baseStationUUID).create({
         [BaseStation.f.PIN] : code
-    })
+    }).catch(console.error)
 })

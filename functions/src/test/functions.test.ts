@@ -1435,7 +1435,8 @@ describe('Integration_Test', () => {
 
     describe('Pub/Sub', () => {
         
-        const nullData            = JSON.stringify({})
+        const consoleErrorStub      = sinon.stub(console, 'error')
+        const nullDataBuffer        = Buffer.from(JSON.stringify({})).toString("base64")
         const householdId           = uniqid()
         const baseStationUUID       = fakeUUID()
         const baseStationTwoUUID    = fakeUUID()
@@ -1454,6 +1455,7 @@ describe('Integration_Test', () => {
         }
 
         before(() => {
+
             sinon.stub(randomstring, 'generate').get(() => {
                 return () => {
                     return getNextPinCode()
@@ -1464,6 +1466,7 @@ describe('Integration_Test', () => {
         beforeEach(() => {
             messagingSendToDeviceSpy.resetHistory()
             firestoreStub.reset()
+            consoleErrorStub.reset()
             baseStationPins = []
             baseStationPinCount = 0
         })
@@ -1478,7 +1481,7 @@ describe('Integration_Test', () => {
                 try{
 
                     await wrappedPubsubBaseStationNewSensor({
-                            data: nullData,
+                            data: nullDataBuffer,
                             attributes: {
                                 sensor_UUID: sensorOneUUID
                             }}
@@ -1510,7 +1513,7 @@ describe('Integration_Test', () => {
                 try{
 
                     await wrappedPubsubBaseStationNewSensor({
-                            data: nullData,
+                            data: nullDataBuffer,
                             attributes: {
                                 base_station_UUID : baseStationUUID
                             }}
@@ -1542,7 +1545,7 @@ describe('Integration_Test', () => {
                 try{
 
                     await wrappedPubsubBaseStationNewSensor({
-                            data: nullData
+                            data: nullDataBuffer
                         })
                 }
                 catch(e) {
@@ -1562,7 +1565,7 @@ describe('Integration_Test', () => {
                 try{
 
                     await wrappedPubsubBaseStationNewSensor({
-                        data: nullData,
+                        data: nullDataBuffer,
                         attributes: {
                             base_station_UUID : baseStationUUID,
                             sensor_UUID: sensorOneUUID
@@ -1591,7 +1594,7 @@ describe('Integration_Test', () => {
                 try{
 
                     await wrappedPubsubBaseStationNewSensor({
-                            data: nullData,
+                            data: nullDataBuffer,
                             attributes: {
                                 base_station_UUID : baseStationUUID,
                                 sensor_UUID: sensorOneUUID
@@ -1630,7 +1633,7 @@ describe('Integration_Test', () => {
                 try{
 
                     await wrappedPubsubBaseStationNewSensor({
-                            data: nullData,
+                            data: nullDataBuffer,
                             attributes: {
                                 base_station_UUID : baseStationUUID,
                                 sensor_UUID: sensorOneUUID
@@ -1671,7 +1674,7 @@ describe('Integration_Test', () => {
                 const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
 
                 await wrappedPubsubBaseStationNewSensor({
-                        data: nullData,
+                        data: nullDataBuffer,
                         attributes: {
                             base_station_UUID : baseStationUUID,
                             sensor_UUID: sensorOneUUID
@@ -1706,8 +1709,7 @@ describe('Integration_Test', () => {
                 
                 try{
                     await wrappedPubsubBaseStationInit({
-                            data: nullData,
-                            attributes: {}
+                            data: nullDataBuffer
                         })
                 }
                 catch(e) {
@@ -1730,21 +1732,26 @@ describe('Integration_Test', () => {
                 const wrappedPubsubBaseStationInit = test.wrap(myFunctions.pubsubBaseStationInit)
 
                 let error = null
-                
+
                 try{
 
+                    const payload = {
+                        base_station_UUID : baseStationUUID
+                    }
+
                     await wrappedPubsubBaseStationInit({
-                            data: nullData,
-                            attributes: {
-                                base_station_UUID : baseStationUUID
-                            }
+                            data: Buffer.from(JSON.stringify(payload)).toString("base64")
                         })
                 }
                 catch(e) {
                     error = e.message
                 }
 
-                expect(error).to.not.be.null
+                expect(error).to.be.null
+
+                const consoleError = consoleErrorStub.getCall(0).args[0]
+
+                expect(consoleError.message).to.equal(Errors.MODEL_ALREADY_EXISTS)
 
                 const baseStationDoc = firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]
                 const expectedBaseStationDoc = {
@@ -1755,14 +1762,19 @@ describe('Integration_Test', () => {
             })
 
             it('Should create Base Station', async () => {
+
                 const wrappedPubsubBaseStationInit = test.wrap(myFunctions.pubsubBaseStationInit)
 
                 let error = null
                 
                 try{
 
+                    const payload = {
+                        base_station_UUID : baseStationUUID
+                    }
+
                     await wrappedPubsubBaseStationInit({
-                            data: JSON.stringify({base_station_UUID : baseStationUUID})
+                            data: Buffer.from(JSON.stringify(payload)).toString("base64")
                         })
                 }
                 catch(e) {
@@ -1784,10 +1796,13 @@ describe('Integration_Test', () => {
                 let error = null
                 
                 try{
+                    const payload = {
+                        base_station_UUID : baseStationUUID
+                    }
 
                     await wrappedPubsubBaseStationInit({
-                            data: JSON.stringify({base_station_UUID : baseStationUUID})
-                        })
+                        data: Buffer.from(JSON.stringify(payload)).toString("base64")
+                    })
                 }
                 catch(e) {
                     error = e.message
@@ -1819,9 +1834,12 @@ describe('Integration_Test', () => {
                 let error = null
                 
                 try{
+                    const payload = {
+                        base_station_UUID : baseStationTwoUUID
+                    }
 
                     await wrappedPubsubBaseStationInit({
-                            data: JSON.stringify({base_station_UUID : baseStationTwoUUID})
+                            data: Buffer.from(JSON.stringify(payload)).toString("base64")
                         })
                 }
                 catch(e) {
@@ -1848,7 +1866,7 @@ describe('Integration_Test', () => {
                 
                 try{
                     await wrappedPubsubBaseStationSetPort({
-                            data: nullData,
+                            data: nullDataBuffer,
                             attributes: {}
                         })
                 }
@@ -1866,7 +1884,7 @@ describe('Integration_Test', () => {
                 
                 try{
                     await wrappedPubsubBaseStationSetPort({
-                            data: nullData,
+                            data: nullDataBuffer,
                             attributes: {
                                 base_station_UUID : baseStationUUID
                             }
@@ -1886,7 +1904,7 @@ describe('Integration_Test', () => {
                 
                 try{
                     await wrappedPubsubBaseStationSetPort({
-                            data: nullData,
+                            data: nullDataBuffer,
                             attributes: {
                                 base_station_UUID : baseStationUUID,
                                 base_station_port : 'abc'
@@ -1907,7 +1925,7 @@ describe('Integration_Test', () => {
                 
                 try{
                     await wrappedPubsubBaseStationSetPort({
-                            data: nullData,
+                            data: nullDataBuffer,
                             attributes: {
                                 base_station_UUID : baseStationUUID,
                                 base_station_port : 65536
@@ -1928,7 +1946,7 @@ describe('Integration_Test', () => {
                 
                 try{
                     await wrappedPubsubBaseStationSetPort({
-                            data: nullData,
+                            data: nullDataBuffer,
                             attributes: {
                                 base_station_UUID : baseStationUUID,
                                 base_station_port : 8080
@@ -1955,7 +1973,7 @@ describe('Integration_Test', () => {
                 
                 try{
                     await wrappedPubsubBaseStationSetPort({
-                            data: nullData,
+                            data: nullDataBuffer,
                             attributes: {
                                 base_station_UUID : baseStationUUID,
                                 base_station_port : 8080
