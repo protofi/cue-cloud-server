@@ -15,7 +15,7 @@ exports = module.exports = pubsub.topic(topicName)
 
     const db = new DataORMImpl(admin.firestore())
 
-    const baseStationUUID = message.attributes.base_station_UUID
+    const baseStationUUID = JSON.parse(message.data).base_station_UUID
     
     if(!baseStationUUID)
         throw new Error(Errors.DATA_MISSING)
