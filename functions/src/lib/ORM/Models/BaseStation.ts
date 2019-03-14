@@ -11,7 +11,8 @@ export default class BaseStation extends ModelImpl {
         WEBSOCKET   : {
             _       : 'websocket',
             HOST    : 'hostname',
-            PORT    : 'port'
+            PORT    : 'port',
+            ADDRESS : 'address'
         }
     }
 

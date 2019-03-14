@@ -1884,8 +1884,13 @@ describe('Integration_Test', () => {
                 let error = null
                 
                 try{
+                    const payload = {
+                        base_station_port       : 8080,
+                        base_station_address    : faker.internet.ip
+                    }
+
                     await wrappedPubsubBaseStationUpdateWebsocket({
-                            data: nullDataBuffer,
+                            data: Buffer.from(JSON.stringify(payload)).toString("base64"),
                             attributes: {}
                         })
                 }
@@ -1896,14 +1901,43 @@ describe('Integration_Test', () => {
                 expect(error).to.be.equal(Errors.DATA_MISSING)
             })
 
-            it('Should throw error if message is send with Base Station UUID but no port', async () => {
+            
+            it('Should throw error if message is send missing port', async () => {
                 const wrappedPubsubBaseStationUpdateWebsocket = test.wrap(myFunctions.pubsubBaseStationUpdateWebsocket)
 
                 let error = null
                 
                 try{
+                    const payload = {
+                        base_station_address : faker.internet.ip
+                    }
+
                     await wrappedPubsubBaseStationUpdateWebsocket({
-                            data: nullDataBuffer,
+                            data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                            attributes: {
+                                deviceId : baseStationUUID
+                            }
+                        })
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.equal(Errors.DATA_MISSING)
+            })
+
+            it('Should throw error if message is send missing address', async () => {
+                const wrappedPubsubBaseStationUpdateWebsocket = test.wrap(myFunctions.pubsubBaseStationUpdateWebsocket)
+
+                let error = null
+                
+                try{
+                    const payload = {
+                        base_station_port : 8080
+                    }
+
+                    await wrappedPubsubBaseStationUpdateWebsocket({
+                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
                             attributes: {
                                 deviceId : baseStationUUID
                             }
@@ -1923,7 +1957,8 @@ describe('Integration_Test', () => {
                 
                 try{
                     const payload = {
-                        base_station_port : 'abc'
+                        base_station_port : 'abc',
+                        base_station_address : faker.internet.ip()
                     }
                     
                     await wrappedPubsubBaseStationUpdateWebsocket({
@@ -1947,7 +1982,33 @@ describe('Integration_Test', () => {
                 
                 try{
                     const payload = {
+                        base_station_address : faker.internet.ip(),
                         base_station_port : 65536
+                    }
+                    
+                    await wrappedPubsubBaseStationUpdateWebsocket({
+                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        attributes: {
+                            deviceId : baseStationUUID
+                        }
+                    })
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.equal(Errors.DATA_VALIATION_ERROR)
+            })
+            
+            it('Should throw error if IP address is not a valid IP address', async () => {
+                const wrappedPubsubBaseStationUpdateWebsocket = test.wrap(myFunctions.pubsubBaseStationUpdateWebsocket)
+
+                let error = null
+                
+                try{
+                    const payload = {
+                        base_station_address : 'abc123',
+                        base_station_port : 8080
                     }
                     
                     await wrappedPubsubBaseStationUpdateWebsocket({
@@ -1971,6 +2032,7 @@ describe('Integration_Test', () => {
                 
                 try{
                     const payload = {
+                        base_station_address : faker.internet.ip(),
                         base_station_port : 8080
                     }
                     
@@ -1988,8 +2050,9 @@ describe('Integration_Test', () => {
                 expect(error).to.be.equal(Errors.MODEL_NOT_FOUND)
             })
 
-            it('Should update port number of Base Station', async () => {
+            it('Should update port number and IP address of Base Station', async () => {
 
+                const newIP = faker.internet.ip()
                 const newPort = 8080
                 // mock data
                 firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`] = {
@@ -2002,7 +2065,8 @@ describe('Integration_Test', () => {
                 
                 try{
                     const payload = {
-                        base_station_port : newPort
+                        base_station_address    : newIP,
+                        base_station_port       : newPort
                     }
                     
                     await wrappedPubsubBaseStationUpdateWebsocket({
@@ -2022,7 +2086,8 @@ describe('Integration_Test', () => {
                 const expectedBaseStationDoc = {
                     [BaseStation.f.PIN] : 123,
                     [BaseStation.f.WEBSOCKET._] : {
-                        [BaseStation.f.WEBSOCKET.PORT] : newPort
+                        [BaseStation.f.WEBSOCKET.PORT] : newPort,
+                        [BaseStation.f.WEBSOCKET.ADDRESS] : newIP
                     }
                 }
 
