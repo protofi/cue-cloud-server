@@ -15,8 +15,11 @@ exports = module.exports = pubsub.topic(topicName)
 
     const db = new DataORMImpl(admin.firestore())
 
-    const baseStationUUID = message.attributes.base_station_UUID
-    const baseStationPort = message.attributes.base_station_port
+    const decodePayload = Buffer.from(message.data, 'base64').toString('ascii')
+    const payload = JSON.parse(decodePayload);
+
+    const baseStationUUID = message.attributes.deviceId
+    const baseStationPort = payload.base_station_port
     
     if(!baseStationUUID || !baseStationPort)
         throw new Error(Errors.DATA_MISSING)

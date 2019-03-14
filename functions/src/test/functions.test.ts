@@ -1471,6 +1471,164 @@ describe('Integration_Test', () => {
             baseStationPinCount = 0
         })
 
+        describe('Topic: Base Station Initialize', () => {
+
+            it('Sending a message with no Base Station UUID should fail', async () => {
+                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
+
+                let error = null
+                
+                try{
+                    await wrappedPubsubBaseStationInitialize({
+                            data: nullDataBuffer,
+                            attributes : {}
+                        })
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.equal(Errors.DATA_MISSING)
+
+                expect(firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]).to.not.exist
+            })
+
+            it('Should throw error if Base Station with UUID already exists', async () => {
+
+                const pin = uniqid()
+
+                firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`] = {
+                    [BaseStation.f.PIN] : pin
+                }
+
+                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
+
+                let error = null
+
+                try{
+
+                    await wrappedPubsubBaseStationInitialize({
+                            data: nullDataBuffer,
+                            attributes : {
+                                deviceId : baseStationUUID
+                            }
+                        })
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.null
+
+                const consoleError = consoleErrorStub.getCall(0).args[0]
+
+                expect(consoleError.message).to.equal(Errors.MODEL_ALREADY_EXISTS)
+
+                const baseStationDoc = firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]
+                const expectedBaseStationDoc = {
+                    [BaseStation.f.PIN] : pin
+                }
+
+                expect(baseStationDoc).to.be.deep.equal(expectedBaseStationDoc)
+            })
+
+            it('Should create Base Station', async () => {
+
+                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
+
+                let error = null
+                
+                try{
+
+                    await wrappedPubsubBaseStationInitialize({
+                            data: nullDataBuffer,
+                            attributes : {
+                                deviceId : baseStationUUID
+                            }
+                        })
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.null
+                expect(firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]).to.exist
+            })
+
+            it('Should create Base Station with a unique pin code', async () => {
+                
+                baseStationPins = [
+                    baseStationPin
+                ]
+                
+                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
+
+                let error = null
+                
+                try{
+                    
+                    await wrappedPubsubBaseStationInitialize({
+                        data: nullDataBuffer,
+                        attributes : {
+                            deviceId : baseStationUUID
+                        }
+                    })
+
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.null
+               
+                const baseStationDoc = firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]
+                const expectedBaseStationDoc = {
+                    [BaseStation.f.PIN] : baseStationPin
+                }
+
+                expect(baseStationDoc).to.be.deep.equal(expectedBaseStationDoc)
+            })
+
+            it('Should make sure no two Base Stations get assigned the same code', async () => {
+                
+                //mock data
+                firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`] = {
+                    [BaseStation.f.PIN] : baseStationPin
+                }
+
+                baseStationPins = [
+                    baseStationPin,
+                    baseStationTwoPin
+                ]
+                
+                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
+                let error = null
+                
+                try{
+                    
+                    await wrappedPubsubBaseStationInitialize({
+                        data: nullDataBuffer,
+                        attributes : {
+                            deviceId : baseStationTwoUUID
+                        }
+                    })
+
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.be.null
+               
+                const baseStationDoc = firestoreStub.data()[`${Models.BASE_STATION}/${baseStationTwoUUID}`]
+                const expectedBaseStationDoc = {
+                    [BaseStation.f.PIN] : baseStationTwoPin
+                }
+
+                expect(baseStationDoc).to.be.deep.equal(expectedBaseStationDoc)
+            })
+        })
+
         describe('Topic: Base Station New Sensor', () => {
 
             it('Sending a message with no Base Station UUID should fail', async () => {
@@ -1479,13 +1637,13 @@ describe('Integration_Test', () => {
                 let error = null
                 
                 try{
-
+                    const payload = {
+                        sensor_UUID: sensorOneUUID
+                    }
                     await wrappedPubsubBaseStationNewSensor({
-                            data: nullDataBuffer,
-                            attributes: {
-                                sensor_UUID: sensorOneUUID
-                            }}
-                        )
+                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        attributes : {}
+                    })
                 }
                 catch(e) {
                     error = e.message
@@ -1515,7 +1673,7 @@ describe('Integration_Test', () => {
                     await wrappedPubsubBaseStationNewSensor({
                             data: nullDataBuffer,
                             attributes: {
-                                base_station_UUID : baseStationUUID
+                                deviceId : baseStationUUID
                             }}
                         )
                 }
@@ -1564,11 +1722,13 @@ describe('Integration_Test', () => {
 
                 try{
 
+                    const payload = {
+                        sensor_UUID: sensorOneUUID
+                    }
                     await wrappedPubsubBaseStationNewSensor({
-                        data: nullDataBuffer,
+                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
                         attributes: {
-                            base_station_UUID : baseStationUUID,
-                            sensor_UUID: sensorOneUUID
+                            deviceId : baseStationUUID
                         }}
                     )
                 }
@@ -1592,12 +1752,13 @@ describe('Integration_Test', () => {
                 let error = null
 
                 try{
-
+                    const payload = {
+                        sensor_UUID: sensorOneUUID
+                    }
                     await wrappedPubsubBaseStationNewSensor({
-                            data: nullDataBuffer,
+                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
                             attributes: {
-                                base_station_UUID : baseStationUUID,
-                                sensor_UUID: sensorOneUUID
+                                deviceId : baseStationUUID,
                             }
                         })
                 }
@@ -1632,11 +1793,13 @@ describe('Integration_Test', () => {
 
                 try{
 
+                    const payload = {
+                        sensor_UUID: sensorOneUUID
+                    }
                     await wrappedPubsubBaseStationNewSensor({
-                            data: nullDataBuffer,
+                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
                             attributes: {
-                                base_station_UUID : baseStationUUID,
-                                sensor_UUID: sensorOneUUID
+                                deviceId : baseStationUUID
                             }
                         })
                 }
@@ -1665,6 +1828,7 @@ describe('Integration_Test', () => {
                         id : householdId
                     }
                 }
+
                 firestoreStub.setInjectionIds([
                     sensorOneUUID,
                     sensorOneUUID,
@@ -1673,13 +1837,25 @@ describe('Integration_Test', () => {
 
                 const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
 
-                await wrappedPubsubBaseStationNewSensor({
-                        data: nullDataBuffer,
-                        attributes: {
-                            base_station_UUID : baseStationUUID,
-                            sensor_UUID: sensorOneUUID
-                        }}
-                    )
+                let error = null
+
+                try{
+
+                    const payload = {
+                        sensor_UUID: sensorOneUUID
+                    }
+                    await wrappedPubsubBaseStationNewSensor({
+                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                            attributes: {
+                                deviceId : baseStationUUID
+                            }
+                        })
+                }
+                catch(e) {
+                    error = e.message
+                }
+
+                expect(error).to.not.exist
                 
                 const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]
                 const expectedSensorDoc = {
@@ -1700,164 +1876,7 @@ describe('Integration_Test', () => {
             })
         })
 
-        describe('Topic: Base Station Initialize', () => {
-
-            it('Sending a message with no Base Station UUID should fail', async () => {
-                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
-
-                let error = null
-                
-                try{
-                    await wrappedPubsubBaseStationInitialize({
-                            data: nullDataBuffer
-                        })
-                }
-                catch(e) {
-                    error = e.message
-                }
-
-                expect(error).to.be.equal(Errors.DATA_MISSING)
-
-                expect(firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]).to.not.exist
-            })
-
-            it('Should throw error if Base Station with UUID already exists', async () => {
-
-                const pin = uniqid()
-
-                firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`] = {
-                    [BaseStation.f.PIN] : pin
-                }
-
-                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
-
-                let error = null
-
-                try{
-
-                    const payload = {
-                        base_station_UUID : baseStationUUID
-                    }
-
-                    await wrappedPubsubBaseStationInitialize({
-                            data: Buffer.from(JSON.stringify(payload)).toString("base64")
-                        })
-                }
-                catch(e) {
-                    error = e.message
-                }
-
-                expect(error).to.be.null
-
-                const consoleError = consoleErrorStub.getCall(0).args[0]
-
-                expect(consoleError.message).to.equal(Errors.MODEL_ALREADY_EXISTS)
-
-                const baseStationDoc = firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]
-                const expectedBaseStationDoc = {
-                    [BaseStation.f.PIN] : pin
-                }
-
-                expect(baseStationDoc).to.be.deep.equal(expectedBaseStationDoc)
-            })
-
-            it('Should create Base Station', async () => {
-
-                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
-
-                let error = null
-                
-                try{
-
-                    const payload = {
-                        base_station_UUID : baseStationUUID
-                    }
-
-                    await wrappedPubsubBaseStationInitialize({
-                            data: Buffer.from(JSON.stringify(payload)).toString("base64")
-                        })
-                }
-                catch(e) {
-                    error = e.message
-                }
-
-                expect(error).to.be.null
-                expect(firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]).to.exist
-            })
-
-            it('Should create Base Station with a unique pin code', async () => {
-                
-                baseStationPins = [
-                    baseStationPin
-                ]
-                
-                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
-
-                let error = null
-                
-                try{
-                    const payload = {
-                        base_station_UUID : baseStationUUID
-                    }
-
-                    await wrappedPubsubBaseStationInitialize({
-                        data: Buffer.from(JSON.stringify(payload)).toString("base64")
-                    })
-                }
-                catch(e) {
-                    error = e.message
-                }
-
-                expect(error).to.be.null
-               
-                const baseStationDoc = firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]
-                const expectedBaseStationDoc = {
-                    [BaseStation.f.PIN] : baseStationPin
-                }
-
-                expect(baseStationDoc).to.be.deep.equal(expectedBaseStationDoc)
-            })
-
-            it('Should make sure no two Base Stations get assigned the same code', async () => {
-                
-                //mock data
-                firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`] = {
-                    [BaseStation.f.PIN] : baseStationPin
-                }
-
-                baseStationPins = [
-                    baseStationPin,
-                    baseStationTwoPin
-                ]
-                
-                const wrappedPubsubBaseStationInitialize = test.wrap(myFunctions.pubsubBaseStationInitialize)
-                let error = null
-                
-                try{
-                    const payload = {
-                        base_station_UUID : baseStationTwoUUID
-                    }
-
-                    await wrappedPubsubBaseStationInitialize({
-                            data: Buffer.from(JSON.stringify(payload)).toString("base64")
-                        })
-                }
-                catch(e) {
-                    error = e.message
-                }
-
-                expect(error).to.be.null
-               
-                const baseStationDoc = firestoreStub.data()[`${Models.BASE_STATION}/${baseStationTwoUUID}`]
-                const expectedBaseStationDoc = {
-                    [BaseStation.f.PIN] : baseStationTwoPin
-                }
-
-                expect(baseStationDoc).to.be.deep.equal(expectedBaseStationDoc)
-            })
-        })
-
-        describe('Topic: Base Station Set Port', () => {
+        describe('Topic: Base Station Update Websocket', () => {
             
             it('Should throw error if message with no Base Station UUID is send', async () => {
                 const wrappedPubsubBaseStationUpdateWebsocket = test.wrap(myFunctions.pubsubBaseStationUpdateWebsocket)
@@ -1886,7 +1905,7 @@ describe('Integration_Test', () => {
                     await wrappedPubsubBaseStationUpdateWebsocket({
                             data: nullDataBuffer,
                             attributes: {
-                                base_station_UUID : baseStationUUID
+                                deviceId : baseStationUUID
                             }
                         })
                 }
@@ -1903,13 +1922,16 @@ describe('Integration_Test', () => {
                 let error = null
                 
                 try{
+                    const payload = {
+                        base_station_port : 'abc'
+                    }
+                    
                     await wrappedPubsubBaseStationUpdateWebsocket({
-                            data: nullDataBuffer,
-                            attributes: {
-                                base_station_UUID : baseStationUUID,
-                                base_station_port : 'abc'
-                            }
-                        })
+                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        attributes: {
+                            deviceId : baseStationUUID
+                        }
+                    })
                 }
                 catch(e) {
                     error = e.message
@@ -1918,19 +1940,22 @@ describe('Integration_Test', () => {
                 expect(error).to.be.equal(Errors.DATA_VALIATION_ERROR)
             })
 
-            it('Should throw error if Base Station port is larger than 65535', async () => {
+            it('Should throw error if Base Station port number is greater than 65535', async () => {
                 const wrappedPubsubBaseStationUpdateWebsocket = test.wrap(myFunctions.pubsubBaseStationUpdateWebsocket)
 
                 let error = null
                 
                 try{
+                    const payload = {
+                        base_station_port : 65536
+                    }
+                    
                     await wrappedPubsubBaseStationUpdateWebsocket({
-                            data: nullDataBuffer,
-                            attributes: {
-                                base_station_UUID : baseStationUUID,
-                                base_station_port : 65536
-                            }
-                        })
+                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        attributes: {
+                            deviceId : baseStationUUID
+                        }
+                    })
                 }
                 catch(e) {
                     error = e.message
@@ -1945,13 +1970,16 @@ describe('Integration_Test', () => {
                 let error = null
                 
                 try{
+                    const payload = {
+                        base_station_port : 8080
+                    }
+                    
                     await wrappedPubsubBaseStationUpdateWebsocket({
-                            data: nullDataBuffer,
-                            attributes: {
-                                base_station_UUID : baseStationUUID,
-                                base_station_port : 8080
-                            }
-                        })
+                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        attributes: {
+                            deviceId : baseStationUUID
+                        }
+                    })
                 }
                 catch(e) {
                     error = e.message
@@ -1962,6 +1990,7 @@ describe('Integration_Test', () => {
 
             it('Should update port number of Base Station', async () => {
 
+                const newPort = 8080
                 // mock data
                 firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`] = {
                     [BaseStation.f.PIN] : 123
@@ -1972,13 +2001,16 @@ describe('Integration_Test', () => {
                 let error = null
                 
                 try{
+                    const payload = {
+                        base_station_port : newPort
+                    }
+                    
                     await wrappedPubsubBaseStationUpdateWebsocket({
-                            data: nullDataBuffer,
-                            attributes: {
-                                base_station_UUID : baseStationUUID,
-                                base_station_port : 8080
-                            }
-                        })
+                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        attributes: {
+                            deviceId : baseStationUUID
+                        }
+                    })
                 }
                 catch(e) {
                     error = e.message
@@ -1990,7 +2022,7 @@ describe('Integration_Test', () => {
                 const expectedBaseStationDoc = {
                     [BaseStation.f.PIN] : 123,
                     [BaseStation.f.WEBSOCKET._] : {
-                        [BaseStation.f.WEBSOCKET.PORT] : 8080
+                        [BaseStation.f.WEBSOCKET.PORT] : newPort
                     }
                 }
 
@@ -2007,7 +2039,7 @@ describe('Integration_Test', () => {
                 const wrappedPubsubSensorNotification = test.wrap(myFunctions.pubsubSensorNotification)
                 
                 await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
+                    data: nullDataBuffer,
                     attributes: {}
                 })
 
@@ -2035,11 +2067,13 @@ describe('Integration_Test', () => {
                     }
                 }
 
+                const payload = {
+                    sensor_UUID : sensorOneUUID
+                }
+
                 await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
-                    attributes: {
-                        sensor_UUID : sensorOneUUID
-                    }
+                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    attributes: {}
                 })
 
                 const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]
@@ -2064,11 +2098,13 @@ describe('Integration_Test', () => {
                     }
                 }
 
+                const payload = {
+                    sensor_UUID : sensorOneUUID
+                }
+
                 await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
-                    attributes: {
-                        sensor_UUID : sensorOneUUID
-                    }
+                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    attributes: {}
                 })
 
                 const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]
@@ -2100,11 +2136,13 @@ describe('Integration_Test', () => {
                     }
                 }
 
+                const payload = {
+                    sensor_UUID : sensorOneUUID
+                }
+
                 await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
-                    attributes: {
-                        sensor_UUID : sensorOneUUID
-                    }
+                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    attributes: {}
                 })
 
                 const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]
@@ -2115,9 +2153,9 @@ describe('Integration_Test', () => {
 
                 expect(sensorDoc).is.deep.equal(expectedSensorDoc)
 
-                const payload = messagingSendToDeviceSpy.args[0][1]
+                const messagePayload = messagingSendToDeviceSpy.args[0][1]
 
-                expect(payload.data.title).is.equal('Unconfigured sensor')
+                expect(messagePayload.data.title).is.equal('Unconfigured sensor')
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
             })
 
@@ -2141,12 +2179,15 @@ describe('Integration_Test', () => {
                     }
                 }
 
+                const payload = {
+                    sensor_UUID : sensorOneUUID
+                }
+
                 await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
-                    attributes: {
-                        sensor_UUID : sensorOneUUID
-                    }
+                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    attributes: {}
                 })
+
                 
                 const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]
                 const expectedSensorDoc = {
@@ -2156,9 +2197,9 @@ describe('Integration_Test', () => {
 
                 expect(sensorDoc).is.deep.equal(expectedSensorDoc)
 
-                const payload = messagingSendToDeviceSpy.args[0][1]
+                const messagePayload = messagingSendToDeviceSpy.args[0][1]
 
-                expect(payload.notification.title).is.equal('Unconfigured sensor')
+                expect(messagePayload.notification.title).is.equal('Unconfigured sensor')
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
             })
 
@@ -2182,11 +2223,13 @@ describe('Integration_Test', () => {
                     }
                 }
 
+                const payload = {
+                    sensor_UUID : sensorOneUUID
+                }
+
                 await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
-                    attributes: {
-                        sensor_UUID : sensorOneUUID
-                    }
+                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    attributes: {}
                 })
 
                 const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]
@@ -2197,9 +2240,9 @@ describe('Integration_Test', () => {
 
                 expect(sensorDoc).is.deep.equal(expectedSensorDoc)
 
-                const payload = messagingSendToDeviceSpy.args[0][1]
+                const messagePayload = messagingSendToDeviceSpy.args[0][1]
 
-                expect(payload.data.title).is.equal('Unconfigured sensor')
+                expect(messagePayload.data.title).is.equal('Unconfigured sensor')
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
             })
 
@@ -2223,11 +2266,13 @@ describe('Integration_Test', () => {
                     }
                 }
 
+                const payload = {
+                    sensor_UUID : sensorOneUUID
+                }
+
                 await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
-                    attributes: {
-                        sensor_UUID : sensorOneUUID
-                    }
+                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    attributes: {}
                 })
 
                 const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]
@@ -2238,9 +2283,9 @@ describe('Integration_Test', () => {
 
                 expect(sensorDoc).is.deep.equal(expectedSensorDoc)
 
-                const payload = messagingSendToDeviceSpy.args[0][1]
+                const messagePayload = messagingSendToDeviceSpy.args[0][1]
 
-                expect(payload.notification.title).is.equal('Unconfigured sensor')
+                expect(messagePayload.notification.title).is.equal('Unconfigured sensor')
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
             })
 
@@ -2268,11 +2313,13 @@ describe('Integration_Test', () => {
                     }
                 }
 
+                const payload = {
+                    sensor_UUID : sensorOneUUID
+                }
+
                 await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
-                    attributes: {
-                        sensor_UUID : sensorOneUUID
-                    }
+                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    attributes: {}
                 })
 
                 const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]
@@ -2284,11 +2331,11 @@ describe('Integration_Test', () => {
 
                 expect(sensorDoc).is.deep.equal(expectedSensorDoc)
 
-                const payload = messagingSendToDeviceSpy.args[0][1]
+                const massagePayload = messagingSendToDeviceSpy.args[0][1]
 
                 const generatedTitle = _.capitalize(`${sensorName} lyder i ${sensorLocation}`)
 
-                expect(payload.notification.title).is.equal(generatedTitle)
+                expect(massagePayload.notification.title).is.equal(generatedTitle)
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
             })
 
@@ -2316,11 +2363,13 @@ describe('Integration_Test', () => {
                     }
                 }
 
+                const payload = {
+                    sensor_UUID : sensorOneUUID
+                }
+
                 await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
-                    attributes: {
-                        sensor_UUID : sensorOneUUID
-                    }
+                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    attributes: {}
                 })
 
                 const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]
@@ -2332,11 +2381,11 @@ describe('Integration_Test', () => {
 
                 expect(sensorDoc).is.deep.equal(expectedSensorDoc)
 
-                const payload = messagingSendToDeviceSpy.args[0][1]
+                const messagePayload = messagingSendToDeviceSpy.args[0][1]
 
                 const generatedTitle = _.capitalize(`${sensorName} lyder i ${sensorLocation}`)
 
-                expect(payload.data.title).is.equal(generatedTitle)
+                expect(messagePayload.data.title).is.equal(generatedTitle)
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
             })
 
@@ -2358,11 +2407,13 @@ describe('Integration_Test', () => {
                     }
                 }
 
+                const payload = {
+                    sensor_UUID : sensorOneUUID
+                }
+
                 await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
-                    attributes: {
-                        sensor_UUID : sensorOneUUID
-                    }
+                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    attributes: {}
                 })
 
                 const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]
@@ -2373,10 +2424,10 @@ describe('Integration_Test', () => {
                 expect(sensorDoc).is.deep.equal(expectedSensorDoc)
 
                 const sendToTokens = messagingSendToDeviceSpy.args[0][0]
-                const payload = messagingSendToDeviceSpy.args[0][1]
+                const messagePayload = messagingSendToDeviceSpy.args[0][1]
 
                 expect(sendToTokens).to.include(FCMTokenOne)
-                expect(_.keys(payload)).to.not.include('notification')
+                expect(_.keys(messagePayload)).to.not.include('notification')
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
             })
             
@@ -2398,11 +2449,13 @@ describe('Integration_Test', () => {
                     }
                 }
 
+                const payload = {
+                    sensor_UUID : sensorOneUUID
+                }
+
                 await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
-                    attributes: {
-                        sensor_UUID : sensorOneUUID
-                    }
+                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    attributes: {}
                 })
 
                 const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]
@@ -2413,10 +2466,10 @@ describe('Integration_Test', () => {
                 expect(sensorDoc).is.deep.equal(expectedSensorDoc)
 
                 const sendToTokens = messagingSendToDeviceSpy.args[0][0]
-                const payload = messagingSendToDeviceSpy.args[0][1]
+                const messagePayload = messagingSendToDeviceSpy.args[0][1]
 
                 expect(sendToTokens).to.include(FCMTokenOne)
-                expect(_.keys(payload)).to.include('notification')
+                expect(_.keys(messagePayload)).to.include('notification')
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(1)
             })
 
@@ -2446,11 +2499,13 @@ describe('Integration_Test', () => {
                     }
                 }
 
+                const payload = {
+                    sensor_UUID : sensorOneUUID
+                }
+
                 await wrappedPubsubSensorNotification({
-                    data: new Buffer(''),
-                    attributes: {
-                        sensor_UUID : sensorOneUUID
-                    }
+                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    attributes: {}
                 })
 
                 const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]

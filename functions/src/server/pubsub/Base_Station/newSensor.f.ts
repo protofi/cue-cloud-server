@@ -18,8 +18,11 @@ exports = module.exports = functions.pubsub
 
     const db = new DataORMImpl(admin.firestore())
 
-    const baseStationUUID   = message.attributes.base_station_UUID
-    const sensorUUID        = message.attributes.sensor_UUID
+    const decodePayload = Buffer.from(message.data, 'base64').toString('ascii')
+    const payload = JSON.parse(decodePayload)
+
+    const baseStationUUID   = message.attributes.deviceId
+    const sensorUUID        = payload.sensor_UUID
 
     if(!sensorUUID) throw Error(Errors.NO_SENSOR_UUID)
 

@@ -19,7 +19,10 @@ exports = module.exports = pubsub
     try{
 		const db = new DataORMImpl(firestore())
 
-		const sensorUUID = message.attributes.sensor_UUID
+		const decodePayload = Buffer.from(message.data, 'base64').toString('ascii')
+    	const payload = JSON.parse(decodePayload);
+
+		const sensorUUID = payload.sensor_UUID
 
 		const sensor = await db.sensor().findOrFail(sensorUUID)
 

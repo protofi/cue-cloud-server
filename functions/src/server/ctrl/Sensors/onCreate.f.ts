@@ -5,7 +5,7 @@ import { firestore } from 'firebase-admin'
 import Sensor from '../../lib/ORM/Models/Sensor';
 
 exports = module.exports = functions.firestore
-.document(`${Models.SENSOR}/{householdId}`)
+.document(`${Models.SENSOR}/{sensorId}`)
 .onCreate((snap: FirebaseFirestore.DocumentSnapshot, context) => {
 
     let sensor: Sensor
