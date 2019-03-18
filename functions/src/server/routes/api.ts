@@ -12,6 +12,8 @@ import { isEmpty } from 'lodash'
 import { Errors } from '../lib/const';
 const { PubSub } = require('@google-cloud/pubsub')
 
+import * as iot from '@google-cloud/iot'
+
 const apiBasePath = '/api/v1'
 
 const fs = firestore()
@@ -394,8 +396,36 @@ export default (app: Application) => {
             
             const baseStationId = req.params.id
 
+            const projectId = 'staging-cue-iot-cloud'
+            const location  = 'europe-west1'
+            const registry  = 'Base-Station-Registry'
+
+            const client = new iot.v1.DeviceManagerClient({
+                keyFilename : './iot-device-manager.serviceAccountKey.json'
+            })
+
+            const formattedName = client.devicePath(projectId, location, registry, baseStationId)
+
+            try
+            {
+                await client.deleteDevice({name: formattedName})
+
+                await db.baseStation(null, baseStationId).delete()
+
+            }
+            catch(error)
+            {
+                res.json({
+                    success: false,
+                    error: error
+                })
+
+                return
+            }
+
             res.json({
-                success: true
+                success: true,
+                baseStationId : baseStationId
             })
         })
 

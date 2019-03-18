@@ -29,7 +29,8 @@
     "moment": "^2.23.0",
     "nuxt": "^2.3.4",
     "nuxt-validate": "^0.1.2",
-    "vuetify": "^1.4.1"
+    "vuetify": "^1.4.1",
+    "websocket": "^1.0.28"
   },
   "devDependencies": {
     "babel-eslint": "^8.2.1",

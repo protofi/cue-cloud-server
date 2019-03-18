@@ -35,7 +35,8 @@ module.exports = {
   */
   plugins: [
     '~/plugins/firebase.js',
-    '~/plugins/fireauth.js'
+    '~/plugins/fireauth.js',
+    '~/plugins/websocket.js'
   ],
 
   router: {

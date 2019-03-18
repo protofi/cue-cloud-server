@@ -63,23 +63,35 @@
 
                                     <v-card-actions>
 
-                                        <!-- <v-btn
-                                            icon large ripple>                                            
+                                        <v-btn
+                                            disabled
+                                            icon large ripple>
                                             <v-icon dark>settings</v-icon>
-                                        </v-btn> -->
+                                        </v-btn>
+                                        
+                                        <v-btn
+                                            icon large ripple
+                                            @click.stop="toggleWebsocketConnection(baseStation.id)">                                     
+                                            <v-icon dark :color="hasWebsocket.includes(baseStation.id) ? 'green' : 'primary'">power</v-icon>
+                                        </v-btn>
 
-                                        <div v-if="baseStation.data.websocket">
-                                            <v-btn>
+                                        <div>
+                                            <v-btn
+                                                :disabled="!hasWebsocket.includes(baseStation.id)"
+                                                @click.stop="enterPairingMode(baseStation.id)"                                                
+                                                >
+                                                
                                                 Pairing
                                             </v-btn>
-                                            <v-btn>
+                                            <v-btn
+                                                :disabled="!hasWebsocket.includes(baseStation.id)"
+                                                @click.stop="enterCalibrationMode(baseStation.id)">
                                                 Calibration
                                             </v-btn>
                                         </div>
-                                        
+                                       
                                         <v-spacer></v-spacer>
                                         
-                                        <!-- 
                                         <v-btn
                                             icon large ripple
                                             :loading="unlinkBaseStationLoading"
@@ -87,10 +99,11 @@
                                             @click.stop="unlink(baseStation.id)"
                                         >
                                             <v-icon>link_off</v-icon>
-                                        </v-btn> -->
+                                        </v-btn>
 
                                         <v-btn icon large ripple
                                             @click.stop="deleteBaseStation(baseStation.id)"
+                                            :loading="deleteBaseStationLoadingIds.includes(baseStation.id)"
                                         >
                                             <v-icon>delete</v-icon>
                                         </v-btn>               
@@ -130,15 +143,17 @@
 
 <script>
 import { firestore } from '~/plugins/firebase.js'
+import { websocket } from '~/plugins/websocket.js'
 
 export default {
     data () {
         return {
             baseStationDocs : [],
-            baseStationMeta : {},
             registerBaseStationLoading: false,
             unlinkBaseStationLoading: false,
             deleteBaseStationLoadingIds: [],
+            hasWebsocket : [],
+            websockets: {}
         }
     },
     async mounted() {
@@ -183,7 +198,7 @@ export default {
         unlink(baseStationId)
         {
             this.unlinkBaseStationLoading = true
-            this.$axios.$delete(`base-stations/${baseStationId}/households/`)
+            this.$axios.$delete(`base-stations/${baseStationId}/`)
 				.catch(console.error)
 				.finally(() => {
 					this.unlinkBaseStationLoading = false
@@ -197,8 +212,85 @@ export default {
             this.$axios.$delete(`base-stations/${baseStationId}`)
                 .catch(console.error)
 				.finally(() => {
-					this.deleteBaseStationLoadingIds.indexOf(baseStationId)
+                    const i = this.deleteBaseStationLoadingIds.indexOf(baseStationId)
+                    this.deleteBaseStationLoadingIds.splice(i,1)
 				})
+        },
+
+        toggleWebsocketConnection(baseStationId)
+        {
+            const baseStation = this.baseStationDocs.filter(doc => doc.id == baseStationId)
+            if(!baseStation) return
+
+            const data = baseStation[0].data()
+            const address = `ws://${data.websocket.address}:${data.websocket.port}`
+
+            let ws = this.websockets[baseStationId]
+
+            if(ws)
+            {
+                ws.close()
+                
+                const i = this.hasWebsocket.indexOf(baseStationId)
+                this.hasWebsocket.splice(i,1)
+
+                delete this.websockets[baseStationId]
+                return
+            }
+
+            ws = new websocket(address)
+            
+            ws.onerror = function() {
+                console.log('Connection Error');
+            }
+
+            ws.onopen = function() {
+                console.log('WebSocket client Connected')
+            }
+
+            ws.onclose = function() {
+                console.log('client Closed');
+            }
+            
+            ws.onmessage = function(e) {
+                if (typeof e.data === 'string') {
+                    console.log("Received: '" + e.data + "'");
+                }
+            }
+
+            this.hasWebsocket.push(baseStationId)
+            this.websockets[baseStationId] = ws
+        },
+
+        enterPairingMode(baseStationId)
+        {
+            const ws = this.websockets[baseStationId]
+            if(!ws) return
+
+            if (ws.readyState === ws.OPEN)
+            {
+
+                ws.send(
+                    JSON.stringify({
+                        action: 'pairing'
+                    })
+                );
+            }
+        },
+
+        enterCalibrationMode(baseStationId)
+        {
+            const ws = this.websockets[baseStationId]
+            if(!ws) return
+            
+            if (ws.readyState === ws.OPEN)
+            {
+                ws.send(
+                    JSON.stringify({
+                        action: 'calibration'
+                    })
+                );
+            }
         }
     }
 
