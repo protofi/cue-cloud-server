@@ -37,44 +37,64 @@
                                         
                                         <v-spacer></v-spacer>
 
-                                        <div>
-
-                                            <div class="headline"> {{ baseStation.data.pin }} </div>
-                                        
-                                        </div>
+                                        <p class="headline"> {{ baseStation.data.pin }} </p>
 
                                     </v-card-title>
 
-                                    <v-card-actions v-if="baseStation.data.households">
+                                    <v-card-actions>
+
+                                        <p v-if="baseStation.data.websocket"
+                                            class="headline">
+                                            {{baseStation.data.websocket.address}}:{{baseStation.data.websocket.port}}
+                                        </p>
 
                                         <v-spacer></v-spacer>
 
-                                        <v-chip>
+                                        <v-chip v-if="baseStation.data.households">
+
                                             <v-avatar class="teal">
                                                 <v-icon color="white">check</v-icon>
                                             </v-avatar>
                                             Claimed
-                                        </v-chip>  
+
+                                        </v-chip>
 
                                     </v-card-actions>
 
                                     <v-card-actions>
 
-                                        <v-spacer></v-spacer>
-
                                         <!-- <v-btn
+                                            icon large ripple>                                            
+                                            <v-icon dark>settings</v-icon>
+                                        </v-btn> -->
+
+                                        <div v-if="baseStation.data.websocket">
+                                            <v-btn>
+                                                Pairing
+                                            </v-btn>
+                                            <v-btn>
+                                                Calibration
+                                            </v-btn>
+                                        </div>
+                                        
+                                        <v-spacer></v-spacer>
+                                        
+                                        <!-- 
+                                        <v-btn
                                             icon large ripple
                                             :loading="unlinkBaseStationLoading"
                                             v-if="baseStation.data.households"
                                             @click.stop="unlink(baseStation.id)"
                                         >
                                             <v-icon>link_off</v-icon>
-                                        </v-btn>   
+                                        </v-btn> -->
 
-                                        <v-btn icon large ripple>
+                                        <v-btn icon large ripple
+                                            @click.stop="deleteBaseStation(baseStation.id)"
+                                        >
                                             <v-icon>delete</v-icon>
                                         </v-btn>               
-                                    -->
+                                   
                                     </v-card-actions>
 
                                 </v-card>
@@ -115,8 +135,10 @@ export default {
     data () {
         return {
             baseStationDocs : [],
+            baseStationMeta : {},
             registerBaseStationLoading: false,
             unlinkBaseStationLoading: false,
+            deleteBaseStationLoadingIds: [],
         }
     },
     async mounted() {
@@ -128,7 +150,7 @@ export default {
 
     computed : {
         baseStations () {
-            const baseStations = []
+            const baseStations = {}
             this.baseStationDocs.forEach(doc => {
 
                 const data = doc.data()
@@ -139,7 +161,7 @@ export default {
                     data    : data
                 }
     
-                baseStations.push(baseStation)
+                baseStations[doc.id] = baseStation
             })
 
             return baseStations
@@ -165,6 +187,17 @@ export default {
 				.catch(console.error)
 				.finally(() => {
 					this.unlinkBaseStationLoading = false
+				})
+        },
+
+        deleteBaseStation(baseStationId)
+        {
+            this.deleteBaseStationLoadingIds.push(baseStationId)
+            
+            this.$axios.$delete(`base-stations/${baseStationId}`)
+                .catch(console.error)
+				.finally(() => {
+					this.deleteBaseStationLoadingIds.indexOf(baseStationId)
 				})
         }
     }

@@ -20,7 +20,7 @@ exports = module.exports = pubsub
 		const db = new DataORMImpl(firestore())
 
 		const decodePayload = Buffer.from(message.data, 'base64').toString('ascii')
-    	const payload = JSON.parse(decodePayload);
+    	const payload 		= JSON.parse(decodePayload)
 
 		const sensorUUID = payload.sensor_UUID
 
@@ -47,7 +47,7 @@ exports = module.exports = pubsub
 			})
 		})
 
-		const sensorName			= await sensor.getField(Sensor.f.NAME)
+		const sensorName		= await sensor.getField(Sensor.f.NAME)
 		const sensorVibration	= await sensor.getField(Sensor.f.VIBRATION)
 		const sensorLocation 	= await sensor.getField(Sensor.f.LOCATION)
 
@@ -56,9 +56,9 @@ exports = module.exports = pubsub
 		const androidPayload = {
 			data : {
 				sensor_id : sensorUUID,
-				vibration : sensorVibration,
+				vibration : (sensorVibration) ? sensorVibration : '',
 				title : capitalize(notificationTitle),
-				android_channel_id : sensorVibration,
+				android_channel_id : (sensorVibration) ? sensorVibration : '',
 				click_action : 'FLUTTER_NOTIFICATION_CLICK',
 			}
 		}

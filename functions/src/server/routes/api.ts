@@ -332,16 +332,18 @@ export default (app: Application) => {
 
             const topicName = 'sensor-notification'
 
-            const data = {
+            const attributes = {
                 sensor_UUID : sensorUUID
             }
 
-            const emptyBuffer = Buffer.from('')
+            const dataBuffer = Buffer.from(
+                JSON.stringify(attributes)
+            )
 
             const messageId = await pubsub
                     .topic(topicName)
                     .publisher()
-                    .publish(emptyBuffer, data)
+                    .publish(dataBuffer, attributes)
                     
             res.json({
                 success: true,
@@ -380,6 +382,17 @@ export default (app: Application) => {
                     error : e
                 })
             }
+
+            res.json({
+                success: true
+            })
+        })
+
+    authRouter.route('/base-stations/:id')
+    
+        .delete(async (req: Request, res: Response) => {
+            
+            const baseStationId = req.params.id
 
             res.json({
                 success: true
