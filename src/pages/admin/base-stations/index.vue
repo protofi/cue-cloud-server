@@ -70,8 +70,13 @@
                                         </v-btn>
                                         
                                         <v-btn
-                                            icon large ripple
-                                            @click.stop="toggleWebsocketConnection(baseStation.id)">                                     
+                                            icon
+                                            large
+                                            ripple
+                                            :loading="websocketBaseStationLoadingIds.includes(baseStation.id)"
+                                            @click.stop="toggleWebsocketConnection(baseStation.id)"
+                                        >
+                                            
                                             <v-icon dark :color="hasWebsocket.includes(baseStation.id) ? 'green' : 'primary'">power</v-icon>
                                         </v-btn>
 
@@ -152,6 +157,7 @@ export default {
             registerBaseStationLoading: false,
             unlinkBaseStationLoading: false,
             deleteBaseStationLoadingIds: [],
+            websocketBaseStationLoadingIds: [],
             hasWebsocket : [],
             websockets: {}
         }
@@ -219,6 +225,8 @@ export default {
 
         toggleWebsocketConnection(baseStationId)
         {
+            this.websocketBaseStationLoadingIds.push(baseStationId)
+
             const baseStation = this.baseStationDocs.filter(doc => doc.id == baseStationId)
             if(!baseStation) return
 
@@ -235,31 +243,42 @@ export default {
                 this.hasWebsocket.splice(i,1)
 
                 delete this.websockets[baseStationId]
+                
+                const j = this.websocketBaseStationLoadingIds.indexOf(baseStationId)
+                this.websocketBaseStationLoadingIds.splice(j,1)
+
                 return
             }
 
+            const _this = this
+
             ws = new websocket(address)
             
-            ws.onerror = function() {
-                console.log('Connection Error');
+            ws.onerror = event => {
+                console.log('Connection Error', event)
+                const j = _this.websocketBaseStationLoadingIds.indexOf(baseStationId)
+                _this.websocketBaseStationLoadingIds.splice(j,1)
             }
 
-            ws.onopen = function() {
+            ws.onopen = () => {
                 console.log('WebSocket client Connected')
+                
+                _this.hasWebsocket.push(baseStationId)
+                _this.websockets[baseStationId] = ws
+
+                const j = _this.websocketBaseStationLoadingIds.indexOf(baseStationId)
+                _this.websocketBaseStationLoadingIds.splice(j,1)
             }
 
             ws.onclose = function() {
-                console.log('client Closed');
+                console.log('client Closed')
             }
             
             ws.onmessage = function(e) {
                 if (typeof e.data === 'string') {
-                    console.log("Received: '" + e.data + "'");
+                    console.log("Received: '" + e.data + "'")
                 }
             }
-
-            this.hasWebsocket.push(baseStationId)
-            this.websockets[baseStationId] = ws
         },
 
         enterPairingMode(baseStationId)
@@ -289,7 +308,7 @@ export default {
                     JSON.stringify({
                         action: 'calibration'
                     })
-                );
+                )
             }
         }
     }
