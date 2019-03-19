@@ -205,7 +205,8 @@ export default {
         {
             this.unlinkBaseStationLoading = true
             this.$axios.$delete(`base-stations/${baseStationId}/`)
-				.catch(console.error)
+                .catch(console.error)
+                .then(console.error)
 				.finally(() => {
 					this.unlinkBaseStationLoading = false
 				})

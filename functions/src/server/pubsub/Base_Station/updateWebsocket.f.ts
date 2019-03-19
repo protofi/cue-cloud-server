@@ -15,8 +15,9 @@ exports = module.exports = pubsub.topic(topicName)
 
     const db = new DataORMImpl(admin.firestore())
 
-    const decodePayload = Buffer.from(message.data).toString('ascii')
-    const payload = JSON.parse(decodePayload);
+    const decodePayload = Buffer.from(message.data, 'base64').toString('ascii')
+
+    const payload = JSON.parse(decodePayload)
 
     const baseStationUUID       = message.attributes.deviceId
     const baseStationPort       = payload.base_station_port
