@@ -1436,7 +1436,7 @@ describe('Integration_Test', () => {
     describe('Pub/Sub', () => {
         
         const consoleErrorStub      = sinon.stub(console, 'error')
-        const nullDataBuffer        = Buffer.from(JSON.stringify({})).toString("base64")
+        const nullDataBuffer        = Buffer.from(JSON.stringify({}))
         const householdId           = uniqid()
         const baseStationUUID       = fakeUUID()
         const baseStationTwoUUID    = fakeUUID()
@@ -1641,7 +1641,7 @@ describe('Integration_Test', () => {
                         sensor_UUID: sensorOneUUID
                     }
                     await wrappedPubsubBaseStationNewSensor({
-                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        data: Buffer.from(JSON.stringify(payload)),
                         attributes : {}
                     })
                 }
@@ -1726,7 +1726,7 @@ describe('Integration_Test', () => {
                         sensor_UUID: sensorOneUUID
                     }
                     await wrappedPubsubBaseStationNewSensor({
-                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        data: Buffer.from(JSON.stringify(payload)),
                         attributes: {
                             deviceId : baseStationUUID
                         }}
@@ -1756,7 +1756,7 @@ describe('Integration_Test', () => {
                         sensor_UUID: sensorOneUUID
                     }
                     await wrappedPubsubBaseStationNewSensor({
-                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        data: Buffer.from(JSON.stringify(payload)),
                             attributes: {
                                 deviceId : baseStationUUID,
                             }
@@ -1797,7 +1797,7 @@ describe('Integration_Test', () => {
                         sensor_UUID: sensorOneUUID
                     }
                     await wrappedPubsubBaseStationNewSensor({
-                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        data: Buffer.from(JSON.stringify(payload)),
                             attributes: {
                                 deviceId : baseStationUUID
                             }
@@ -1845,7 +1845,7 @@ describe('Integration_Test', () => {
                         sensor_UUID: sensorOneUUID
                     }
                     await wrappedPubsubBaseStationNewSensor({
-                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        data: Buffer.from(JSON.stringify(payload)),
                             attributes: {
                                 deviceId : baseStationUUID
                             }
@@ -1890,7 +1890,7 @@ describe('Integration_Test', () => {
                     }
 
                     await wrappedPubsubBaseStationUpdateWebsocket({
-                            data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                            data: Buffer.from(JSON.stringify(payload)),
                             attributes: {}
                         })
                 }
@@ -1901,7 +1901,6 @@ describe('Integration_Test', () => {
                 expect(error).to.be.equal(Errors.DATA_MISSING)
             })
 
-            
             it('Should throw error if message is send missing port', async () => {
                 const wrappedPubsubBaseStationUpdateWebsocket = test.wrap(myFunctions.pubsubBaseStationUpdateWebsocket)
 
@@ -1913,7 +1912,7 @@ describe('Integration_Test', () => {
                     }
 
                     await wrappedPubsubBaseStationUpdateWebsocket({
-                            data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                            data: Buffer.from(JSON.stringify(payload)),
                             attributes: {
                                 deviceId : baseStationUUID
                             }
@@ -1937,7 +1936,7 @@ describe('Integration_Test', () => {
                     }
 
                     await wrappedPubsubBaseStationUpdateWebsocket({
-                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        data: Buffer.from(JSON.stringify(payload)),
                             attributes: {
                                 deviceId : baseStationUUID
                             }
@@ -1962,7 +1961,7 @@ describe('Integration_Test', () => {
                     }
                     
                     await wrappedPubsubBaseStationUpdateWebsocket({
-                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        data: Buffer.from(JSON.stringify(payload)),
                         attributes: {
                             deviceId : baseStationUUID
                         }
@@ -1987,7 +1986,7 @@ describe('Integration_Test', () => {
                     }
                     
                     await wrappedPubsubBaseStationUpdateWebsocket({
-                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        data: Buffer.from(JSON.stringify(payload)),
                         attributes: {
                             deviceId : baseStationUUID
                         }
@@ -2012,7 +2011,7 @@ describe('Integration_Test', () => {
                     }
                     
                     await wrappedPubsubBaseStationUpdateWebsocket({
-                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        data: Buffer.from(JSON.stringify(payload)),
                         attributes: {
                             deviceId : baseStationUUID
                         }
@@ -2037,7 +2036,7 @@ describe('Integration_Test', () => {
                     }
                     
                     await wrappedPubsubBaseStationUpdateWebsocket({
-                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        data: Buffer.from(JSON.stringify(payload)),
                         attributes: {
                             deviceId : baseStationUUID
                         }
@@ -2070,7 +2069,7 @@ describe('Integration_Test', () => {
                     }
                     
                     await wrappedPubsubBaseStationUpdateWebsocket({
-                        data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                        data: Buffer.from(JSON.stringify(payload)),
                         attributes: {
                             deviceId : baseStationUUID
                         }
@@ -2137,7 +2136,7 @@ describe('Integration_Test', () => {
                 }
 
                 await wrappedPubsubSensorNotification({
-                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    data: Buffer.from(JSON.stringify(payload)),
                     attributes: {}
                 })
 
@@ -2168,7 +2167,7 @@ describe('Integration_Test', () => {
                 }
 
                 await wrappedPubsubSensorNotification({
-                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    data: Buffer.from(JSON.stringify(payload)),
                     attributes: {}
                 })
 
@@ -2206,7 +2205,7 @@ describe('Integration_Test', () => {
                 }
 
                 await wrappedPubsubSensorNotification({
-                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    data: Buffer.from(JSON.stringify(payload)),
                     attributes: {}
                 })
 
@@ -2249,7 +2248,7 @@ describe('Integration_Test', () => {
                 }
 
                 await wrappedPubsubSensorNotification({
-                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    data: Buffer.from(JSON.stringify(payload)),
                     attributes: {}
                 })
 
@@ -2293,7 +2292,7 @@ describe('Integration_Test', () => {
                 }
 
                 await wrappedPubsubSensorNotification({
-                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    data: Buffer.from(JSON.stringify(payload)),
                     attributes: {}
                 })
 
@@ -2336,7 +2335,7 @@ describe('Integration_Test', () => {
                 }
 
                 await wrappedPubsubSensorNotification({
-                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    data: Buffer.from(JSON.stringify(payload)),
                     attributes: {}
                 })
 
@@ -2383,7 +2382,7 @@ describe('Integration_Test', () => {
                 }
 
                 await wrappedPubsubSensorNotification({
-                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    data: Buffer.from(JSON.stringify(payload)),
                     attributes: {}
                 })
 
@@ -2433,7 +2432,7 @@ describe('Integration_Test', () => {
                 }
 
                 await wrappedPubsubSensorNotification({
-                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    data: Buffer.from(JSON.stringify(payload)),
                     attributes: {}
                 })
 
@@ -2477,7 +2476,7 @@ describe('Integration_Test', () => {
                 }
 
                 await wrappedPubsubSensorNotification({
-                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    data: Buffer.from(JSON.stringify(payload)),
                     attributes: {}
                 })
 
@@ -2519,7 +2518,7 @@ describe('Integration_Test', () => {
                 }
 
                 await wrappedPubsubSensorNotification({
-                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    data: Buffer.from(JSON.stringify(payload)),
                     attributes: {}
                 })
 
@@ -2569,7 +2568,7 @@ describe('Integration_Test', () => {
                 }
 
                 await wrappedPubsubSensorNotification({
-                    data: Buffer.from(JSON.stringify(payload)).toString("base64"),
+                    data: Buffer.from(JSON.stringify(payload)),
                     attributes: {}
                 })
 
