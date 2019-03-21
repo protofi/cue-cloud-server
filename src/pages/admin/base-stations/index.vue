@@ -301,6 +301,7 @@ export default {
                 this.updateAddressDialog.ip = websocket.address
                 this.updateAddressDialog.port = websocket.port
             }
+            else this.$refs.updateAddressForm.reset()
 
             this.updateAddressDialog.show = true
         },
@@ -325,11 +326,14 @@ export default {
             {
                 console.log(e)
             }
-
+    
+            this.updateAddressDialog.loading = false
+            this.updateAddressDialog.show = false
+    
             this.updateAddressDialog.ip = null
             this.updateAddressDialog.address = null
 
-            this.updateAddressDialog.loading = false
+            this.$refs.updateAddressForm.reset()
         },
 
         unlink(baseStationId)
@@ -357,12 +361,17 @@ export default {
 
         toggleWebsocketConnection(baseStationId)
         {
+            const baseStation = this.baseStationDocs.filter(doc => doc.id == baseStationId)[0]
+            if(!baseStation) return
+            if(!baseStation.data().websocket || !baseStation.data().websocket.address || !baseStation.data().websocket.port)
+            {
+                this.showUpdateAddressDialog(baseStationId)                
+                return
+            } 
+
             this.websocketBaseStationLoadingIds.push(baseStationId)
 
-            const baseStation = this.baseStationDocs.filter(doc => doc.id == baseStationId)
-            if(!baseStation) return
-
-            const data = baseStation[0].data()
+            const data = baseStation.data()
             const address = `ws://${data.websocket.address}:${data.websocket.port}`
 
             let ws = this.websockets[baseStationId]
