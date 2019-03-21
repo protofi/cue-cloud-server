@@ -362,19 +362,19 @@ export default (app: Application) => {
             
             const uuid = fakeUuid()
     
-            const topicName = 'base-station-init'
+            const topicName = 'base-station-initialize'
 
-            const data = {
-                base_station_UUID : uuid
+            const attributes = {
+                deviceId : uuid
             }
 
-            const emptyBuffer = Buffer.from('')
+            const dataBuffer = Buffer.from('')
 
             try{
                 await pubsub
                     .topic(topicName)
                     .publisher()
-                    .publish(emptyBuffer, data)
+                    .publish(dataBuffer, attributes)
 
             }
             catch(e)
