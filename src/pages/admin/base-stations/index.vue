@@ -64,7 +64,7 @@
                                     <v-card-actions>
 
                                         <v-btn
-                                            disabled
+                                            @click="showUpdateAddressDialog(baseStation.id)"
                                             icon large ripple>
                                             <v-icon dark>settings</v-icon>
                                         </v-btn>
@@ -83,14 +83,14 @@
                                         <div>
                                             <v-btn
                                                 :disabled="!hasWebsocket.includes(baseStation.id)"
-                                                @click.stop="enterPairingMode(baseStation.id)"                                                
+                                                @click.stop="publishMessage('pairing', baseStation.id)"                                                
                                                 >
                                                 
                                                 Pairing
                                             </v-btn>
                                             <v-btn
                                                 :disabled="!hasWebsocket.includes(baseStation.id)"
-                                                @click.stop="enterCalibrationMode(baseStation.id)">
+                                                @click.stop="publishMessage('calibration', baseStation.id)">
                                                 Calibration
                                             </v-btn>
                                         </div>
@@ -139,6 +139,79 @@
             >
                 <v-icon>add</v-icon>
             </v-btn>
+                
+            <v-dialog v-model="updateAddressDialog.show" max-width="600px">
+                
+                <v-form
+                    ref="updateAddressForm"
+                    >
+
+                    <v-card>
+            
+                        <v-card-title
+                            class="headline white--text blue-grey lighten-1"
+                            >
+                                Update websocket address
+                        </v-card-title>
+
+                        <v-card-text>
+
+                            <v-container grid-list-md>
+
+                                <v-layout wrap>
+
+                                    <v-flex
+                                        xs12
+                                        md5
+                                    >
+                                        <v-text-field
+                                            v-model="updateAddressDialog.ip"
+                                            :rules="updateAddressDialog.ipRules"
+                                            label="IP Address"
+                                            required
+                                        ></v-text-field>
+                                    </v-flex>
+
+                                    <v-flex
+                                        xs12
+                                        md3
+                                    >
+                                        <v-text-field
+                                            v-model="updateAddressDialog.port"
+                                            :rules="updateAddressDialog.portRules"
+                                            label="Port"
+                                            required
+                                        ></v-text-field>
+                                    </v-flex>
+
+                                </v-layout>
+
+                            </v-container>
+
+                        </v-card-text>
+            
+                        <v-card-actions>
+            
+                            <v-spacer></v-spacer>
+                
+                            <v-btn color="blue darken-1" flat @click="updateAddressDialog.show = false">Cancel</v-btn>
+                            <v-btn
+                                color="blue darken-1"
+                                flat
+                                type="submit"
+                                @click="updateAddressSubmit"
+                                :loading="updateAddressDialog.loading"
+                                >
+                                Update
+                            </v-btn>
+            
+                        </v-card-actions>
+            
+                    </v-card>
+                
+                </v-form>
+
+            </v-dialog>
             
         </v-container>
                     
@@ -159,7 +232,21 @@ export default {
             deleteBaseStationLoadingIds: [],
             websocketBaseStationLoadingIds: [],
             hasWebsocket : [],
-            websockets: {}
+            websockets: {},
+            updateAddressDialog : {
+                show : false,
+                loading : false,
+                ip: null,
+                ipRules: [
+                    v => !!v || 'You have to provide an IP address',
+                    v => /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(v) || 'You have to provide a valid IP address'
+                ],
+                port: null,
+                portRules: [
+                    v => !!v || 'You have to provide a port',
+                    v => /^([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$/.test(v) || 'The port must be an integer between 0 and 65535'
+                ]
+            }
         }
     },
     async mounted() {
@@ -199,6 +286,50 @@ export default {
 				.finally(() => {
 					this.registerBaseStationLoading = false
 				})
+        },
+
+        async showUpdateAddressDialog(baseStationId)
+        {
+            const baseStation = this.baseStations[baseStationId]
+
+            this.updateAddressDialog.baseStation = baseStationId
+
+            if(baseStation.data.websocket)
+            {
+                const websocket = baseStation.data.websocket
+
+                this.updateAddressDialog.ip = websocket.address
+                this.updateAddressDialog.port = websocket.port
+            }
+
+            this.updateAddressDialog.show = true
+        },
+
+        async updateAddressSubmit(event)
+        {
+            event.preventDefault()
+            
+            if (!this.$refs.updateAddressForm.validate()) return
+
+            this.updateAddressDialog.loading = true
+
+            try{
+                await firestore.collection('base_stations').doc(this.updateAddressDialog.baseStation).update({
+                    'websocket' : {
+                        'address' : this.updateAddressDialog.ip,
+                        'port' : this.updateAddressDialog.port
+                    }
+                })
+            }
+            catch(e)
+            {
+                console.log(e)
+            }
+
+            this.updateAddressDialog.ip = null
+            this.updateAddressDialog.address = null
+
+            this.updateAddressDialog.loading = false
         },
 
         unlink(baseStationId)
@@ -257,6 +388,9 @@ export default {
             
             ws.onerror = event => {
                 console.log('Connection Error', event)
+
+                console.log('CLIENT', ws)
+
                 const j = _this.websocketBaseStationLoadingIds.indexOf(baseStationId)
                 _this.websocketBaseStationLoadingIds.splice(j,1)
             }
@@ -271,34 +405,22 @@ export default {
                 _this.websocketBaseStationLoadingIds.splice(j,1)
             }
 
-            ws.onclose = function() {
+            ws.onclose = () => {
+                const i = this.hasWebsocket.indexOf(baseStationId)
+                this.hasWebsocket.splice(i,1)
+
+                delete this.websockets[baseStationId]
                 console.log('client Closed')
             }
             
-            ws.onmessage = function(e) {
+            ws.onmessage = e => {
                 if (typeof e.data === 'string') {
                     console.log("Received: '" + e.data + "'")
                 }
             }
         },
 
-        enterPairingMode(baseStationId)
-        {
-            const ws = this.websockets[baseStationId]
-            if(!ws) return
-
-            if (ws.readyState === ws.OPEN)
-            {
-
-                ws.send(
-                    JSON.stringify({
-                        action: 'pairing'
-                    })
-                );
-            }
-        },
-
-        enterCalibrationMode(baseStationId)
+        publishMessage(action, baseStationId)
         {
             const ws = this.websockets[baseStationId]
             if(!ws) return
@@ -307,11 +429,11 @@ export default {
             {
                 ws.send(
                     JSON.stringify({
-                        action: 'calibration'
+                        action: action
                     })
                 )
             }
-        }
+        },
     }
 
 }

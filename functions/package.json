@@ -69,12 +69,13 @@
     "nodejs-base64": "^1.0.3",
     "nuxt": "^2.3.4",
     "nuxt-validate": "^0.1.2",
-    "nyc": "^13.1.0",
+    "nyc": "^13.3.0",
     "pluralize": "^7.0.0",
     "pug": "^2.0.3",
     "randomstring": "^1.1.5",
     "uuid": "^3.3.2",
-    "vuetify-loader": "^1.1.1"
+    "vuetify-loader": "^1.1.1",
+    "websocket": "^1.0.28"
   },
   "devDependencies": {
     "@firebase/auth-types": "^0.3.4",
