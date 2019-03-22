@@ -4,6 +4,7 @@ import * as mocha from 'mocha'
 import * as firestore from '@firebase/testing'
 import { Models } from './lib/ORM/Models';
 import User from './lib/ORM/Models/User';
+import BaseStation from './lib/ORM/Models/BaseStation';
 import { setup } from './helpers'
 import { Roles, Relations } from './lib/const';
 
@@ -532,7 +533,7 @@ describe('Emulated_Rules', () => {
                 const ref = db.collection(Models.BASE_STATION)
 
                 expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
-                    id : '123'
+                    [BaseStation.f.ID] : '123'
                 })))
             })
 
@@ -556,7 +557,7 @@ describe('Emulated_Rules', () => {
                 const ref = db.collection(Models.BASE_STATION)
 
                 expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
-                    pin : '123'
+                    [BaseStation.f.PIN] : '123'
                 })))
             })
             
@@ -580,7 +581,7 @@ describe('Emulated_Rules', () => {
                 const ref = db.collection(Models.BASE_STATION)
 
                 expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
-                    websocket : '123'
+                    [BaseStation.f.WEBSOCKET._] : '123'
                 })))
             })
 
@@ -604,7 +605,7 @@ describe('Emulated_Rules', () => {
                 const ref = db.collection(Models.BASE_STATION)
 
                 expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
-                    household : '123'
+                    [Models.HOUSEHOLD] : '123'
                 })))
             })
 
@@ -616,7 +617,7 @@ describe('Emulated_Rules', () => {
                 const ref = db.collection(Models.BASE_STATION)
 
                 expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
-                    id : '123'
+                    [BaseStation.f.ID] : '123'
                 })))
             })
 
@@ -628,7 +629,7 @@ describe('Emulated_Rules', () => {
                 const ref = db.collection(Models.BASE_STATION)
 
                 expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
-                    pin : '123'
+                    [BaseStation.f.PIN] : '123'
                 })))
             })
 
@@ -640,7 +641,7 @@ describe('Emulated_Rules', () => {
                 const ref = db.collection(Models.BASE_STATION)
 
                 expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
-                    websocket : '123'
+                    [BaseStation.f.WEBSOCKET._] : '123'
                 })))
             })
             
@@ -652,7 +653,7 @@ describe('Emulated_Rules', () => {
                 const ref = db.collection(Models.BASE_STATION)
 
                 expect(await firestore.assertFails(ref.doc(testBaseStationDataOne.uid).update({
-                    households : '123'
+                    [Models.HOUSEHOLD] : '123'
                 })))
             })
 
@@ -664,8 +665,23 @@ describe('Emulated_Rules', () => {
                 const ref = db.collection(Models.BASE_STATION)
 
                 expect(await firestore.assertSucceeds(ref.doc(testBaseStationDataOne.uid).update({
-                    households : {
+                    [Models.HOUSEHOLD] : {
                         id : '123'
+                    }
+                })))
+            })
+
+            it('Should allow Admins to update field "websocket"', async () => {
+                const db = await setup(testAdminUserData, {
+                    [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {}
+                })
+
+                const ref = db.collection(Models.BASE_STATION)
+
+                expect(await firestore.assertSucceeds(ref.doc(testBaseStationDataOne.uid).update({
+                    [BaseStation.f.WEBSOCKET._] : {
+                        [BaseStation.f.WEBSOCKET.ADDRESS] : '127.0.0.1',
+                        [BaseStation.f.WEBSOCKET.PORT] : '123'
                     }
                 })))
             })

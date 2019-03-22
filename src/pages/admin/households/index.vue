@@ -172,7 +172,7 @@
                 width="600"
                 dark
             >
-
+            
                 <v-card dark flat>
                     
                     <v-toolbar>
