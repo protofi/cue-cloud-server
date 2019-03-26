@@ -11,7 +11,7 @@ export async function setup(auth?: any, data?: any): Promise<firebase.firestore.
     })
     
     const db = app.firestore()
-
+    
     for(const key in data)
     {
         const ref = db.doc(key)
