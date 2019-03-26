@@ -1,12 +1,14 @@
 service cloud.firestore{
 	match /databases/{database}/documents {
 
-		match /{documents=**} {
+		match /{ documents=** }
+		{
 			allow read: if false
 			allow write: if false
 		}
 
-		match /users/{ user } {
+		match /users/{ user }
+		{
 			allow create: if false
 
 			allow read: if isSelf() || isAdmin()
@@ -29,10 +31,12 @@ service cloud.firestore{
 
 			allow delete: if false
 
+			// Helper functions
 			function isSelf() { return request.auth.uid == user }
 		}
 
-		match /households/{ household } {
+		match /households/{ household }
+		{
 			allow create: if (isAuth() && (
 									requestHasAll(['users', 'base_stations'])
 								&&	request.resource.data.users.keys().hasOnly([request.auth.uid])
@@ -50,29 +54,36 @@ service cloud.firestore{
 
 			allow delete: if isAdmin()
 
+			// Helper functions
 			function isHouseholdAdmin() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.households.pivot.role == "admin" }
 			function isResident() { return resource.data.users.keys().hasAll([request.auth.uid]) }
 		}
 
-		match /sensors/{ sensor } {
+		match /sensors/{ sensor }
+		{
 			allow create: if false
 			allow read:   if isAdmin() || isRelated()
 			allow update: if !requestHasAny(['id', 'users']) && (isAdmin() || isRelated())
-			allow delete: if false
+			allow delete: if isRelated() && isHouseholdAdmin(getResidence())
 
+			// Helper functions
+			function isHouseholdAdmin(household) { return household.data.households.pivot.role == "admin" && household.data.households.id == resource.data.households.id }
 			function isRelated() { return resource.data.users.keys().hasAll([request.auth.uid]) }
 		}
 
-		match /sensors_users/{ sensorUser } {
+		match /sensors_users/{ sensorUser }
+		{
 			allow create: if false
 			allow read:   if isRelated()
 			allow update: if isRelated() && !requestHasAny(['users', 'sensors'])
 			allow delete: if false
 
+			// Helper functions
 			function isRelated() { return resource.data.users.id == request.auth.uid }
 		}
 
-		match /base_stations/{ baseStation } {
+		match /base_stations/{ baseStation }
+		{
 			allow create: if false
 			allow read:   if isAuth() && (!baseStationIsClaimed() || isRelatedHouseholdResident())
 			allow update: if isAuth() && (
@@ -82,13 +93,16 @@ service cloud.firestore{
 							) || isAdmin()
 			allow delete: if false
 
+			// Helper functions
 			function baseStationIsClaimed() { return resourceHasAny(['households']) }
 			function isRelatedHouseholdResident() { return get(/databases/$(database)/documents/households/$(resource.data.households.id)).data.users.keys().hasAll([request.auth.uid]) }
 		}
 
+		// Helper functions
 		function isAuth() { return (request.auth.uid != null) }
 		function isAdmin() { return request.auth.token.isAdmin || request.auth.token.isSuperAdmin }
 		function isSuperAdmin() { return request.auth.token.isSuperAdmin }
+		function getResidence() { return get(/databases/$(database)/documents/users/$(request.auth.uid)) }
 		function requestHasAny(fields) { return request.writeFields.hasAny(fields) }
 		function requestHasAll(fields) { return request.resource.data.keys().hasAll(fields) }
 		function resourceHasAny(fields) { return resource.data.keys().hasAny(fields) }
