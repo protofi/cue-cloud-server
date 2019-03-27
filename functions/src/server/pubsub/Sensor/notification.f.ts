@@ -16,7 +16,7 @@ const topicName = kebabCase(`${ctrl}-${file}`)
 exports = module.exports = pubsub
 .topic(topicName).onPublish(async (message: pubsub.Message) => {
 
-    try{
+    try {
 		const db = new DataORMImpl(firestore())
 
 		const decodePayload = Buffer.from(message.data, 'base64').toString('ascii')
@@ -32,6 +32,7 @@ exports = module.exports = pubsub
 		const androidTokens = []
 
 		forOwn(users, user => {
+
 			if(!user.FCM_tokens) return
 			
 			const sensorIsMuted = (user.pivot && user.pivot.muted)
@@ -94,9 +95,9 @@ exports = module.exports = pubsub
 
 		return Promise.all(promises).catch(console.error)
 	}
-	catch(e)
+	catch(error)
 	{
 		if(process.env.GCLOUD_PROJECT !== Env.NOT_A_PROJECT)
-			console.error(e)
+			console.error(error)
 	}
 })
