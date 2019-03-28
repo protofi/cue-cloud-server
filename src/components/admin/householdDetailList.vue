@@ -725,7 +725,10 @@ export default {
 			catch(e)
 			{
 				if(!e.message.includes('No document to update'))
-				return
+				{
+					console.log(e)
+					return
+				}
 			}
 
 			try{
