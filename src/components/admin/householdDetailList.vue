@@ -57,7 +57,7 @@
 							{{baseStation.name ? baseStation.name : baseStation.id }}
 						</v-list-tile-title>
 						
-						<!-- <v-list-tile-action>
+						<v-list-tile-action>
 
 							<v-btn icon ripple
 							@click.stop="unlinkBaseStation(baseStation.id)">
@@ -66,7 +66,7 @@
 							</v-icon>
 							</v-btn>
 
-						</v-list-tile-action> -->
+						</v-list-tile-action>
 						
 						</v-list-tile>
 
@@ -715,6 +715,29 @@ export default {
 			}
 		},
 
+		async unlinkBaseStation(baseStationId)
+		{
+			try{
+				await firestore.collection('base_stations').doc(baseStationId).update({
+					households : firebase.firestore.FieldValue.delete()
+				})
+			}
+			catch(e)
+			{
+				if(!e.message.includes('No document to update'))
+				return
+			}
+
+			try{
+				await firestore.collection('households').doc(this.activeHousehold.id).update({
+						base_stations : firebase.firestore.FieldValue.delete()
+					})
+			}
+			catch(e)
+			{
+				console.log(e)
+			}
+		},
 
 		async showInviteUserDialog()
 		{
