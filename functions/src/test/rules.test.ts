@@ -4,6 +4,8 @@ import * as mocha from 'mocha'
 import * as firestore from '@firebase/testing'
 import { Models } from './lib/ORM/Models';
 import User from './lib/ORM/Models/User';
+import Sensor from './lib/ORM/Models/Sensor';
+import Household from './lib/ORM/Models/Household';
 import BaseStation from './lib/ORM/Models/BaseStation';
 import { setup } from './helpers'
 import { Roles, Relations } from './lib/const';
@@ -211,7 +213,7 @@ describe('Emulated_Rules', () => {
                 const ref = db.collection(Models.USER)
 
                 expect(await firestore.assertFails(ref.doc(testUserDataOne.uid).update({
-                    claims : {}
+                    [User.f.CLAIMS._] : {}
                 })))
             })
 
@@ -223,7 +225,7 @@ describe('Emulated_Rules', () => {
                 const userDoc = db.collection(Models.USER).doc(testUserDataOne.uid)
 
                 expect(await firestore.assertFails(userDoc.update({
-                    email : 'mail@mail.com'
+                    [User.f.EMAIL] : 'mail@mail.com'
                 })))
             })
 
@@ -235,7 +237,7 @@ describe('Emulated_Rules', () => {
                 const userDoc = db.collection(Models.USER).doc(testUserDataOne.uid)
 
                 expect(await firestore.assertSucceeds(userDoc.update({
-                    name : testUserDataOne.name
+                    [User.f.NAME] : testUserDataOne.name
                 })))
             })
 
@@ -259,7 +261,7 @@ describe('Emulated_Rules', () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.USER}/${testUserDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : {
-                            pivot : {}
+                            [Relations.PIVOT] : {}
                         }
                     }
                 })
@@ -268,7 +270,7 @@ describe('Emulated_Rules', () => {
 
                 expect(await firestore.assertSucceeds(ref.doc(testUserDataOne.uid).update({
                     [Models.HOUSEHOLD]: {
-                        pivot : {
+                        [Relations.PIVOT] : {
                             randomData : true
                         }
                     }
@@ -279,8 +281,8 @@ describe('Emulated_Rules', () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.USER}/${testUserDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : {
-                            pivot : {
-                                role : 'res'
+                            [Relations.PIVOT] : {
+                                [User.f.HOUSEHOLDS.ROLE] : 'res'
                             }
                         }
                     }
@@ -290,8 +292,8 @@ describe('Emulated_Rules', () => {
 
                 expect(await firestore.assertFails(ref.doc(testUserDataOne.uid).update({
                     [Models.HOUSEHOLD]: {
-                        pivot : {
-                            role : Roles.ADMIN
+                        [Relations.PIVOT] : {
+                            [User.f.HOUSEHOLDS.ROLE] : Roles.ADMIN
                         }
                     }
                 })))
@@ -308,8 +310,8 @@ describe('Emulated_Rules', () => {
 
                 expect(await firestore.assertFails(ref.doc(testUserDataOne.uid).update({
                     [Models.HOUSEHOLD]: {
-                        pivot : {
-                            accepted: false
+                        [Relations.PIVOT] : {
+                            [User.f.HOUSEHOLDS.ACCEPTED] : false
                         }
                     }
                 })))
@@ -326,8 +328,8 @@ describe('Emulated_Rules', () => {
 
                 expect(await firestore.assertSucceeds(ref.doc(testUserDataOne.uid).update({
                     [Models.HOUSEHOLD]: {
-                        pivot : {
-                            accepted: true
+                        [Relations.PIVOT] : {
+                            [User.f.HOUSEHOLDS.ACCEPTED] : true
                         }
                     }
                 })))
@@ -421,7 +423,7 @@ describe('Emulated_Rules', () => {
                         },
                         [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {
                             [Models.HOUSEHOLD] : {
-                                id : testHouseDataOne.uid
+                                [Household.f.ID] : testHouseDataOne.uid
                             }
                         }
                     })
@@ -502,7 +504,7 @@ describe('Emulated_Rules', () => {
                     },
                     [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : {
-                            id : testHouseDataOne.uid
+                            [Household.f.ID] : testHouseDataOne.uid
                         }
                     }
                 })
@@ -525,7 +527,7 @@ describe('Emulated_Rules', () => {
                     },
                     [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : {
-                            id : testHouseDataOne.uid
+                            [Household.f.ID] : testHouseDataOne.uid
                         }
                     }
                 })
@@ -549,7 +551,7 @@ describe('Emulated_Rules', () => {
                     },
                     [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : {
-                            id : testHouseDataOne.uid
+                            [Household.f.ID] : testHouseDataOne.uid
                         }
                     }
                 })
@@ -573,7 +575,7 @@ describe('Emulated_Rules', () => {
                     },
                     [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : {
-                            id : testHouseDataOne.uid
+                            [Household.f.ID] : testHouseDataOne.uid
                         }
                     }
                 })
@@ -597,7 +599,7 @@ describe('Emulated_Rules', () => {
                     },
                     [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : {
-                            id : testHouseDataOne.uid
+                            [Household.f.ID] : testHouseDataOne.uid
                         }
                     }
                 })
@@ -645,7 +647,7 @@ describe('Emulated_Rules', () => {
                 })))
             })
             
-            it('Should not allow Users to update field "households" of unclaimed Base Stations if field is no map only containing id:string', async () => {
+            it('Should not allow Users to update field "households" of unclaimed Base Stations if field is no map containing id:string', async () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.BASE_STATION}/${testBaseStationDataOne.uid}`] : {}
                 })
@@ -666,7 +668,7 @@ describe('Emulated_Rules', () => {
 
                 expect(await firestore.assertSucceeds(ref.doc(testBaseStationDataOne.uid).update({
                     [Models.HOUSEHOLD] : {
-                        id : '123'
+                        [Household.f.ID] : '123'
                     }
                 })))
             })
@@ -863,7 +865,7 @@ describe('Emulated_Rules', () => {
 
                 expect(await firestore.assertFails(ref.doc(testHouseDataOne.uid).update({
                     [Models.USER] : {
-                        id : '123'
+                        [User.f.ID] : '123'
                     }
                 })))
             })
@@ -880,7 +882,7 @@ describe('Emulated_Rules', () => {
 
                 expect(await firestore.assertFails(ref.doc(testHouseDataOne.uid).update({
                     [Models.SENSOR] : {
-                        id : '123'
+                        [Sensor.f.ID] : '123'
                     }
                 })))
             })
@@ -897,7 +899,7 @@ describe('Emulated_Rules', () => {
 
                 expect(await firestore.assertFails(ref.doc(testHouseDataOne.uid).update({
                     [Models.BASE_STATION] : {
-                        id : '123'
+                        [BaseStation.f.ID] : '123'
                     }
                 })))
             })
@@ -912,8 +914,8 @@ describe('Emulated_Rules', () => {
                     },
                     [`${Models.USER}/${testUserDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : {
-                            pivot : {
-                                role : Roles.ADMIN
+                            [Relations.PIVOT] : {
+                                [User.f.HOUSEHOLDS.ROLE] : Roles.ADMIN
                             }
                         }
                     }
@@ -938,8 +940,8 @@ describe('Emulated_Rules', () => {
                     },
                     [`${Models.USER}/${testUserDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : {
-                            pivot : {
-                                role : Roles.ADMIN
+                            [Relations.PIVOT] : {
+                                [User.f.HOUSEHOLDS.ROLE] : Roles.ADMIN
                             }
                         }
                     }
@@ -964,8 +966,8 @@ describe('Emulated_Rules', () => {
                     },
                     [`${Models.USER}/${testUserDataOne.uid}`] : {
                         [Models.HOUSEHOLD] : {
-                            pivot : {
-                                role : Roles.ADMIN
+                            [Relations.PIVOT] : {
+                                [User.f.HOUSEHOLDS.ROLE] : Roles.ADMIN
                             }
                         }
                     }
@@ -1048,7 +1050,7 @@ describe('Emulated_Rules', () => {
             it('Unautherized users should not be able to read data from Sensors', async () => {
                 const db = await setup(null, {
                     [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
-                        users : {}
+                        [Models.USER] : {}
                     }
                 })
                 const ref = db.collection(Models.SENSOR)
@@ -1059,7 +1061,7 @@ describe('Emulated_Rules', () => {
             it('Users should not be able to read data from non-related Sensors', async () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
-                        users : {}
+                        [Models.USER] : {}
                     }
                 })
                 const ref = db.collection(Models.SENSOR)
@@ -1070,7 +1072,7 @@ describe('Emulated_Rules', () => {
             it('Users should be able to read data from related Sensors', async () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
-                        users : {
+                        [Models.USER] : {
                             [testUserDataOne.uid] : true
                         }
                     }
@@ -1083,7 +1085,7 @@ describe('Emulated_Rules', () => {
             it('Admin users should be able to read data from Sensors', async () => {
                 const db = await setup(testAdminUserData, {
                     [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
-                        users : {}
+                        [Models.USER] : {}
                     }
                 })
                 const ref = db.collection(Models.SENSOR)
@@ -1107,7 +1109,7 @@ describe('Emulated_Rules', () => {
             it('Users should not be able to update data on non-related Sensors', async () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
-                        users : {}
+                        [Models.USER] : {}
                     }
                 })
                 const ref = db.collection(Models.SENSOR)
@@ -1118,33 +1120,33 @@ describe('Emulated_Rules', () => {
             it('Users should not be able to update field: id', async () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
-                        users : { [testUserDataOne.uid] : true }
+                        [Models.USER] : { [testUserDataOne.uid] : true }
                     }
                 })
                 const ref = db.collection(Models.SENSOR)
 
                 expect(await firestore.assertFails(ref.doc(testSensorDataOne.uid).update({
-                    id : '123'
+                    [User.f.ID] : '123'
                 })))
             })
 
             it('Users should not be able to update field: users', async () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
-                        users : { [testUserDataOne.uid] : true }
+                        [Models.USER] : { [testUserDataOne.uid] : true }
                     }
                 })
                 const ref = db.collection(Models.SENSOR)
 
                 expect(await firestore.assertFails(ref.doc(testSensorDataOne.uid).update({
-                    users : {}
+                    [Models.USER] : {}
                 })))
             })
 
             it('Users should be able to update data on related Sensors', async () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
-                        users : { [testUserDataOne.uid] : true },
+                        [Models.USER] : { [testUserDataOne.uid] : true },
                     }
                 })
 
@@ -1156,7 +1158,7 @@ describe('Emulated_Rules', () => {
             it('Admin users should be able to update data on Sensors', async () => {
                 const db = await setup(testAdminUserData, {
                     [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
-                        users : {}
+                        [Models.USER] : {}
                     }
                 })
                 const ref = db.collection(Models.SENSOR)
@@ -1166,6 +1168,7 @@ describe('Emulated_Rules', () => {
         })
         
         describe('Delete', async () => {
+
             it('Should not allow unautherized Users to delete Sensors', async () => {
                 const db = await setup()
 
@@ -1180,6 +1183,45 @@ describe('Emulated_Rules', () => {
                 const ref = db.collection(Models.SENSOR)
 
                 expect(await firestore.assertFails(ref.doc().delete()))
+            })
+
+            it('Should not allow resident Users to delete Sensors', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
+                        [Models.USER] : { [testUserDataOne.uid] : true },
+                        [Models.HOUSEHOLD] : { id : testHouseDataOne.uid }
+                    },
+                    [`${Models.USER}/${testUserDataOne.uid}`] : {
+                        [Models.HOUSEHOLD] : {
+                            [Household.f.ID] : testHouseDataOne.uid
+                        }
+                    }
+                })
+
+                const ref = db.collection(Models.SENSOR).doc(testSensorDataOne.uid)
+
+                expect(await firestore.assertFails(ref.delete()))
+            })
+
+            it('Should allow household admins to delete Sensors', async () => {
+                const db = await setup(testUserDataOne, {
+                    [`${Models.SENSOR}/${testSensorDataOne.uid}`] : {
+                        [Models.USER] : { [testUserDataOne.uid] : true },
+                        [Models.HOUSEHOLD] : { id : testHouseDataOne.uid }
+                    },
+                    [`${Models.USER}/${testUserDataOne.uid}`] : {
+                        [Models.HOUSEHOLD] : {
+                            [Relations.PIVOT] : {
+                                [User.f.HOUSEHOLDS.ROLE] : 'admin'
+                            },
+                            [Household.f.ID] : testHouseDataOne.uid
+                        }
+                    }
+                })
+
+                const ref = db.collection(Models.SENSOR).doc(testSensorDataOne.uid)
+
+                expect(await firestore.assertSucceeds(ref.delete()))
             })
         })
     })
@@ -1223,7 +1265,7 @@ describe('Emulated_Rules', () => {
                 const db = await setup(testUserDataTwo, {
                     [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {
                         [Models.USER] : {
-                            id: testUserDataOne.uid
+                            [User.f.ID] : testUserDataOne.uid
                         }
                     }
                 })
@@ -1236,7 +1278,7 @@ describe('Emulated_Rules', () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {
                         [Models.USER] : {
-                            id: testUserDataOne.uid
+                            [User.f.ID] : testUserDataOne.uid
                         }
                     }
                 })
@@ -1252,7 +1294,7 @@ describe('Emulated_Rules', () => {
                 const db = await setup(null, {
                     [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {
                         [Models.USER] : {
-                            id : testUserDataOne.uid
+                            [User.f.ID] : testUserDataOne.uid
                         }
                     }
                 })
@@ -1266,7 +1308,7 @@ describe('Emulated_Rules', () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {
                         [Models.USER] : {
-                            id : testUserDataOne.uid
+                            [User.f.ID] : testUserDataOne.uid
                         }
                     }
                 })
@@ -1282,7 +1324,7 @@ describe('Emulated_Rules', () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {
                         [Models.USER] : {
-                            id : testUserDataOne.uid
+                            [User.f.ID] : testUserDataOne.uid
                         }
                     }
                 })
@@ -1298,7 +1340,7 @@ describe('Emulated_Rules', () => {
                 const db = await setup(testUserDataTwo, {
                     [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {
                         [Models.USER] : {
-                            id : testUserDataOne.uid
+                            [User.f.ID] : testUserDataOne.uid
                         }
                     }
                 })
@@ -1314,7 +1356,7 @@ describe('Emulated_Rules', () => {
                 const db = await setup(testUserDataOne, {
                     [`${Models.SENSOR}_${Models.USER}/${testSensorDataOne.uid}_${testUserDataOne.uid}`] : {
                         [Models.USER] : {
-                            id : testUserDataOne.uid
+                            [User.f.ID] : testUserDataOne.uid
                         }
                     }
                 })
