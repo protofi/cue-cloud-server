@@ -42,6 +42,7 @@ exports = module.exports = pubsub.topic(topicName)
     }
     catch(error)
     {
-        return console.error(error)
+        console.error(error)
+        return 
     }
 })
