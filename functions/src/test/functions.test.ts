@@ -7,7 +7,6 @@ import { FeaturesList } from 'firebase-functions-test/lib/features'
 import { Models } from './lib/ORM/Models'
 import { OfflineDocumentSnapshotStub, FirestoreStub } from './stubs'
 import { Relations, Roles, Errors, WhereFilterOP } from './lib/const'
-import * as fakeUUID from 'uuid/v1'
 import * as _ from 'lodash'
 import { unflatten, flatten } from 'flat'
 import User from './lib/ORM/Models/User';
@@ -1438,9 +1437,9 @@ describe('Integration_Test', () => {
         const consoleErrorStub      = sinon.stub(console, 'error')
         const nullDataBuffer        = Buffer.from(JSON.stringify({}))
         const householdId           = uniqid()
-        const baseStationUUID       = fakeUUID()
-        const baseStationTwoUUID    = fakeUUID()
-        const sensorOneUUID         = fakeUUID()
+        const baseStationUUID       = faker.random.uuid()
+        const baseStationTwoUUID    = faker.random.uuid()
+        const sensorOneUUID         = faker.random.uuid()
 
         const baseStationPin        = uniqid()
         const baseStationTwoPin     = uniqid()
@@ -2592,6 +2591,113 @@ describe('Integration_Test', () => {
                 expect(_.keys(androidPayload)).to.not.include('notification')
 
                 expect(messagingSendToDeviceSpy.callCount).to.be.equal(2)
+            })
+        })
+
+        describe('Topic: Sensor Heartbeat', () => {
+
+            it('Should fail if no deviceId is send', async () => {
+                const wrappedPubsubSensorHeartbeat = test.wrap(myFunctions.pubsubSensorHeartbeat)
+                
+                await wrappedPubsubSensorHeartbeat({
+                    data: nullDataBuffer,
+                    attributes: {}
+                })
+
+                const consoleError = consoleErrorStub.getCall(0).args[0]
+
+                expect(consoleError.message).to.equal(Errors.DATA_MISSING)
+            })
+
+            it('Should fail if no sensor id data is sent', async () => {
+                const wrappedPubsubSensorHeartbeat = test.wrap(myFunctions.pubsubSensorHeartbeat)
+                
+                const payload = {
+                    [Sensor.f.BAT_LEVEL]    : faker.random.number(),
+                    [Sensor.f.SIG_STRENGTH] : faker.random.number()
+                }
+
+                await wrappedPubsubSensorHeartbeat({
+                    data: Buffer.from(JSON.stringify(payload)),
+                    attributes: {
+                        deviceId : baseStationUUID
+                    }
+                })
+
+                const consoleError = consoleErrorStub.getCall(0).args[0]
+
+                expect(consoleError.message).to.equal(Errors.DATA_MISSING)
+            })
+
+            it('Should fail if no battery level data is sent', async () => {
+                const wrappedPubsubSensorHeartbeat = test.wrap(myFunctions.pubsubSensorHeartbeat)
+                
+                const payload = {
+                    [Sensor.f.ID] : sensorOneUUID
+                }
+
+                await wrappedPubsubSensorHeartbeat({
+                    data: Buffer.from(JSON.stringify(payload)),
+                    attributes: {
+                        deviceId : baseStationUUID
+                    }
+                })
+
+                const consoleError = consoleErrorStub.getCall(0).args[0]
+
+                expect(consoleError.message).to.equal(Errors.DATA_MISSING)
+            })
+
+            it('Should fail if no signal strength data is sent', async () => {
+                const wrappedPubsubSensorHeartbeat = test.wrap(myFunctions.pubsubSensorHeartbeat)
+                
+                const payload = {
+                    [Sensor.f.ID]           : sensorOneUUID,
+                    [Sensor.f.BAT_LEVEL]    : faker.random.number()
+                }
+
+                await wrappedPubsubSensorHeartbeat({
+                    data: Buffer.from(JSON.stringify(payload)),
+                    attributes: {
+                        deviceId : baseStationUUID
+                    }
+                })
+
+                const consoleError = consoleErrorStub.getCall(0).args[0]
+
+                expect(consoleError.message).to.equal(Errors.DATA_MISSING)
+            })
+
+            it('Should update battery level and signal strength', async () => {
+
+                const signalStrength    = faker.random.number()
+                const batteryLevel      = faker.random.number()
+
+                // mock data
+                firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`] = {}
+
+                const wrappedPubsubSensorHeartbeat = test.wrap(myFunctions.pubsubSensorHeartbeat)
+                
+                const payload = {
+                    [Sensor.f.ID]           : sensorOneUUID,
+                    [Sensor.f.BAT_LEVEL]    : batteryLevel,
+                    [Sensor.f.SIG_STRENGTH] : signalStrength
+                }
+
+                await wrappedPubsubSensorHeartbeat({
+                    data: Buffer.from(JSON.stringify(payload)),
+                    attributes: {
+                        deviceId : baseStationUUID
+                    }
+                })
+
+                const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]
+                const expectedSensorDoc = {
+                    [Sensor.f.BAT_LEVEL]    : batteryLevel,
+                    [Sensor.f.SIG_STRENGTH] : signalStrength
+                }
+
+                expect(sensorDoc).is.deep.equal(expectedSensorDoc)
             })
         })
     })

@@ -8,9 +8,11 @@ export default class Sensor extends ModelImpl {
     static readonly f = {
         ID          : 'id',
         NAME        : 'name',
-        VIBRATION   : 'vibration',
         LOCATION    : 'location',
+        VIBRATION   : 'vibration',
         ICON        : 'icon_string',
+        BAT_LEVEL   : 'battery_level',
+        SIG_STRENGTH: 'signal_strength',
         EVENT       : 'event_has_happened',
         USERS : {
             MUTED   : 'muted'
