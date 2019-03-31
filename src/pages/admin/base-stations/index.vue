@@ -220,7 +220,7 @@
 </template>
 
 <script>
-import { firestore } from '~/plugins/firebase.js'
+import { firebase, firestore } from '~/plugins/firebase.js'
 import { websocket } from '~/plugins/websocket.js'
 
 export default {
@@ -336,15 +336,36 @@ export default {
             this.$refs.updateAddressForm.reset()
         },
 
-        unlink(baseStationId)
+        async unlink(baseStationId)
         {
-            this.unlinkBaseStationLoading = true
-            this.$axios.$delete(`base-stations/${baseStationId}/`)
-                .catch(console.error)
-                .then(console.error)
-				.finally(() => {
-					this.unlinkBaseStationLoading = false
+            const baseStation = this.baseStationDocs.filter(doc => doc.id == baseStationId)[0]
+
+            try{
+				await firestore.collection('base_stations').doc(baseStation.id).update({
+					households : firebase.firestore.FieldValue.delete()
 				})
+			}
+			catch(e)
+			{
+				if(!e.message.includes('No document to update'))
+                {
+                    console.log(e)
+                    return
+                }
+			}
+
+            const householdId = baseStation.data().households.id
+
+			try{
+				await firestore.collection('households').doc(householdId).update({
+						base_stations : firebase.firestore.FieldValue.delete()
+					})
+			}
+			catch(e)
+			{
+				console.log(e)
+			}
+
         },
 
         deleteBaseStation(baseStationId)
