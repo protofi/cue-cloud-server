@@ -434,4 +434,6 @@ export default (app: Application) => {
      ******************************************/
 
     authRouter.use(notFoundHandler)
+
+    return app
 }

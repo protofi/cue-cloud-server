@@ -56,8 +56,7 @@ for(let f=0,fl=files.length; f<fl; f++)
 
 //Import of API routes
 import apiRoutes from './routes/api'
-
-apiRoutes(app)
+exports.api = apiRoutes(app)
 
 const nuxt = new Nuxt({
     dev: false,
