@@ -4,7 +4,7 @@ import * as functions from 'firebase-functions'
 import * as admin from 'firebase-admin'
 import { glob } from 'glob'
 import * as cors from 'cors'
-import camelCase from 'camelcase'
+import * as camelCase from 'camelcase'
 
 const app = express()
 app.use(cors({ origin: true }))
@@ -18,8 +18,8 @@ try{
         credential: admin.credential.cert(serviceAccount),
         databaseURL: `https://${projectId}.firebaseio.com`
     })
-}
-catch(e)
+
+} catch(e)
 {
     console.warn(e.message, 'Service Account Key missing. Initializing app with no credentials.')
 
@@ -29,9 +29,11 @@ catch(e)
     catch(e){}
 }
 
+
 try {
     admin.initializeApp()
-} catch (e) {}
+  } catch (e) {}
+
 
 const settings = { timestampsInSnapshots: true }
 
