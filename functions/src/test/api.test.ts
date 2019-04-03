@@ -8,13 +8,9 @@ const assert = chai.assert
 const expect = chai.expect
 
 const baseUrl = '/api/v1/'
+const api: Express.Application = require('../lib/index').api
 
-describe.only('Api_Test', () => {
-    let app
-
-    before(() => {
-        app = require('../lib/index')
-    })
+describe('Api_Test', () => {
 
     describe('GET /api/v1/', () =>
     {
@@ -23,7 +19,7 @@ describe.only('Api_Test', () => {
             const expectedBody = {
                 "message" : "Welcome to the Cue API."
             }
-            await request(app.api)
+            await request(api)
                 .get(baseUrl)
                 .set('Accept', 'application/json')
                 .expect('Content-Type', /json/)

@@ -237,11 +237,10 @@ export abstract class N2ManyRelation extends RelationImpl implements IN2ManyRela
     {
         const propertyIds: Array<string> = await this.getIds()
         const models: Array<ModelImpl> = []
-
+        
         await asyncForEach(propertyIds, async (id: string) => {
             models.push(await this.importStrategy.import(this.db, this.propertyModelName, id))
         })
-
         return models
     }
 

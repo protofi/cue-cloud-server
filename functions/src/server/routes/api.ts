@@ -89,14 +89,6 @@ export default (app: Application) => {
 
     authRouter.use(authMiddleware)
 
-    authRouter.route('/users')
-        
-        .get(async (req: Request, res: Response) => {
-            res.json({
-                user : req['auth']
-            })
-        })
-
     authRouter.route(`/${Models.HOUSEHOLD}/:id/invitations`)
 
         .post(async (req: Request, res: Response) => {
@@ -193,14 +185,6 @@ export default (app: Application) => {
             }
         })
 
-    authRouter.route('/households')
-        
-        .get(async (req: Request, res: Response) => {
-            res.json({
-                user : req['auth']
-            })
-        })
-
     authRouter.route('/households/:id/sensors')
         
         .put(async (req: Request, res: Response) => {
@@ -236,69 +220,6 @@ export default (app: Application) => {
         })
 
     authRouter.route('/sensors')
-    
-        // .put(async (req: Request, res: Response) => {
-        
-        //     const sensorAddedData = {}
-
-        //     try{
-        //         const householdQuerySnaps: firestore.QuerySnapshot = await fs.collection(Models.HOUSEHOLD).get()
-                
-        //         const households = new Array<Household>()
-
-        //         householdQuerySnaps.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
-        //             households.push(db.household(doc))
-        //         })
-
-        //         const data = [
-        //             {
-        //                 name        : 'Dørklokken',
-        //                 location    : 'Gangen',
-        //                 icon_string : 'doorbell'
-        //             },
-        //             {
-        //                 name        : 'Røgalarmen',
-        //                 location    : 'Køkkenet',
-        //                 icon_string : 'firealarm'
-        //             },
-        //             {
-        //                 name        : 'Røgalarmen',
-        //                 location    : 'Stuen',
-        //                 icon_string : 'firealarm'
-        //             }
-        //         ]
-
-        //         await asyncForEach(households, async (household: Household) => {
-
-        //             const sensors: Array<ModelImpl> = []
-                    
-        //             sensors.push(await db.sensor().create(data[0]))
-        //             sensors.push(await db.sensor().create(data[1]))
-        //             sensors.push(await db.sensor().create(data[2]))
-
-        //             await household.sensors().attachBulk(sensors)
-
-        //             sensors.forEach((sensor, i) => {
-        //                 if(!sensorAddedData[household.getId()]) sensorAddedData[household.getId()] = {}
-        //                 sensorAddedData[household.getId()][sensor.getId()] = data[i]
-        //             })
-        //         })
-        //     }
-        //     catch(e)
-        //     {
-        //         res.status(INTERNAL_SERVER_ERROR).json({
-        //             success : false,
-        //             error : e
-        //         })
-
-        //         return
-        //     }
-
-        //     res.json({
-        //         success : true,
-        //         sensors : sensorAddedData
-        //     })
-        // })
 
         .delete(async (req: Request, res: Response) => {
         

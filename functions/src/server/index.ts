@@ -18,8 +18,8 @@ try{
         credential: admin.credential.cert(serviceAccount),
         databaseURL: `https://${projectId}.firebaseio.com`
     })
-
-} catch(e)
+}
+catch(e)
 {
     console.warn(e.message, 'Service Account Key missing. Initializing app with no credentials.')
 
@@ -29,11 +29,9 @@ try{
     catch(e){}
 }
 
-
 try {
     admin.initializeApp()
-  } catch (e) {}
-
+} catch (e) {}
 
 const settings = { timestampsInSnapshots: true }
 

@@ -160,7 +160,7 @@ export class FirestoreStub {
                             update: async (data: any) => {
                                 
                                 const deleteFlag = (admin.firestore.FieldValue) ? admin.firestore.FieldValue.delete() : undefined //For testing purposes. Is to be fixed
-                                
+
                                 const _this = this
                                 const _id = (id) ? id : this.nextIdInjection()
 
@@ -171,7 +171,7 @@ export class FirestoreStub {
 
                                 _.forOwn(flattenData, (value, key) => {
 
-                                    if(value !== deleteFlag) return
+                                    if(value !== deleteFlag && typeof value !== 'object') return
                                     
                                     _.unset(_this.mockData[`${col}/${_id}`], key)
                                     _.unset(data, key)

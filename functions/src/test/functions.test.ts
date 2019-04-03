@@ -1053,11 +1053,11 @@ describe('Integration_Test', () => {
                     }
                 }
 
+                const updateSpy = sinon.spy()
+
                 const householdSnap = new OfflineDocumentSnapshotStub({
                     ref: {
-                        update : () => {
-                            return null
-                        },
+                        update : updateSpy
                     },
                     data : {
                         [Models.USER] : {
