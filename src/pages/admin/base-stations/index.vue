@@ -85,13 +85,17 @@
                                                 :disabled="!hasWebsocket.includes(baseStation.id)"
                                                 @click.stop="publishMessage('pairing', baseStation.id)"                                                
                                                 >
-                                                
                                                 Pairing
                                             </v-btn>
                                             <v-btn
                                                 :disabled="!hasWebsocket.includes(baseStation.id)"
                                                 @click.stop="publishMessage('calibration', baseStation.id)">
                                                 Calibration
+                                            </v-btn>
+                                            <v-btn
+                                                :disabled="!hasWebsocket.includes(baseStation.id)"
+                                                @click.stop="publishMessage('disconnect', baseStation.id)">
+                                                Disconnect peripheral
                                             </v-btn>
                                         </div>
                                        
