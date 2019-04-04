@@ -89,6 +89,14 @@ export default (app: Application) => {
 
     authRouter.use(authMiddleware)
 
+    authRouter.route(`/me`)
+        .get(async (req: Request, res: Response) => {
+
+            res.status(200).json({
+                success : true,
+            })
+        })
+
     authRouter.route(`/${Models.HOUSEHOLD}/:id/invitations`)
 
         .post(async (req: Request, res: Response) => {
@@ -317,22 +325,22 @@ export default (app: Application) => {
             
             const baseStationId = req.params.id
 
-            const projectId = 'staging-cue-iot-cloud'
-            const location  = 'europe-west1'
-            const registry  = 'Base-Station-Registry'
-
-            const client = new iot.v1.DeviceManagerClient({
-                keyFilename : './iot-device-manager.serviceAccountKey.json'
-            })
-
-            const formattedName = client.devicePath(projectId, location, registry, baseStationId)
-
             try
             {
-                await client.deleteDevice({name: formattedName})
+                const projectId = 'staging-cue-iot-cloud'
+                const location  = 'europe-west1'
+                const registry  = 'Base-Station-Registry'
 
-                await db.baseStation(null, baseStationId).delete()
+                const client = new iot.v1.DeviceManagerClient({
+                    keyFilename : './iot-device-manager.serviceAccountKey.json'
+                })
 
+                const deviceName = client.devicePath(projectId, location, registry, baseStationId)
+
+                await Promise.all([
+                    client.deleteDevice({name: deviceName}),
+                    db.baseStation(null, baseStationId).delete()
+                ])
             }
             catch(error)
             {
