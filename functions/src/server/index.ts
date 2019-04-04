@@ -9,9 +9,10 @@ import * as camelCase from 'camelcase'
 const app = express()
 app.use(cors({ origin: true }))
 
-try {
+try{
     admin.initializeApp()
-} catch (e) {}
+}
+catch(e){ console.log(e.message) }
 
 const settings = { timestampsInSnapshots: true }
 

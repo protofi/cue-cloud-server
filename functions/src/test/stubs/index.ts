@@ -219,6 +219,9 @@ export class FirestoreStub {
                                                 })
                     
                                                 return null
+                                            },
+                                            set: (data: any) => {
+                                                return
                                             }
                                         },
                                         id: path.split('/')[1],

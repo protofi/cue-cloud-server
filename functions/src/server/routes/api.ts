@@ -14,6 +14,8 @@ const { PubSub } = require('@google-cloud/pubsub')
 
 import * as iot from '@google-cloud/iot'
 
+import * as bodyParser from "body-parser";
+
 const apiBasePath = '/api/v1'
 
 const fs = firestore()
@@ -65,6 +67,9 @@ const adminMiddleware = async (req: Request, res: Response, next: NextFunction) 
 
 export default (app: Application) => {
 
+    app.use(bodyParser.json())
+    app.use(bodyParser.urlencoded({ extended: true }))
+
     const publicRouter = Router()
     app.use(apiBasePath, publicRouter)
     
@@ -89,27 +94,20 @@ export default (app: Application) => {
 
     authRouter.use(authMiddleware)
 
-    authRouter.route(`/me`)
-        .get(async (req: Request, res: Response) => {
-
-            res.status(200).json({
-                success : true,
-            })
-        })
-
     authRouter.route(`/${Models.HOUSEHOLD}/:id/invitations`)
 
         .post(async (req: Request, res: Response) => {
 
-            const user          = req['auth']
-            const householdId   = req.params.id
-            const inviteeEmail  = req.body.email
-
-            /**
-             * TO DO: validate input
-             */
-
             try{
+
+                const user          = req['auth']
+                const householdId   = req.params.id
+                const inviteeEmail  = req.body.email
+
+                /**
+                 * TO DO: validate input
+                 */
+
                 const inviter = await db.user().find(user.uid) as User
                 const cache = await inviter.household().cache()
 
