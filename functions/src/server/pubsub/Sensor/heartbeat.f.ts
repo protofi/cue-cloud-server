@@ -4,7 +4,6 @@ import * as admin from 'firebase-admin'
 import DataORMImpl from '../../lib/ORM'
 import { basename } from 'path'
 import { Errors } from '../../lib/const';
-import BaseStation from '../../lib/ORM/Models/BaseStation';
 import Sensor from '../../lib/ORM/Models/Sensor';
 
 const file = basename(__filename).slice(0, -5)
@@ -14,8 +13,8 @@ const topicName = kebabCase(`${ctrl}-${file}`)
 exports = module.exports = pubsub.topic(topicName)
 .onPublish(async (message: pubsub.Message, context: EventContext) => {
 
-    try{
-
+    try
+    {
         const db = new DataORMImpl(admin.firestore())
 
         const baseStationUUID = message.attributes.deviceId

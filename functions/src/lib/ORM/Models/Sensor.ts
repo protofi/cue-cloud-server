@@ -1,5 +1,5 @@
 import ModelImpl, { Models } from "./";
-import { Many2OneRelation, One2ManyRelation, Many2ManyRelation } from "../Relation";
+import { Many2OneRelation, Many2ManyRelation } from "../Relation";
 
 export default class Sensor extends ModelImpl {
 
