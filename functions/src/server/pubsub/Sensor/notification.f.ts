@@ -8,6 +8,7 @@ import { Env } from '../../lib/const';
 import User from '../../lib/ORM/Models/User';
 
 import { basename } from 'path'
+import * as logger from 'fancy-log'
 
 const file = basename(__filename).slice(0, -5)
 const ctrl = basename(__dirname)
@@ -93,11 +94,12 @@ exports = module.exports = pubsub
 				androidPayload
 			))
 
-		return Promise.all(promises).catch(console.error)
+		await Promise.all(promises)
 	}
 	catch(error)
 	{
-		if(process.env.GCLOUD_PROJECT !== Env.NOT_A_PROJECT)
-			console.error(error)
+		logger.error(error)
 	}
+
+	return
 })

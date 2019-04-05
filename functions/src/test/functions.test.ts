@@ -15,6 +15,8 @@ import BaseStation from './lib/ORM/Models/BaseStation';
 import * as faker from 'faker'
 import { printFormattedJson } from './lib/util';
 
+import * as fancyLog from 'fancy-log';
+
 const randomstring = require('randomstring')
 
 const test: FeaturesList = require('firebase-functions-test')()
@@ -23,6 +25,8 @@ const assert = chai.assert
 const expect = chai.expect
 
 describe('Integration_Test', () => {
+
+    const loggerErrorStub = sinon.stub(fancyLog, 'error')
 
     let adminInitStub: sinon.SinonStub
     let adminFirestoreStub: sinon.SinonStub
@@ -73,10 +77,12 @@ describe('Integration_Test', () => {
         adminInitStub.restore()
         adminFirestoreStub.restore()
         adminMessagingStub.restore()
+        loggerErrorStub.restore()
     })
 
     afterEach(() => {
         firestoreStub.reset()
+        loggerErrorStub.reset()
     })
 
     describe('Auth', () => {
@@ -136,9 +142,9 @@ describe('Integration_Test', () => {
 
     describe('Users', () => {
 
-        const householdId = uniqid()
-        const userId = uniqid()
-        const sensorId = uniqid()
+        const userId        = uniqid()
+        const sensorId      = uniqid()
+        const householdId   = uniqid()
 
         describe('On Update', () => {
 
@@ -1434,7 +1440,6 @@ describe('Integration_Test', () => {
 
     describe('Pub/Sub', () => {
         
-        const consoleErrorStub      = sinon.stub(console, 'error')
         const nullDataBuffer        = Buffer.from(JSON.stringify({}))
         const householdId           = uniqid()
         const baseStationUUID       = faker.random.uuid()
@@ -1465,7 +1470,6 @@ describe('Integration_Test', () => {
         beforeEach(() => {
             messagingSendToDeviceSpy.resetHistory()
             firestoreStub.reset()
-            consoleErrorStub.reset()
             baseStationPins = []
             baseStationPinCount = 0
         })
@@ -1487,7 +1491,10 @@ describe('Integration_Test', () => {
                     error = e.message
                 }
 
-                expect(error).to.be.equal(Errors.DATA_MISSING)
+                expect(error).to.be.null
+
+                const consoleError = loggerErrorStub.getCall(0).args[0]
+                expect(consoleError.message).to.equal(Errors.DATA_MISSING)
 
                 expect(firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]).to.not.exist
             })
@@ -1504,8 +1511,8 @@ describe('Integration_Test', () => {
 
                 let error = null
 
-                try{
-
+                try
+                {
                     await wrappedPubsubBaseStationInitialize({
                             data: nullDataBuffer,
                             attributes : {
@@ -1513,14 +1520,14 @@ describe('Integration_Test', () => {
                             }
                         })
                 }
-                catch(e) {
+                catch(e)
+                {
                     error = e.message
                 }
 
                 expect(error).to.be.null
 
-                const consoleError = consoleErrorStub.getCall(0).args[0]
-
+                const consoleError = loggerErrorStub.getCall(0).args[0]
                 expect(consoleError.message).to.equal(Errors.MODEL_ALREADY_EXISTS)
 
                 const baseStationDoc = firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]
@@ -2604,7 +2611,7 @@ describe('Integration_Test', () => {
                     attributes: {}
                 })
 
-                const consoleError = consoleErrorStub.getCall(0).args[0]
+                const consoleError = loggerErrorStub.getCall(0).args[0]
 
                 expect(consoleError.message).to.equal(Errors.DATA_MISSING)
             })
@@ -2624,7 +2631,7 @@ describe('Integration_Test', () => {
                     }
                 })
 
-                const consoleError = consoleErrorStub.getCall(0).args[0]
+                const consoleError = loggerErrorStub.getCall(0).args[0]
 
                 expect(consoleError.message).to.equal(Errors.DATA_MISSING)
             })
@@ -2643,7 +2650,7 @@ describe('Integration_Test', () => {
                     }
                 })
 
-                const consoleError = consoleErrorStub.getCall(0).args[0]
+                const consoleError = loggerErrorStub.getCall(0).args[0]
 
                 expect(consoleError.message).to.equal(Errors.DATA_MISSING)
             })
@@ -2663,7 +2670,7 @@ describe('Integration_Test', () => {
                     }
                 })
 
-                const consoleError = consoleErrorStub.getCall(0).args[0]
+                const consoleError = loggerErrorStub.getCall(0).args[0]
 
                 expect(consoleError.message).to.equal(Errors.DATA_MISSING)
             })

@@ -6,6 +6,8 @@ import { basename } from 'path'
 import { Errors } from '../../lib/const';
 import Sensor from '../../lib/ORM/Models/Sensor';
 
+import * as logger from 'fancy-log'
+
 const file = basename(__filename).slice(0, -5)
 const ctrl = basename(__dirname)
 const topicName = kebabCase(`${ctrl}-${file}`)
@@ -34,14 +36,15 @@ exports = module.exports = pubsub.topic(topicName)
 
         const sensor = await db.sensor().findOrFail(sensorId) as Sensor
     
-        return sensor.update({
+        await sensor.update({
             [Sensor.f.BAT_LEVEL]    : batteryLevel,
             [Sensor.f.SIG_STRENGTH] : signalStrength
-        }).catch(console.error)
+        })
     }
     catch(error)
     {
-        console.error(error)
-        return 
+        logger.error(error)
     }
+
+    return 
 })
