@@ -1655,7 +1655,10 @@ describe('Integration_Test', () => {
                     error = e.message
                 }
 
-                expect(error).to.be.equal(Errors.MODEL_NOT_FOUND)
+                expect(error).to.be.null
+
+                const consoleError = loggerErrorStub.getCall(0).args[0]
+                expect(consoleError.message).to.equal(Errors.MODEL_NOT_FOUND)
 
                 expect(firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]).to.not.exist
                 expect(firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]).to.not.exist
@@ -1687,7 +1690,10 @@ describe('Integration_Test', () => {
                     error = e.message
                 }
 
-                expect(error).to.be.equal(Errors.NO_SENSOR_UUID)
+                expect(error).to.be.null
+
+                const consoleError = loggerErrorStub.getCall(0).args[0]
+                expect(consoleError.message).to.equal(Errors.NO_SENSOR_UUID)
 
                 expect(firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]).to.not.exist
                 expect(firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
@@ -1702,21 +1708,26 @@ describe('Integration_Test', () => {
                     }
                 }
 
-                let error
+                let error = null
 
                 const wrappedPubsubBaseStationNewSensor = test.wrap(myFunctions.pubsubBaseStationNewSensor)
                 
                 try{
 
                     await wrappedPubsubBaseStationNewSensor({
-                            data: nullDataBuffer
+                            data: nullDataBuffer,
+                            attributes: {}
                         })
                 }
                 catch(e) {
                     error = e
                 }
 
-                expect(error).to.exist
+                expect(error).to.be.null
+
+                const consoleError = loggerErrorStub.getCall(0).args[0]
+                expect(consoleError.message).to.equal(Errors.NO_SENSOR_UUID)
+
                 expect(firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]).to.not.exist
                 expect(firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
             })
@@ -1742,7 +1753,10 @@ describe('Integration_Test', () => {
                     error = e.message
                 }
 
-                expect(error).to.be.equal(Errors.MODEL_NOT_FOUND)
+                expect(error).to.be.null
+
+                const consoleError = loggerErrorStub.getCall(0).args[0]
+                expect(consoleError.message).to.equal(Errors.MODEL_NOT_FOUND)
 
                 expect(firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]).to.not.exist
                 expect(firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]).to.not.exist
@@ -1772,7 +1786,10 @@ describe('Integration_Test', () => {
                     error = e.message
                 }
 
-                expect(error).to.be.equal(Errors.BASE_STATION_NOT_CLAIMED)
+                expect(error).to.be.null
+
+                const consoleError = loggerErrorStub.getCall(0).args[0]
+                expect(consoleError.message).to.equal(Errors.BASE_STATION_NOT_CLAIMED)
 
                 expect(firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]).to.not.exist
                 expect(firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`]).to.exist
@@ -1904,7 +1921,10 @@ describe('Integration_Test', () => {
                     error = e.message
                 }
 
-                expect(error).to.be.equal(Errors.DATA_MISSING)
+                expect(error).to.be.null
+
+                const consoleError = loggerErrorStub.getCall(0).args[0]
+                expect(consoleError.message).to.equal(Errors.DATA_MISSING)
             })
 
             it('Should throw error if message is send missing port', async () => {
@@ -1928,7 +1948,10 @@ describe('Integration_Test', () => {
                     error = e.message
                 }
 
-                expect(error).to.be.equal(Errors.DATA_MISSING)
+                expect(error).to.be.null
+
+                const consoleError = loggerErrorStub.getCall(0).args[0]
+                expect(consoleError.message).to.equal(Errors.DATA_MISSING)
             })
 
             it('Should throw error if message is send missing address', async () => {
@@ -1952,7 +1975,10 @@ describe('Integration_Test', () => {
                     error = e.message
                 }
 
-                expect(error).to.be.equal(Errors.DATA_MISSING)
+                expect(error).to.be.null
+
+                const consoleError = loggerErrorStub.getCall(0).args[0]
+                expect(consoleError.message).to.equal(Errors.DATA_MISSING)
             })
 
             it('Should throw error if Base Station port is not a number', async () => {
@@ -1977,7 +2003,10 @@ describe('Integration_Test', () => {
                     error = e.message
                 }
 
-                expect(error).to.be.equal(Errors.DATA_VALIATION_ERROR)
+                expect(error).to.be.null
+
+                const consoleError = loggerErrorStub.getCall(0).args[0]
+                expect(consoleError.message).to.equal(Errors.DATA_VALIATION_ERROR)
             })
 
             it('Should throw error if Base Station port number is greater than 65535', async () => {
@@ -2002,7 +2031,10 @@ describe('Integration_Test', () => {
                     error = e.message
                 }
 
-                expect(error).to.be.equal(Errors.DATA_VALIATION_ERROR)
+                expect(error).to.be.null
+
+                const consoleError = loggerErrorStub.getCall(0).args[0]
+                expect(consoleError.message).to.equal(Errors.DATA_VALIATION_ERROR)
             })
             
             it('Should throw error if IP address is not a valid IP address', async () => {
@@ -2027,7 +2059,10 @@ describe('Integration_Test', () => {
                     error = e.message
                 }
 
-                expect(error).to.be.equal(Errors.DATA_VALIATION_ERROR)
+                expect(error).to.be.null
+
+                const consoleError = loggerErrorStub.getCall(0).args[0]
+                expect(consoleError.message).to.equal(Errors.DATA_VALIATION_ERROR)
             })
 
             it('Should throw error if Base Station is found with the particular Base Station UUID', async () => {
@@ -2052,7 +2087,10 @@ describe('Integration_Test', () => {
                     error = e.message
                 }
 
-                expect(error).to.be.equal(Errors.MODEL_NOT_FOUND)
+                expect(error).to.be.null
+
+                const consoleError = loggerErrorStub.getCall(0).args[0]
+                expect(consoleError.message).to.equal(Errors.MODEL_NOT_FOUND)
             })
 
             it('Should update port number and IP address of Base Station', async () => {

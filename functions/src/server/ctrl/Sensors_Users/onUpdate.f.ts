@@ -2,29 +2,30 @@ import * as functions from 'firebase-functions'
 import { Models } from '../../lib/ORM/Models'
 import { firestore } from 'firebase-admin'
 import DataORMImpl from './../../lib/ORM/'
-import { Pivot } from '../../lib/ORM/Relation/Pivot';
+import * as logger from 'fancy-log'
 
 exports = module.exports = functions.firestore
 .document(`${Models.SENSOR}_${Models.USER}/{pivotId}`)
 .onUpdate(async (change: functions.Change<FirebaseFirestore.DocumentSnapshot>) => {
 
-    let pivot: Pivot
     try
     {
         const adminFs = firestore()
         const db = new DataORMImpl(adminFs)
 
         const path = change.after.ref.path
-        pivot = db.pivot(path)
+        const pivot = db.pivot(path)
+
+        await Promise.all([
+        
+            pivot.updateCache(change)
+        
+        ])
     }
     catch (e)
     {
-        return Promise.reject(e).catch(console.error)
+        logger.error(e)
     }
 
-    return Promise.all([
-    
-        pivot.updateCache(change)
-    
-    ]).catch(console.error)
+    return
 })

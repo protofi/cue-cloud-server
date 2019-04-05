@@ -3,28 +3,30 @@ import { Models } from '../../lib/ORM/Models'
 import { firestore } from 'firebase-admin'
 import DataORMImpl from './../../lib/ORM'
 import Household from '../../lib/ORM/Models/Household';
+import * as logger from 'fancy-log'
 
 exports = module.exports = functions.firestore
 .document(`${Models.HOUSEHOLD}/{householdId}`)
-.onUpdate((change: functions.Change<FirebaseFirestore.DocumentSnapshot>, context) => {
+.onUpdate(async (change: functions.Change<FirebaseFirestore.DocumentSnapshot>, context) => {
 
-    let household: Household
-
-    try{
+    try
+    {
         const adminFs = firestore()
         const db = new DataORMImpl(adminFs)
         
         const docSnap = change.after
-        household = db.household(docSnap)
+        const household: Household = db.household(docSnap)
+  
+        await Promise.all([
+
+            household.sensors().takeActionOn(change)
+            
+        ])
     }
     catch(e)
     {
-        return Promise.reject(e).catch(console.error)
+        logger.error(e)
     }
-  
-    return Promise.all([
 
-        household.sensors().takeActionOn(change)
-        
-    ]).catch(console.error)
+    return
 })

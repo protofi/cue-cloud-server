@@ -19,13 +19,13 @@ exports = module.exports = pubsub.topic(topicName)
     {
         const db = new DataORMImpl(admin.firestore())
 
-        const baseStationUUID = message.attributes.deviceId
+        const baseStationUUID   = message.attributes.deviceId
 
         if(!baseStationUUID)
             throw new Error(Errors.DATA_MISSING)
 
-        const decodePayload = Buffer.from(message.data, 'base64').toString('ascii')
-        const payload 		= JSON.parse(decodePayload)
+        const decodePayload     = Buffer.from(message.data, 'base64').toString('ascii')
+        const payload 		    = JSON.parse(decodePayload)
 
         const sensorId          = payload[Sensor.f.ID]
         const batteryLevel      = payload[Sensor.f.BAT_LEVEL]
@@ -34,7 +34,7 @@ exports = module.exports = pubsub.topic(topicName)
         if(!sensorId || !batteryLevel || !signalStrength)
             throw new Error(Errors.DATA_MISSING)
 
-        const sensor = await db.sensor().findOrFail(sensorId) as Sensor
+        const sensor: Sensor = await db.sensor().findOrFail(sensorId) as Sensor
     
         await sensor.update({
             [Sensor.f.BAT_LEVEL]    : batteryLevel,

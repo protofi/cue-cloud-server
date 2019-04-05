@@ -3,27 +3,29 @@ import { Models } from '../../lib/ORM/Models'
 import DataORMImpl from './../../lib/ORM/'
 import { firestore } from 'firebase-admin'
 import Sensor from '../../lib/ORM/Models/Sensor';
+import * as logger from 'fancy-log'
 
 exports = module.exports = functions.firestore
 .document(`${Models.SENSOR}/{sensorId}`)
-.onCreate((snap: FirebaseFirestore.DocumentSnapshot, context) => {
+.onCreate(async (snap: FirebaseFirestore.DocumentSnapshot, context) => {
 
-    let sensor: Sensor
-
-    try{
+    try
+    {
         const adminFs = firestore()
         const db = new DataORMImpl(adminFs)
         
-        sensor = db.sensor(snap)
+        const sensor: Sensor = db.sensor(snap)
+
+        await Promise.all([
+
+            sensor.onCreate(),
+
+        ])
     }
     catch(e)
     {
-        return Promise.reject(e).catch(console.error)
+        logger.error(e)
     }
 
-    return Promise.all([
-
-        sensor.onCreate(),
-
-    ]).catch(console.error)
+    return
 })
