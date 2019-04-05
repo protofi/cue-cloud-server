@@ -1,7 +1,7 @@
 import { pubsub, EventContext } from 'firebase-functions'
 import { basename } from 'path'
 import { kebabCase } from 'lodash'
-import * as logger from 'fancy-log'
+import * as logger from 'loglevel'
 
 const file = basename(__filename).slice(0, -5)
 const ctrl = basename(__dirname)

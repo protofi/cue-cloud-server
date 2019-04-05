@@ -6,7 +6,7 @@ import { basename } from 'path'
 import { Errors } from '../../lib/const';
 
 import BaseStation from '../../lib/ORM/Models/BaseStation';
-import * as logger from 'fancy-log';
+import * as logger from 'loglevel';
 
 const file = basename(__filename).slice(0, -5)
 const ctrl = basename(__dirname)

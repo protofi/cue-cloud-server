@@ -15,7 +15,7 @@ import BaseStation from './lib/ORM/Models/BaseStation';
 import * as faker from 'faker'
 import { printFormattedJson } from './lib/util';
 
-import * as fancyLog from 'fancy-log';
+import * as fancyLog from 'loglevel';
 
 const randomstring = require('randomstring')
 

@@ -4,11 +4,10 @@ import DataORMImpl from '../../lib/ORM'
 import Sensor from '../../lib/ORM/Models/Sensor'
 import { Models } from '../../lib/ORM/Models';
 import { kebabCase, forOwn, capitalize, isEmpty } from "lodash"
-import { Env } from '../../lib/const';
 import User from '../../lib/ORM/Models/User';
 
 import { basename } from 'path'
-import * as logger from 'fancy-log'
+import * as logger from 'loglevel'
 
 const file = basename(__filename).slice(0, -5)
 const ctrl = basename(__dirname)
@@ -17,11 +16,11 @@ const topicName = kebabCase(`${ctrl}-${file}`)
 exports = module.exports = pubsub
 .topic(topicName).onPublish(async (message: pubsub.Message) => {
 
-    try {
+	try {
 		const db = new DataORMImpl(firestore())
 
 		const decodePayload = Buffer.from(message.data, 'base64').toString('ascii')
-    	const payload 		= JSON.parse(decodePayload)
+		const payload 		= JSON.parse(decodePayload)
 
 		const sensorUUID = payload.sensor_UUID
 
@@ -35,17 +34,17 @@ exports = module.exports = pubsub
 		forOwn(users, user => {
 
 			if(!user.FCM_tokens) return
-			
+
 			const sensorIsMuted = (user.pivot && user.pivot.muted)
 			if(sensorIsMuted) return
 
 			forOwn(user.FCM_tokens, ({context}, token) => {
 
 				if(context === User.f.FCM_TOKENS.CONTEXT.IOS)
-					iOSTokens.push(token)
-				
+				iOSTokens.push(token)
+
 				if(context === User.f.FCM_TOKENS.CONTEXT.ANDROID)
-					androidTokens.push(token)
+				androidTokens.push(token)
 			})
 		})
 

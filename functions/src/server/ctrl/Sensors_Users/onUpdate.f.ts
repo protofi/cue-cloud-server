@@ -2,7 +2,7 @@ import * as functions from 'firebase-functions'
 import { Models } from '../../lib/ORM/Models'
 import { firestore } from 'firebase-admin'
 import DataORMImpl from './../../lib/ORM/'
-import * as logger from 'fancy-log'
+import * as logger from 'loglevel'
 
 exports = module.exports = functions.firestore
 .document(`${Models.SENSOR}_${Models.USER}/{pivotId}`)

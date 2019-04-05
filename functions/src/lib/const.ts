@@ -21,10 +21,6 @@ export enum Errors {
     GENERAL_ERROR               = 'Something went wrong.'
 }
 
-export enum Env {
-    NOT_A_PROJECT = 'not-a-project'
-}
-
 export enum WhereFilterOP {
     LESS_THAN               = '<',
     LESS_THEN_OR_EQUAL      = '<=',

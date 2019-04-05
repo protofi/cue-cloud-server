@@ -3,7 +3,7 @@ import { Models } from '../../lib/ORM/Models'
 import { firestore } from 'firebase-admin'
 import DataORMImpl from './../../lib/ORM'
 import Sensor from '../../lib/ORM/Models/Sensor';
-import * as logger from 'fancy-log'
+import * as logger from 'loglevel'
 
 exports = module.exports = functions.firestore
 .document(`${Models.SENSOR}/{sensorId}`)
