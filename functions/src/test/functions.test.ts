@@ -12,6 +12,7 @@ import { unflatten, flatten } from 'flat'
 import User from './lib/ORM/Models/User';
 import Sensor from './lib/ORM/Models/Sensor';
 import BaseStation from './lib/ORM/Models/BaseStation';
+import Household from './lib/ORM/Models/Household';
 import * as faker from 'faker'
 import { printFormattedJson } from './lib/util';
 
@@ -1171,6 +1172,45 @@ describe('Integration_Test', () => {
 
                 expect(baseStationDoc).to.be.deep.equal(expectedBaseStationDoc)
                 expect(baseStationTwoDoc).to.be.deep.equal(expectedBaseStationTwoDoc)
+            })
+        })
+    })
+
+    describe('Base Stations', () => {
+
+        describe('On Delete', () => {
+
+            it('Should delete relations to Household when deleted', async () => {
+                const wrappedBaseStationsOnDelete = test.wrap(myFunctions.ctrlBaseStationsOnDelete)
+
+                const householdId = uniqid()
+                const baseStationId = uniqid()
+
+                firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`] = {
+                    [Models.BASE_STATION] : {
+                        [baseStationId] : true
+                    }
+                }
+
+                const baseStationSnap = new OfflineDocumentSnapshotStub({
+                    ref : {
+                        id : baseStationId
+                    },
+                    data : {
+                        [Models.HOUSEHOLD] : {
+                            [Household.f.ID] : householdId
+                        }
+                    }
+                })
+
+                await wrappedBaseStationsOnDelete(baseStationSnap)
+ 
+                const householdDoc = firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`]
+                const expectedHouseholdDoc = {
+                    [Models.BASE_STATION] : {}
+                }
+
+                expect(householdDoc).to.be.deep.equal(expectedHouseholdDoc)
             })
         })
     })

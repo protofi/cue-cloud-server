@@ -342,7 +342,7 @@ export default (app: Application) => {
             }
             catch(error)
             {
-                res.status(500).json({
+                res.status(200).json({
                     success: false,
                     error: error
                 })
