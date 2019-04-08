@@ -11,6 +11,7 @@ export default class Sensor extends ModelImpl {
         LOCATION    : 'location',
         VIBRATION   : 'vibration',
         ICON        : 'icon_string',
+        DB_THRESHOLD: 'db_threshold',
         BAT_LEVEL   : 'battery_level',
         SIG_STRENGTH: 'signal_strength',
         EVENT       : 'event_has_happened',

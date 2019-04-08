@@ -104,6 +104,7 @@
                                        
                                          -->
                                         <v-spacer></v-spacer>
+
                                         <v-btn
                                             icon large ripple
                                             :loading="baseStation.meta.unlinkLoading"
@@ -164,8 +165,6 @@
 
                                     <v-card-actions>
                                         
-                                        <v-spacer></v-spacer>
-                                        
                                         <span v-if="sensor.data.battery_level">
 
 
@@ -196,7 +195,15 @@
                                             &nbsp;
                                             
                                         </span>
-                                    
+
+                                        <v-spacer></v-spacer>
+
+                                        <v-btn icon large ripple
+                                            @click.stop="deleteSensor(sensor.id)"
+                                        >
+                                            <v-icon>delete</v-icon>
+                                        </v-btn>   
+
                                     </v-card-actions>
 
                                 </v-card>
@@ -345,9 +352,18 @@ export default {
 			{
 				console.log(e)
 			}
-
         },
 
+        async deleteSensor(sensorId)
+        {
+            try{
+				await firestore.collection('sensors').doc(sensorId).delete()
+			}
+			catch(e)
+			{
+				console.log(e)
+			}
+        }
     }
 }
 </script>
