@@ -39,8 +39,8 @@ exports = module.exports = pubsub.topic(topicName)
 
         await baseStation.update({
             [BaseStation.f.WEBSOCKET._] : {
-                [BaseStation.f.WEBSOCKET.PORT] : baseStationPort,
-                [BaseStation.f.WEBSOCKET.ADDRESS] : baseStationAddress
+                [BaseStation.f.WEBSOCKET.PORT]      : String(baseStationPort),
+                [BaseStation.f.WEBSOCKET.ADDRESS]   : String(baseStationAddress)
             }
         })
 

@@ -397,7 +397,7 @@ export default {
 
 			try{
 				await firestore.collection('households').doc(householdId).update({
-						base_stations : firebase.firestore.FieldValue.delete()
+						[`base_stations.${baseStationId}`] : firebase.firestore.FieldValue.delete()
 					})
 			}
 			catch(e)
