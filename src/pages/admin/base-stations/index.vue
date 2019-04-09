@@ -55,11 +55,12 @@
 
                                         <v-spacer></v-spacer>
 
-                                        <v-chip v-if="baseStation.data.households">
+                                        <v-chip disabled v-if="baseStation.data.households">
 
                                             <v-avatar class="teal">
                                                 <v-icon color="white">check</v-icon>
                                             </v-avatar>
+                                            
                                             Claimed
 
                                         </v-chip>

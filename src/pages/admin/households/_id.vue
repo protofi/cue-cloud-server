@@ -163,10 +163,20 @@
                                         
                                     </v-card-title>
 
+                                    <v-card-actions class="headline">
+
+                                        {{ sensor.data.name }}
+                                        
+                                        <span v-if="sensor.data.location">
+                                            &nbsp;i
+                                            {{ sensor.data.location }}
+                                        </span>
+
+                                    </v-card-actions>
+
                                     <v-card-actions>
                                         
                                         <span v-if="sensor.data.battery_level">
-
 
                                             <span class="subheading font-weight-medium">
                                                 <v-icon>battery_std</v-icon>
@@ -189,6 +199,39 @@
                                                 
                                                 <v-icon>wifi</v-icon>
                                                 {{ sensor.data.signal_strength }}
+                                                
+                                            </span>
+
+                                            &nbsp;
+                                            
+                                        </span>
+
+                                        <span v-if="sensor.data.db_threshold">
+                                            
+                                            &nbsp;
+                                            &nbsp;
+                                            &nbsp;
+                                        
+                                            <span class="subheading font-weight-medium">
+                                                
+                                                <v-icon>hearing</v-icon>
+                                                {{ sensor.data.db_threshold }}
+                                                
+                                            </span>
+
+                                            &nbsp;
+                                            
+                                        </span>
+
+                                        <span v-if="sensor.data.event_has_happened">
+                                            
+                                            &nbsp;
+                                            &nbsp;
+                                            &nbsp;
+                                        
+                                            <span class="subheading font-weight-medium">
+                                                
+                                                <v-icon>notifications_active</v-icon>
                                                 
                                             </span>
 
