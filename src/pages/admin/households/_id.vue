@@ -161,6 +161,16 @@
                                         
                                         <span class="subheading font-weight-thin"> {{ sensor.id }} </span>
                                         
+                                        <v-spacer></v-spacer>
+
+                                        <v-btn
+                                            flat ripple icon color="red"
+                                            v-if="sensor.data.event_has_happened"
+                                            @click="dismissNotification(sensor.id)"
+                                        >
+                                            <v-icon large>notifications_active</v-icon>
+                                        </v-btn>
+
                                     </v-card-title>
 
                                     <v-card-actions class="headline">
@@ -216,22 +226,6 @@
                                                 
                                                 <v-icon>hearing</v-icon>
                                                 {{ sensor.data.db_threshold }}
-                                                
-                                            </span>
-
-                                            &nbsp;
-                                            
-                                        </span>
-
-                                        <span v-if="sensor.data.event_has_happened">
-                                            
-                                            &nbsp;
-                                            &nbsp;
-                                            &nbsp;
-                                        
-                                            <span class="subheading font-weight-medium">
-                                                
-                                                <v-icon>notifications_active</v-icon>
                                                 
                                             </span>
 
@@ -401,6 +395,19 @@ export default {
         {
             try{
 				await firestore.collection('sensors').doc(sensorId).delete()
+			}
+			catch(e)
+			{
+				console.log(e)
+			}
+        },
+
+        async dismissNotification(sensorId)
+        {
+            try{
+				await firestore.collection('sensors').doc(sensorId).update({
+                    event_has_happened : false
+                })
 			}
 			catch(e)
 			{
