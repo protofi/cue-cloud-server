@@ -12,8 +12,9 @@ import * as faker from 'faker'
 import { Models } from './lib/ORM/Models';
 import { FirestoreStub } from './stubs';
 import Household from './lib/ORM/Models/Household';
-import { Relations, Roles } from './lib/const';
+import { Relations, Roles, Errors } from './lib/const';
 import User from './lib/ORM/Models/User';
+import { printFormattedJson } from './lib/util';
 const assert = chai.assert
 const expect = chai.expect
 
@@ -80,6 +81,33 @@ describe('Api_Test', () => {
         await Promise.all(firebase.apps.map(app => app.delete()))
     })
 
+    afterEach(() => {
+        firestoreStub.reset()
+    })
+
+    describe('GET /api/v1/random', () =>
+    {
+        it('Should respond with 401 if not authenticated', async () =>
+        {
+            await request(api)
+                .get(`${baseUrl}/random`)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(401)
+        })
+
+        it('Should respond with 404 if authenticated', async () =>
+        {
+            await request(api)
+                .get(`${baseUrl}/random`)
+                .set('Authorization', userIdToken)
+                .set('Accept', 'application/json')
+                .expect('Content-Type', /json/)
+                .expect(401)
+        })
+
+    })
+
     describe('GET /api/v1/', () =>
     {
         it('Should respond with welcome message', async () =>
@@ -100,15 +128,85 @@ describe('Api_Test', () => {
 
         describe('POST /households/:id/invitations', () => {
 
-            it('Should response with 200', async () => {
+            const householdId = faker.random.uuid()
+            const userTwoId = faker.random.uuid()
+            const userTwoEmail = faker.internet.email()
 
-                const householdId = faker.random.uuid()
-                const userTwoId = faker.random.uuid()
-                const userTwoEmail = faker.internet.email()
+            it('Should response with 401 if request is not authorized', async () => {
 
-                firestoreStub.data()[`${Models.USER}/${userTwoId}`] = {
-                    [User.f.EMAIL] : userTwoEmail
+                await request(api)
+                    .post(`${baseUrl}/${Models.HOUSEHOLD}/${householdId}/invitations`)
+                    .set('Accept', 'application/json')
+                    .expect('Content-Type', /json/)
+                    .expect(401)
+            })
+
+            it('Should response with 422 if authorized but email data is missing', async () => {
+
+                await request(api)
+                    .post(`${baseUrl}/${Models.HOUSEHOLD}/${householdId}/invitations`)
+                    .set('Accept', 'application/json')
+                    .set('Authorization', userIdToken)
+                    .expect('Content-Type', /json/)
+                    .expect(422)
+            })
+
+            it('Should response with 422 if authorized but email data is not a valid email', async () => {
+
+                const data = {
+                    email : 'notanrealemail',
                 }
+
+                await request(api)
+                    .post(`${baseUrl}/${Models.HOUSEHOLD}/${householdId}/invitations`)
+                    .set('Accept', 'application/json')
+                    .send(data)
+                    .set('Authorization', userIdToken)
+                    .expect('Content-Type', /json/)
+                    .expect(422)
+            })
+
+            it('Should response with 401 if User is not Household admin', async () => {
+
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        [Household.f.ID] : householdId,
+                    }
+                }
+
+                const data = {
+                    email : userTwoEmail,
+                }
+
+                await request(api)
+                    .post(`${baseUrl}/${Models.HOUSEHOLD}/${householdId}/invitations`)
+                    .set('Accept', 'application/json')
+                    .send(data)
+                    .set('Authorization', userIdToken)
+                    .expect('Content-Type', /json/)
+                    .expect(401)
+            })
+
+            it('Should response with 500 if household and user is not related', async () => {
+
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {}
+
+                const data = {
+                    email : userTwoEmail,
+                }
+
+                const { body } = await request(api)
+                    .post(`${baseUrl}/${Models.HOUSEHOLD}/${householdId}/invitations`)
+                    .set('Accept', 'application/json')
+                    .send(data)
+                    .set('Authorization', userIdToken)
+                    .expect('Content-Type', /json/)
+                    .expect(500)
+
+                    expect(body.error).to.equal(Errors.NOT_RELATED)
+                })
+
+            it('Should response with 500 if no user with the provided email exists', async () => {
 
                 firestoreStub.data()[`${Models.USER}/${userId}`] = {
                     [Models.HOUSEHOLD] : {
@@ -117,13 +215,6 @@ describe('Api_Test', () => {
                             [User.f.HOUSEHOLDS.ROLE] : Roles.ADMIN
                         }
                     }
-                }
-
-                const expectedBody = {
-                    success : true,
-                    householdId: householdId,
-                    inviteeId : userTwoId,
-                    inviteeEmail : userTwoEmail
                 }
 
                 const data = {
@@ -136,7 +227,177 @@ describe('Api_Test', () => {
                     .send(data)
                     .set('Authorization', userIdToken)
                     .expect('Content-Type', /json/)
+                    .expect(500)
+
+                expect(body.error).to.equal(Errors.GENERAL_ERROR)
+
+            })
+
+            it('Should response with 500 if two users with the provided email exists', async () => {
+
+                firestoreStub.data()[`${Models.USER}/${userTwoId}`] = {
+                    [User.f.EMAIL] : userTwoEmail
+                }
+
+                firestoreStub.data()[`${Models.USER}/${faker.random.uuid()}`] = {
+                    [User.f.EMAIL] : userTwoEmail
+                }
+
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        [Household.f.ID] : householdId,
+                        [Relations.PIVOT] : {
+                            [User.f.HOUSEHOLDS.ROLE] : Roles.ADMIN
+                        }
+                    }
+                }
+
+                const data = {
+                    email : userTwoEmail,
+                }
+
+                const { body } = await request(api)
+                    .post(`${baseUrl}/${Models.HOUSEHOLD}/${householdId}/invitations`)
+                    .set('Accept', 'application/json')
+                    .send(data)
+                    .set('Authorization', userIdToken)
+                    .expect('Content-Type', /json/)
+                    .expect(500)
+
+                expect(body.error).to.equal(Errors.GENERAL_ERROR)
+            })
+
+            it('Should response with 409 if invitee is already related to another household', async () => {
+
+                firestoreStub.data()[`${Models.USER}/${userTwoId}`] = {
+                    [User.f.EMAIL] : userTwoEmail,
+                    [Models.HOUSEHOLD] : {
+                        [Household.f.ID] : faker.random.uuid(),
+                    }
+                }
+
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {
+                    [Models.HOUSEHOLD] : {
+                        [Household.f.ID] : householdId,
+                        [Relations.PIVOT] : {
+                            [User.f.HOUSEHOLDS.ROLE] : Roles.ADMIN
+                        }
+                    }
+                }
+
+                const data = {
+                    email : userTwoEmail,
+                }
+
+                await request(api)
+                    .post(`${baseUrl}/${Models.HOUSEHOLD}/${householdId}/invitations`)
+                    .set('Accept', 'application/json')
+                    .send(data)
+                    .set('Authorization', userIdToken)
+                    .expect('Content-Type', /json/)
+                    .expect(409)
+            })
+
+            it('Should response with 200 and insert the email in the inviter to the household relation of the invitee', async () => {
+
+               const userEmail = faker.internet.email()
+
+                firestoreStub.data()[`${Models.USER}/${userTwoId}`] = {
+                    [User.f.EMAIL] : userTwoEmail
+                }
+
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {
+                    [User.f.EMAIL] : userEmail,
+                    [Models.HOUSEHOLD] : {
+                        [Household.f.ID] : householdId,
+                        [Relations.PIVOT] : {
+                            [User.f.HOUSEHOLDS.ROLE] : Roles.ADMIN
+                        }
+                    }
+                }
+
+                const expectedBody = {
+                    success         : true,
+                    inviteeId       : userTwoId,
+                    householdId     : householdId,
+                    inviteeEmail    : userTwoEmail
+                }
+
+                const data = {
+                    email : userTwoEmail,
+                }
+
+                await request(api)
+                    .post(`${baseUrl}/${Models.HOUSEHOLD}/${householdId}/invitations`)
+                    .set('Accept', 'application/json')
+                    .send(data)
+                    .set('Authorization', userIdToken)
+                    .expect('Content-Type', /json/)
                     .expect(200, expectedBody)
+
+                const userInviteeDoc = firestoreStub.data()[`${Models.USER}/${userTwoId}`]
+                const expectedUserInviteeDoc = {
+                    [User.f.EMAIL] : userTwoEmail,
+                    [Models.HOUSEHOLD] : {
+                        [Household.f.ID] : householdId,
+                        [Relations.PIVOT] : {
+                            [User.f.HOUSEHOLDS.INVITER] : userEmail
+                        }
+                    }
+                }
+
+                expect(userInviteeDoc).to.be.deep.equal(expectedUserInviteeDoc)
+            })
+
+            it('Should response with 200 and insert the name in the inviter to the household relation of the invitee', async () => {
+
+                const userName = faker.name.firstName()
+
+                firestoreStub.data()[`${Models.USER}/${userTwoId}`] = {
+                    [User.f.EMAIL] : userTwoEmail
+                }
+
+                firestoreStub.data()[`${Models.USER}/${userId}`] = {
+                    [User.f.NAME] : userName,
+                    [Models.HOUSEHOLD] : {
+                        [Household.f.ID] : householdId,
+                        [Relations.PIVOT] : {
+                            [User.f.HOUSEHOLDS.ROLE] : Roles.ADMIN
+                        }
+                    }
+                }
+
+                const expectedBody = {
+                    success         : true,
+                    inviteeId       : userTwoId,
+                    householdId     : householdId,
+                    inviteeEmail    : userTwoEmail
+                }
+
+                const data = {
+                    email : userTwoEmail,
+                }
+
+                await request(api)
+                    .post(`${baseUrl}/${Models.HOUSEHOLD}/${householdId}/invitations`)
+                    .set('Accept', 'application/json')
+                    .send(data)
+                    .set('Authorization', userIdToken)
+                    .expect('Content-Type', /json/)
+                    .expect(200, expectedBody)
+
+                const userInviteeDoc = firestoreStub.data()[`${Models.USER}/${userTwoId}`]
+                const expectedUserInviteeDoc = {
+                    [User.f.EMAIL] : userTwoEmail,
+                    [Models.HOUSEHOLD] : {
+                        [Household.f.ID] : householdId,
+                        [Relations.PIVOT] : {
+                            [User.f.HOUSEHOLDS.INVITER] : userName
+                        }
+                    }
+                }
+
+                expect(userInviteeDoc).to.be.deep.equal(expectedUserInviteeDoc)
             })
         })
     })

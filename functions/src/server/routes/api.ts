@@ -1,7 +1,8 @@
-import { getStatusText, UNAUTHORIZED, NOT_FOUND, CONFLICT } from 'http-status-codes'
+import { getStatusText, UNAUTHORIZED, NOT_FOUND, CONFLICT, UNPROCESSABLE_ENTITY } from 'http-status-codes'
 import { Router, Application, Request, Response, NextFunction } from 'express'
 import { firestore, auth } from 'firebase-admin'
 
+import { check, validationResult } from 'express-validator/check';
 import ModelImpl, { Models } from '../lib/ORM/Models';
 import { asyncForEach } from '../lib/util';
 import DataORMImpl from '../lib/ORM';
@@ -9,7 +10,7 @@ import Household from '../lib/ORM/Models/Household';
 import * as fakeUuid from 'uuid/v1'
 import User from '../lib/ORM/Models/User';
 import { isEmpty } from 'lodash'
-import { Errors } from '../lib/const';
+import { Errors, WhereFilterOP } from '../lib/const';
 const { PubSub } = require('@google-cloud/pubsub')
 
 import * as iot from '@google-cloud/iot'
@@ -96,33 +97,32 @@ export default (app: Application) => {
 
     authRouter.route(`/${Models.HOUSEHOLD}/:id/invitations`)
 
-        .post(async (req: Request, res: Response) => {
+        .post([
+            check('email').isEmail(),
+          ], async (req: Request, res: Response) => {
 
             try{
+
+                if(!validationResult(req).isEmpty()) throw Error(`${UNPROCESSABLE_ENTITY}`)
 
                 const user          = req['auth']
                 const householdId   = req.params.id
                 const inviteeEmail  = req.body.email
 
-                /**
-                 * TO DO: validate input
-                 */
-
                 const inviter = await db.user().find(user.uid) as User
                 const cache = await inviter.household().cache()
 
-                if(cache.id !== householdId) throw new Error(Errors.NOT_RELATED)
+                if(!cache || cache.id !== householdId) throw new Error(Errors.NOT_RELATED)
 
                 const household = db.household(null, householdId)
 
                 const householdAdmin = await inviter.household().getPivotField(User.f.HOUSEHOLDS.ROLE)
 
-                if(!householdAdmin) throw new Error(Errors.UNAUTHORIZED)
+                if(!householdAdmin) throw new Error(`${UNAUTHORIZED}`)
 
-                const invitees = await db.user().where(User.f.EMAIL, '==', inviteeEmail).get()
+                const invitees = await db.user().where(User.f.EMAIL, WhereFilterOP.EQUAL, inviteeEmail).get()
         
-                if(invitees.empty) throw new Error(`${NOT_FOUND}`)
-                if(invitees.size > 1) throw new Error(Errors.GENERAL_ERROR)
+                if(invitees.empty || invitees.size > 1) throw new Error(Errors.GENERAL_ERROR)
 
                 const invitee = db.user(invitees.docs[0])
                 

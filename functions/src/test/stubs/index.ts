@@ -220,8 +220,19 @@ export class FirestoreStub {
                     
                                                 return null
                                             },
-                                            set: (data: any) => {
-                                                return
+                                            set: (data: any, {merge}) => {
+    
+                                                const _id = path.split('/')[1]
+                
+                                                if(merge)
+                                                {
+                                                    this.mockData = _.merge(this.mockData, {
+                                                        [`${col}/${_id}`] : unflatten(data)
+                                                    })
+                                                }
+                                                else this.mockData[`${col}/${_id}`] = unflatten(data)
+                
+                                                return null
                                             }
                                         },
                                         id: path.split('/')[1],

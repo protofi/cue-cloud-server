@@ -1948,7 +1948,7 @@ describe('Integration_Test', () => {
                 
                 try{
                     const payload = {
-                        base_station_port       : 8080,
+                        base_station_port       : '8080',
                         base_station_address    : faker.internet.ip
                     }
 
@@ -2001,7 +2001,7 @@ describe('Integration_Test', () => {
                 
                 try{
                     const payload = {
-                        base_station_port : 8080
+                        base_station_port : '8080'
                     }
 
                     await wrappedPubsubBaseStationUpdateWebsocket({
@@ -2085,7 +2085,7 @@ describe('Integration_Test', () => {
                 try{
                     const payload = {
                         base_station_address : 'abc123',
-                        base_station_port : 8080
+                        base_station_port : '8080'
                     }
                     
                     await wrappedPubsubBaseStationUpdateWebsocket({
@@ -2113,7 +2113,7 @@ describe('Integration_Test', () => {
                 try{
                     const payload = {
                         base_station_address : faker.internet.ip(),
-                        base_station_port : 8080
+                        base_station_port : '8080'
                     }
                     
                     await wrappedPubsubBaseStationUpdateWebsocket({
@@ -2136,7 +2136,7 @@ describe('Integration_Test', () => {
             it('Should update port number and IP address of Base Station', async () => {
 
                 const newIP = faker.internet.ip()
-                const newPort = 8080
+                const newPort = '8080'
                 // mock data
                 firestoreStub.data()[`${Models.BASE_STATION}/${baseStationUUID}`] = {
                     [BaseStation.f.PIN] : 123
