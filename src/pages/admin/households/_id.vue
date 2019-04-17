@@ -164,11 +164,11 @@
                                         <v-spacer></v-spacer>
 
                                         <v-btn
-                                            flat ripple icon color="red"
+                                            ripple icon outline color="red"
                                             v-if="sensor.data.event_has_happened"
                                             @click="dismissNotification(sensor.id)"
                                         >
-                                            <v-icon large>notifications_active</v-icon>
+                                            <v-icon>notifications_active</v-icon>
                                         </v-btn>
 
                                     </v-card-title>
