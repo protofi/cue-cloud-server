@@ -55,15 +55,18 @@
 
                                         <v-spacer></v-spacer>
 
-                                        <v-chip disabled v-if="baseStation.data.households">
-
-                                            <v-avatar class="teal">
-                                                <v-icon color="white">check</v-icon>
-                                            </v-avatar>
-                                            
+                                        <v-btn
+                                            v-if="baseStation.data.households"
+                                            color="teal"
+                                            class="white--text"
+                                            round
+                                            :to="`households/${baseStation.data.households.id}`"
+                                            ripple
+                                            router
+                                        >
+                                            <v-icon left dark>home</v-icon>
                                             Claimed
-
-                                        </v-chip>
+                                        </v-btn>
 
                                     </v-card-actions>
 

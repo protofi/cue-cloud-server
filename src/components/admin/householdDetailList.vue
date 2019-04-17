@@ -82,7 +82,7 @@
 						@click="showBaseStationDialog = true"
 						ripple
 						>
-							<v-list-tile-title>Claim new</v-list-tile-title>
+							<v-list-tile-title>Claim</v-list-tile-title>
 							
 							<v-list-tile-action>
 								<v-icon>fiber_pin</v-icon>
@@ -215,7 +215,7 @@
 							:disabled="sensorConfigLoading"
 							ripple
 						>
-							<v-list-tile-title>Pair new</v-list-tile-title>
+							<v-list-tile-title>Pair</v-list-tile-title>
 
 							<v-list-tile-action>
 								
