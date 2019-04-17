@@ -15,7 +15,7 @@ export default class UpdateFCMTokenSecureCache extends AbstractActionableFieldCo
         })
 
         await asyncForEach(sensors, async (sensor: ModelImpl) => {
-            await sensor.secure().update({
+            await sensor.secure().updateOrCreate({
                 [Models.USER] : {
                     [user.getId()] : {
                         [User.f.FCM_TOKENS._] : tokens
