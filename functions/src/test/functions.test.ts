@@ -61,6 +61,7 @@ describe('Integration_Test', () => {
             }
         })
 
+   
         adminMessagingStub = sinon.stub(admin, 'messaging')
         .get(() => {
             return () => {
@@ -2779,10 +2780,10 @@ describe('Integration_Test', () => {
                 const sensorDoc = firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]
                 const expectedSensorDoc = {
                     [Sensor.f.BAT_LEVEL]    : batteryLevel,
-                    [Sensor.f.SIG_STRENGTH] : signalStrength
+                    [Sensor.f.SIG_STRENGTH] : signalStrength,
                 }
 
-                expect(sensorDoc).is.deep.equal(expectedSensorDoc)
+                expect(sensorDoc).contains(expectedSensorDoc)
             })
         })
     })

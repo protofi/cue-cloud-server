@@ -36,8 +36,8 @@ exports = module.exports = pubsub.topic(topicName)
             throw new Error(Errors.DATA_MISSING)
 
         const sensor: Sensor = await db.sensor().findOrFail(sensorId) as Sensor
-        
-        const timestamp = admin.firestore.Timestamp.now().toDate()
+
+        const timestamp = new Date(context.timestamp)
 
         const lastBeat = `${timestamp.toLocaleDateString("default", {
             timeZone : 'Europe/Berlin'

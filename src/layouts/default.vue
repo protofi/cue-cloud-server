@@ -168,7 +168,7 @@
 						icon
 						@click.stop="drawer = !drawer"
 					>
-						<v-icon>notes</v-icon>
+						<v-icon>first_page</v-icon>
 
 					</v-btn>
 
