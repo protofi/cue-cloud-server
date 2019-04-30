@@ -31,7 +31,7 @@ exports = module.exports = pubsub.topic(topicName)
         const signalStrength    = payload[Sensor.f.SIG_STRENGTH]
 
 		const notificationCounter = (payload.notification_counter) ? payload.notification_counter : 0
-    
+
         if(!sensorId || !batteryLevel || !signalStrength)
             throw new Error(Errors.DATA_MISSING)
 
