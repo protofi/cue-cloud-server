@@ -233,6 +233,40 @@
                                             
                                         </span>
 
+                                        <span v-if="sensor.data.last_heartbeat">
+                                            
+                                            &nbsp;
+                                            &nbsp;
+                                            &nbsp;
+                                        
+                                            <span class="subheading font-weight-medium">
+                                                
+                                                <v-icon>favorite</v-icon>
+                                                {{ sensor.data.last_heartbeat }}
+                                                
+                                            </span>
+
+                                            &nbsp;
+                                            
+                                        </span>
+
+                                        <span v-if="sensor.data.notification_counter">
+                                            
+                                            &nbsp;
+                                            &nbsp;
+                                            &nbsp;
+                                        
+                                            <span class="subheading font-weight-medium">
+                                                
+                                                <v-icon>notifications</v-icon>
+                                                {{ sensor.data.notification_counter }}
+                                                
+                                            </span>
+
+                                            &nbsp;
+                                            
+                                        </span>
+
                                         <v-spacer></v-spacer>
 
                                         <v-btn icon large ripple

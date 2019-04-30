@@ -29,15 +29,28 @@ exports = module.exports = pubsub.topic(topicName)
         const sensorId          = payload[Sensor.f.ID]
         const batteryLevel      = payload[Sensor.f.BAT_LEVEL]
         const signalStrength    = payload[Sensor.f.SIG_STRENGTH]
+
+		const notificationCounter = (payload.notification_counter) ? payload.notification_counter : 0
     
         if(!sensorId || !batteryLevel || !signalStrength)
             throw new Error(Errors.DATA_MISSING)
 
         const sensor: Sensor = await db.sensor().findOrFail(sensorId) as Sensor
-    
+        
+        const timestamp = admin.firestore.Timestamp.now().toDate()
+
+        const lastBeat = `${timestamp.toLocaleDateString("default", {
+            timeZone : 'Europe/Berlin'
+        })} ${timestamp.toLocaleTimeString("default", {
+            timeZone : 'Europe/Berlin'
+        })} `
+
         await sensor.update({
             [Sensor.f.BAT_LEVEL]    : batteryLevel,
-            [Sensor.f.SIG_STRENGTH] : signalStrength
+            [Sensor.f.SIG_STRENGTH] : signalStrength,
+            [Sensor.f.LAST_BEAT]    : lastBeat,
+			notification_counter    : notificationCounter
+
         })
     }
     catch(error)

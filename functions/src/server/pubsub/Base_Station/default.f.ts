@@ -10,10 +10,10 @@ const topicName = kebabCase(`${ctrl}-${file}`)
 exports = module.exports = pubsub.topic(topicName)
 .onPublish(async (message: pubsub.Message, context: EventContext) => {
 
-    logger.info('message', message)
-    logger.info('attributes', message.attributes, message.attributes.deviceId)
+    console.log('message', message)
+    console.log('attributes', message.attributes, message.attributes.deviceId)
 
-    logger.info('data', Buffer.from(message.data, 'base64').toString())
+    console.log('data', Buffer.from(message.data, 'base64').toString())
     
-    logger.info('context', context)
+    console.log('context', context)
 })

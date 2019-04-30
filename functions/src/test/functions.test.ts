@@ -2216,7 +2216,7 @@ describe('Integration_Test', () => {
                 }
 
                 const payload = {
-                    sensor_UUID : sensorOneUUID
+                    [Sensor.f.ID] : sensorOneUUID
                 }
 
                 await wrappedPubsubSensorNotification({
@@ -2247,7 +2247,7 @@ describe('Integration_Test', () => {
                 }
 
                 const payload = {
-                    sensor_UUID : sensorOneUUID
+                    [Sensor.f.ID] : sensorOneUUID
                 }
 
                 await wrappedPubsubSensorNotification({
@@ -2285,7 +2285,7 @@ describe('Integration_Test', () => {
                 }
 
                 const payload = {
-                    sensor_UUID : sensorOneUUID
+                    [Sensor.f.ID] : sensorOneUUID
                 }
 
                 await wrappedPubsubSensorNotification({
@@ -2328,7 +2328,7 @@ describe('Integration_Test', () => {
                 }
 
                 const payload = {
-                    sensor_UUID : sensorOneUUID
+                    [Sensor.f.ID] : sensorOneUUID
                 }
 
                 await wrappedPubsubSensorNotification({
@@ -2372,7 +2372,7 @@ describe('Integration_Test', () => {
                 }
 
                 const payload = {
-                    sensor_UUID : sensorOneUUID
+                    [Sensor.f.ID] : sensorOneUUID
                 }
 
                 await wrappedPubsubSensorNotification({
@@ -2415,7 +2415,7 @@ describe('Integration_Test', () => {
                 }
 
                 const payload = {
-                    sensor_UUID : sensorOneUUID
+                    [Sensor.f.ID] : sensorOneUUID
                 }
 
                 await wrappedPubsubSensorNotification({
@@ -2462,7 +2462,7 @@ describe('Integration_Test', () => {
                 }
 
                 const payload = {
-                    sensor_UUID : sensorOneUUID
+                    [Sensor.f.ID] : sensorOneUUID
                 }
 
                 await wrappedPubsubSensorNotification({
@@ -2512,7 +2512,7 @@ describe('Integration_Test', () => {
                 }
 
                 const payload = {
-                    sensor_UUID : sensorOneUUID
+                    [Sensor.f.ID] : sensorOneUUID
                 }
 
                 await wrappedPubsubSensorNotification({
@@ -2556,7 +2556,7 @@ describe('Integration_Test', () => {
                 }
 
                 const payload = {
-                    sensor_UUID : sensorOneUUID
+                    [Sensor.f.ID] : sensorOneUUID
                 }
 
                 await wrappedPubsubSensorNotification({
@@ -2598,7 +2598,7 @@ describe('Integration_Test', () => {
                 }
 
                 const payload = {
-                    sensor_UUID : sensorOneUUID
+                    [Sensor.f.ID] : sensorOneUUID
                 }
 
                 await wrappedPubsubSensorNotification({
@@ -2648,7 +2648,7 @@ describe('Integration_Test', () => {
                 }
 
                 const payload = {
-                    sensor_UUID : sensorOneUUID
+                    [Sensor.f.ID] : sensorOneUUID
                 }
 
                 await wrappedPubsubSensorNotification({

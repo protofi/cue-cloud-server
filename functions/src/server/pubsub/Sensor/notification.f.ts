@@ -22,10 +22,9 @@ exports = module.exports = pubsub
 		const decodePayload = Buffer.from(message.data, 'base64').toString('ascii')
 		const payload 		= JSON.parse(decodePayload)
 
-		const sensorUUID = payload.sensor_UUID
+		const sensorUUID = payload[Sensor.f.ID]
 
 		const sensor = await db.sensor().findOrFail(sensorUUID)
-
 		const users = await sensor.secure().getField(Models.USER)
 
 		const iOSTokens = []
@@ -41,10 +40,10 @@ exports = module.exports = pubsub
 			forOwn(user.FCM_tokens, ({context}, token) => {
 
 				if(context === User.f.FCM_TOKENS.CONTEXT.IOS)
-				iOSTokens.push(token)
+					iOSTokens.push(token)
 
 				if(context === User.f.FCM_TOKENS.CONTEXT.ANDROID)
-				androidTokens.push(token)
+					androidTokens.push(token)
 			})
 		})
 

@@ -16,6 +16,7 @@
     "deploy:stage": "firebase use staging && firebase deploy",
     "deploy": "firebase deploy --only functions,hosting",
     "deploy:stage:rules": "firebase use staging && firebase deploy --only firestore:rules",
+    "deploy:test:rules": "firebase use user-test && firebase deploy --only firestore:rules",
     "logs": "firebase functions:log",
     "mocha": "mocha --exit --timeout 5000",
     "build:test": "tsc -p test --outDir ./test",
