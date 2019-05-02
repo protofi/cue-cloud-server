@@ -108,11 +108,6 @@ export class FirestoreStub {
     get(): any
     {
         return {
-            Timestamp : {
-                now : () => {
-                    return 'time'
-                }
-            }, 
             settings: () => { return null },
             collection: (col: string) => {
                 return {

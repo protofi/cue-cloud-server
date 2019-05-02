@@ -40,10 +40,10 @@ exports = module.exports = pubsub.topic(topicName)
         const timestamp = new Date(context.timestamp)
 
         const lastBeat = `${timestamp.toLocaleDateString("default", {
-            timeZone : 'Europe/Berlin'
-        })} ${timestamp.toLocaleTimeString("default", {
-            timeZone : 'Europe/Berlin'
-        })} `
+                            timeZone : 'Europe/Berlin'
+                        })} ${timestamp.toLocaleTimeString("default", {
+                            timeZone : 'Europe/Berlin'
+                        })}`
 
         await sensor.update({
             [Sensor.f.BAT_LEVEL]    : batteryLevel,

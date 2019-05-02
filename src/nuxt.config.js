@@ -68,7 +68,17 @@ module.exports = {
   vuetify: {
     // Vuetify options
     theme: {
-      primary: '#121212'
+      primary: '#121212',
+      'cue-green-0' : '#F0F8F4',
+      'cue-green-1' : '#CBE8DB',
+      'cue-green-2' : '#9CD5BD',
+      'cue-green-3' : '#72C7A8',
+      'cue-green-4' : '#44BB93',
+      'cue-green-5' : '#27AB84',
+      'cue-green-6' : '#169574',
+      'cue-green-7' : '#187E64',
+      'cue-green-8' : '#0D6C59',
+      'cue-green-9' : '#044E41',
     }
   },
 

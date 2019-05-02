@@ -19,6 +19,9 @@
         <v-container
             grid-list-md
         >
+            <v-subheader>
+                Base Stations
+            </v-subheader>
 
             <v-layout column fill-height justify-center>
                 
@@ -133,7 +136,10 @@
         <v-container
             grid-list-md
         >
-
+            <v-subheader>
+                Sensors
+            </v-subheader>
+            
             <v-layout column fill-height justify-center>
                 
                 <v-layout row wrap>
@@ -158,7 +164,7 @@
 
                                         &nbsp;
                                         &nbsp;
-                                        
+
                                         <span class="subheading font-weight-thin"> {{ sensor.id }} </span>
                                         
                                         <v-spacer></v-spacer>
@@ -268,7 +274,7 @@
                                         </span>
 
                                         <v-spacer></v-spacer>
-
+                                        
                                         <v-btn icon large ripple
                                             @click.stop="deleteSensor(sensor.id)"
                                         >
@@ -294,12 +300,10 @@
         <v-container>
         
             <v-btn
-                block
                 color="error"
-                large
                 :loading="deleteLoading"
                 @click.stop="deletion"
-                >
+            >
 
                 <v-icon left dark>
                     delete

@@ -1,56 +1,118 @@
 <template>
-    
-	<div>
-		
-		<v-toolbar color="cyan" dark tabs>
 
-			<v-toolbar-title>Sensors</v-toolbar-title>
+	<v-container
+		fluid
+		grid-list-xl
+	>
+		<v-layout row wrap>
 
-			<v-spacer></v-spacer>
-
-			<v-tabs
-				slot="extension"
-				v-model="tab"
-				color="cyan"
-				align-with-title
+			<v-flex xs12
+				v-for="(sensors, householdId) in sensorsByHousehold"
+				:key="householdId"
 			>
-				<v-tabs-slider color="yellow"></v-tabs-slider>
 
-				<v-tab v-for="item in items" :key="item">
-				{{ item }}
-				</v-tab>
-			
-			</v-tabs>
+				<v-btn
+					flat
+					@click.stop="">
+					<v-icon left>home</v-icon>
+					{{ householdId }}
+				</v-btn>
 
-		</v-toolbar>
+				<v-card color="transparent" flat>
+					
+					<v-container
+						fluid
+						grid-list-lg
+					>
 
-		<v-tabs-items v-model="tab">
+						<v-layout row wrap>
 
-			<v-tab-item v-for="item in items" :key="item">
-				
-				<v-card flat>
-					<v-card-text>{{ text }}</v-card-text>
+							<sensor-details-card-item
+								v-for="sensor in sensors"
+								:key="sensor.id"
+								:sensor="sensor"
+							>
+
+							</sensor-details-card-item>
+
+						</v-layout>
+
+					</v-container>
+					
 				</v-card>
-				
-			</v-tab-item>
 
-		</v-tabs-items>
+			</v-flex>
 
-	</div>
+		</v-layout>
+
+	</v-container>
 
 </template>
 
 <script>
+
+import { firestore } from '~/plugins/firebase.js'
+import _ from 'lodash'
+import SensorDetailsCardItem from '~/components/admin/SensorDetailsCardItem.vue'
+
 export default {
-    data () {
-      return {
-        tab: null,
-        items: [
-          'all'
-        ],
-        text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.'
-      }
-    }
+	data () {
+		return {
+			sensors : {},
+		}
+	},
+	components : {
+        SensorDetailsCardItem,
+    },
+	created ()
+	{
+		firestore.collection('sensors')
+			.onSnapshot(({ docs }) => {
+
+			const sensors = {}
+
+			docs.forEach(doc => {
+
+				const oldBaseStation = this.sensors[doc.id]
+				const meta = (oldBaseStation) ? oldBaseStation.meta : {}
+
+				const data = doc.data()
+
+				const baseStation = {
+					id      : doc.id,
+					path    : `/admin/sensors/${doc.id}`,
+					data    : data,
+					meta    : meta
+				}
+
+				sensors[doc.id] = baseStation
+			})
+
+			this.sensors = sensors
+		})
+	},
+
+	computed : {
+
+		sensorsByHousehold ()
+		{
+			const sorted = {}
+
+			_.forOwn(this.sensors, sensor => {
+				
+				if(!sorted[sensor.data.households.id])
+					sorted[sensor.data.households.id] = []
+
+				sorted[sensor.data.households.id].push(sensor)
+			})
+
+			return sorted
+		}
+	},
+
+	methods : {
+		
+	}
 }
 </script>
 

@@ -18,64 +18,57 @@
 
 		</v-toolbar>
 
-        <v-container>
-            <v-card
-                v-for="sensor in sensors"
-                :key="sensor.id"
-                ripple
-                :to="sensor.path"
-                router
+        <v-container
+		fluid
+		grid-list-xl
+	>
+            <v-container
+                fluid
+                grid-list-lg
             >
 
-                <v-card-title
-                    primary-title
-                >
+                <v-layout row wrap>
 
-                    <v-avatar color="blue-grey lighten-1">
-                        <v-icon dark>notifications</v-icon>
-                    </v-avatar>
-                    
-                    <v-spacer></v-spacer>
+                    <sensor-details-card-item
+                        v-for="sensor in sensors"
+                        :key="sensor.id"
+                        :sensor="sensor"
+                    >
+                        <template slot="additional-actions">
+                            
+                            <v-hover>
+                            <v-btn
+                                ripple flat color="cue-green-8"
+                                @click.stop="toggleMute(sensor)"
+                                :loading="sensorLoading == sensor.id"
+                                slot-scope="{ hover }"
+                            >
+                                <v-icon left dark color="grey darken-1"
+                                    v-if="sensor.muted && hover"
+                                >
+                                    notifications
+                                </v-icon>
 
-                    <div>
+                                <v-icon left dark color="grey darken-1"
+                                    v-if="sensor.muted && !hover"
+                                >
+                                    notifications_off
+                                </v-icon>
 
-                        <div class="headline"> {{ sensor.data.name }} </div>
-                        <span class="grey--text"> {{ sensor.data.location }} </span>
-                    
-                    </div>
+                                {{ (sensor.muted) ? 'Unmute' : 'mute' }}
+                                
+                            </v-btn>
+                            </v-hover>
+                        
+                        </template>
 
-                </v-card-title>
+                    </sensor-details-card-item>
 
-                <v-card-actions
-                    @click.stop.prevent=""
-                >
+                </v-layout>
 
-                    <v-switch
-                        label="Muted"
-                        v-model="sensor.muted"
-                        :loading="sensorLoading == sensor.id"
-                        @click.stop.prevent="toggleMuteSensor(sensor)"
-                    ></v-switch>
-
-                    <v-spacer></v-spacer>
-                    
-                    <v-btn icon @click.stop.prevent="show = !show">
-                        <v-icon>{{ show ? 'keyboard_arrow_down' : 'keyboard_arrow_up' }}</v-icon>
-                    </v-btn>
-
-                </v-card-actions>
-
-                <v-slide-y-transition>
-
-                    <v-card-text v-show="show">
-                        I'm a thing. But, like most politicians, he promised more than he could deliver. You won't have time for sleeping, soldier, not with all the bed making you'll be doing. Then we'll go with that data file! Hey, you add a one and two zeros to that or we walk! You're going to do his laundry? I've got to find a way to escape.
-                    </v-card-text>
-
-                </v-slide-y-transition>
-
-            </v-card>
-
-        </v-container>
+            </v-container>
+            
+	</v-container>
 
 	</div>
 
@@ -84,6 +77,7 @@
 <script>
 
 import { firestore } from '~/plugins/firebase.js'
+import SensorDetailsCardItem from '~/components/admin/SensorDetailsCardItem.vue'
 
 export default {
     data () {
@@ -92,8 +86,13 @@ export default {
             household : null,
             sensorDocs : [],
             show: false,
-            sensorLoading : null
+            sensorLoading : null,
+            sensors : {}
         }
+    },
+
+    components : {
+        SensorDetailsCardItem,
     },
 
     async mounted() {
@@ -109,7 +108,33 @@ export default {
         }, (e) => {
             console.log('LISTEN ON SENSORS', e)
         })
-    },
+    
+		firestore.collection('sensors').where(`users.${this.userId}.id`, '==', this.userId)
+			.onSnapshot(({ docs }) => {
+
+			const sensors = {}
+
+			docs.forEach(doc => {
+
+				const oldSensor = this.sensors[doc.id]
+				const meta = (oldSensor) ? oldSensor.meta : {}
+
+				const data = doc.data()
+
+				const sensor = {
+					id      : doc.id,
+                    path    : `/sensors/${doc.id}`,
+                    data    : data,
+                    meta    : meta,
+                    muted   : (data.users[this.userId].pivot && data.users[this.userId].pivot.muted) ? true : false
+				}
+
+				sensors[doc.id] = sensor
+			})
+
+			this.sensors = sensors
+		})
+	},
 
     computed : {
         hasHousehold () {
@@ -119,28 +144,11 @@ export default {
         userId () {
             return this.$store.getters['auth/user'].uid
         },
-        sensors () {
-            const sensors = []
-            this.sensorDocs.forEach(doc => {
 
-                const data = doc.data()
-
-                const sensor = {
-                    id      : doc.id,
-                    path    : `/sensors/${doc.id}`,
-                    data    : data,
-                    muted   : (data.users[this.userId].pivot && data.users[this.userId].pivot.muted) ? true : false
-                }
-    
-                sensors.push(sensor)
-            })
-
-            return sensors
-        }
     },
 
     methods : {
-        async toggleMuteSensor(sensor) {
+        async toggleMute(sensor) {
 
             this.sensorLoading = sensor.id
             
@@ -155,6 +163,7 @@ export default {
                 merge : true
             })
 
+            sensor.muted = muted
             this.sensorLoading = null
         }
     }
