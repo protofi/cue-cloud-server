@@ -2,7 +2,7 @@
     
     <div>
 		
-		<v-toolbar color="cyan" dark tabs>
+		<v-toolbar color="cue-green-4" dark tabs>
 
 			<v-toolbar-title>My Home</v-toolbar-title>
 
@@ -84,7 +84,6 @@ export default {
         return {
             user : null,
             household : null,
-            sensorDocs : [],
             show: false,
             sensorLoading : null,
             sensors : {}
@@ -103,12 +102,6 @@ export default {
             console.log('LISTEN ON USER', e)
         })
 
-        firestore.collection('sensors').where(`users.${this.userId}.id`, '==', this.userId).onSnapshot(({docs}) => {
-            this.sensorDocs = docs
-        }, (e) => {
-            console.log('LISTEN ON SENSORS', e)
-        })
-    
 		firestore.collection('sensors').where(`users.${this.userId}.id`, '==', this.userId)
 			.onSnapshot(({ docs }) => {
 
@@ -151,18 +144,19 @@ export default {
         async toggleMute(sensor) {
 
             this.sensorLoading = sensor.id
-            
             const muted = !sensor.muted
 
-            await firestore.collection('sensors_users').doc(`${sensor.id}_${this.userId}`).set({
-                pivot : {
-                    muted : muted
-                }
-            },
+            try{
+                await firestore.collection('sensors_users').doc(`${sensor.id}_${this.userId}`).set({
+                    pivot : {
+                        muted : muted
+                    }
+                },{ merge : true })
+            }
+            catch(e)
             {
-                merge : true
-            })
-
+                console.log(e)
+            }
             sensor.muted = muted
             this.sensorLoading = null
         }

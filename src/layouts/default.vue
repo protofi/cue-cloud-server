@@ -306,7 +306,7 @@
 				<v-avatar
 					size="144"
 				>
-					<img src="~/../static/cue_temp_logo.png">
+					<img src="~/../static/cue-logo-web-110x.png">
 
 				</v-avatar>
 				
@@ -314,7 +314,7 @@
 				
 				<v-progress-linear
 					:indeterminate="true"
-					color="green darken-2"
+					color="cue-green-5 darken-2"
 					height="10"
 				></v-progress-linear>
 				

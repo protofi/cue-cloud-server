@@ -1,51 +1,63 @@
 <template>
 
-	<v-container
-		fluid
-		grid-list-xl
-	>
-		<v-layout row wrap>
+	<div>
 
-			<v-flex xs12
-				v-for="(sensors, householdId) in sensorsByHousehold"
-				:key="householdId"
-			>
+		<v-toolbar color="cue-green-4" dark tabs>
 
-				<v-btn
-					flat
-					@click.stop="">
-					<v-icon left>home</v-icon>
-					{{ householdId }}
-				</v-btn>
+			<v-toolbar-title>Senosrs</v-toolbar-title>
 
-				<v-card color="transparent" flat>
-					
-					<v-container
-						fluid
-						grid-list-lg
-					>
+            <v-spacer></v-spacer>
 
-						<v-layout row wrap>
+		</v-toolbar>
+	
+		<v-container
+			fluid
+			grid-list-xl
+		>
+			<v-layout row wrap>
 
-							<sensor-details-card-item
-								v-for="sensor in sensors"
-								:key="sensor.id"
-								:sensor="sensor"
-							>
+				<v-flex xs12
+					v-for="(sensors, householdId) in sensorsByHousehold"
+					:key="householdId"
+				>
 
-							</sensor-details-card-item>
+					<v-btn
+						flat
+						@click.stop="">
+						<v-icon left>home</v-icon>
+						{{ householdId }}
+					</v-btn>
 
-						</v-layout>
+					<v-card color="transparent" flat>
+						
+						<v-container
+							fluid
+							grid-list-lg
+						>
 
-					</v-container>
-					
-				</v-card>
+							<v-layout row wrap>
 
-			</v-flex>
+								<sensor-details-card-item
+									v-for="sensor in sensors"
+									:key="sensor.id"
+									:sensor="sensor"
+								>
 
-		</v-layout>
+								</sensor-details-card-item>
 
-	</v-container>
+							</v-layout>
+
+						</v-container>
+						
+					</v-card>
+
+				</v-flex>
+
+			</v-layout>
+
+		</v-container>
+
+	</div>
 
 </template>
 
