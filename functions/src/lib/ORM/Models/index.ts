@@ -159,15 +159,13 @@ export default class ModelImpl implements Model {
         
         if(transaction)
         {
-            transaction.set(docRef, data,
-                {
+            transaction.set(docRef, data, {
                     merge: true
                 })
         }
         else 
         {
-            await docRef.set(data,
-                {
+            await docRef.set(data, {
                     merge: true
                 })
         }

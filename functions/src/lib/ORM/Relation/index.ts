@@ -7,6 +7,7 @@ import { Pivot } from "./Pivot"
 import { isPlainObject, intersection, keys, omit, get, camelCase, upperFirst, merge, isEmpty, includes, mapValues } from "lodash"
 import { IActionableFieldCommand } from "../../Command"
 import { firestore } from "firebase-admin"
+import * as logger from 'loglevel'
 
 const deleteFlag = (firestore.FieldValue) ? firestore.FieldValue.delete() : undefined //For testing purposes. Is to be fixed
 
@@ -348,9 +349,9 @@ export class Many2ManyRelation extends N2ManyRelation {
         {
             const newCacheData = {}
             const newSecureCacheData = {}
-            
-            const propertyIds: Array<string> = await this.getIds()
 
+            // const propertyIds: Array<string> = await this.getIds()
+            
             this.cacheFromPivot.forEach((field) => {
 
                 const fieldPath = `${Relations.PIVOT}.${field.replace(Models.SECURE_SURFIX,'')}` // remove secure surfix
@@ -358,16 +359,16 @@ export class Many2ManyRelation extends N2ManyRelation {
                 const cachableFieldBefore = get(beforeData, fieldPath, null) // retrieve data associated with the cached field before update
                 const cachableFieldAfter  = get(afterData, fieldPath, null) // retrieve data associated with the cached field after update
 
-                // console.log('BEFORE', cachableFieldBefore, 'AFTER', cachableFieldAfter)
-
                 if(!cachableFieldAfter && !cachableFieldBefore) return // if the field havn't been updated return and do not include it in the data to be cached
-                
-                propertyIds.forEach((id) => {
+
+                const id = afterData[this.propertyModelName].id
+
+                // propertyIds.forEach((id) => {
                     if(includes(field, Models.SECURE_SURFIX))
                         newSecureCacheData[`${this.propertyModelName}.${id}.${Relations.PIVOT}.${field.replace(Models.SECURE_SURFIX,'')}`] = cachableFieldAfter
                     else
                         newCacheData[`${this.propertyModelName}.${id}.${Relations.PIVOT}.${field}`] = cachableFieldAfter
-                })
+                // })
             })
 
             if(!isEmpty(newCacheData))

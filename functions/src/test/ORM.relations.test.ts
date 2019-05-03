@@ -19,6 +19,8 @@ import Car from './stubs/Car'
 import Wheel from './stubs/Wheel'
 import Driver from './stubs/Driver'
 import Windshield from './stubs/Windshield';
+import User from './lib/ORM/Models/User';
+import Sensor from './lib/ORM/Models/Sensor';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -2962,10 +2964,14 @@ describe('Unit_Test', () => {
                     }
 
                     const carId = uniqid()
+                    const carTwoId = uniqid()
                     const driverId = uniqid()
 
                     const car = new CarM(firestoreStub.get(), null, carId)
                     const carPivotCache = new CarPivotCache(firestoreStub.get(), null, carId)
+
+        
+                    const carTwo = new CarM(firestoreStub.get(), null, carTwoId)
                     
                     beforeEach(() => {
                         firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
@@ -3558,8 +3564,23 @@ describe('Unit_Test', () => {
                                 .to.be.undefined
                         })
 
-                        it('Should handle if one nested field is updated and another is deleted', async () => {
-                            
+                        it.only('Should handle if one nested field is updated and another is deleted', async () => {
+
+                            firestoreStub.data()[`${Stubs.CAR}/${carTwoId}`] = {
+                                [Stubs.DRIVER] : {
+                                    [driverId] : true
+                                }
+                            }
+    
+                            firestoreStub.data()[`${Stubs.DRIVER}/${driverId}`] = {
+                                [Stubs.CAR] : {
+                                    [carId] : true,
+                                    [carTwoId] : true
+                                }
+                            }
+
+                            util.printFormattedJson(firestoreStub.data())
+
                             const dataBefore = {
                                 [Relations.PIVOT] : {
                                     [cachedField] : {
@@ -3592,8 +3613,33 @@ describe('Unit_Test', () => {
                                 }
                             }
 
-                            expect(carDoc).to.deep.equal(expectedCarDoc)
+                            util.printFormattedJson(firestoreStub.data())
+
+                            // expect(carDoc).to.deep.equal(expectedCarDoc)
                         })
+
+                        // it('test the test', async () => {
+                        //     firestoreStub.reset()
+
+                        //     const userOneId = uniqid()
+                        //     const userTwoId = uniqid()
+
+                        //     const sensorId = uniqid()
+
+                        //     const userOne = new User(firestoreStub.get(), null, userOneId)
+                        //     const userTwo = new User(firestoreStub.get(), null, userTwoId)
+
+                        //     const sensor = new Sensor(firestoreStub.get(), null, sensorId)
+
+                        //     await userOne.sensors().attach(sensor)
+                        //     await userTwo.sensors().attach(sensor)
+
+                        //     await userOne.sensors().updatePivot(sensorId, {
+                        //         muted : true
+                        //     })
+
+                        //     util.printFormattedJson(firestoreStub.data())
+                        // })
 
                         it('Cached fields should not be updated if no changes has happend to origin', async () => {
                             
