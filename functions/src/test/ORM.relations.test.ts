@@ -19,8 +19,6 @@ import Car from './stubs/Car'
 import Wheel from './stubs/Wheel'
 import Driver from './stubs/Driver'
 import Windshield from './stubs/Windshield';
-import User from './lib/ORM/Models/User';
-import Sensor from './lib/ORM/Models/Sensor';
 
 const chaiThings = require("chai-things")
 const chaiAsPromised = require("chai-as-promised")
@@ -2966,11 +2964,11 @@ describe('Unit_Test', () => {
                     const carId = uniqid()
                     const carTwoId = uniqid()
                     const driverId = uniqid()
+                    const driverTwoId = uniqid()
 
                     const car = new CarM(firestoreStub.get(), null, carId)
                     const carPivotCache = new CarPivotCache(firestoreStub.get(), null, carId)
 
-        
                     const carTwo = new CarM(firestoreStub.get(), null, carTwoId)
                     
                     beforeEach(() => {
@@ -3435,13 +3433,13 @@ describe('Unit_Test', () => {
 
                             const before = test.firestore.makeDocumentSnapshot({}, '')
 
-                            const afterData = {
+                            const after = test.firestore.makeDocumentSnapshot({
                                 [Relations.PIVOT] : {
                                     [cachedField] : true
-                                }
-                            }
-
-                            const after = test.firestore.makeDocumentSnapshot(afterData, '')
+                                },
+                                [Stubs.DRIVER] : { id : driverId },
+                                [Stubs.CAR] : { id : carId }
+                            }, '')
 
                             const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
 
@@ -3450,7 +3448,11 @@ describe('Unit_Test', () => {
                             const carDoc = firestoreStub.data()[`${Stubs.CAR}/${carId}`]
                             const expectedCarDoc = {
                                 [Stubs.DRIVER] : {
-                                    [driverId] : afterData
+                                    [driverId] : {
+                                        [Relations.PIVOT] : {
+                                            [cachedField] : true
+                                        }
+                                    }
                                 }
                             }
 
@@ -3464,16 +3466,17 @@ describe('Unit_Test', () => {
                                     [cachedField] : false
                                 }
                             }
-
+                         
                             const before = test.firestore.makeDocumentSnapshot(beforeData, '')
 
-                            const afterData = {
+                            const after = test.firestore.makeDocumentSnapshot({
                                 [Relations.PIVOT] : {
                                     [cachedField] : true
-                                }
-                            }
+                                },
+                                [Stubs.DRIVER] : { id : driverId },
+                                [Stubs.CAR] : { id : carId }
+                            }, '')
 
-                            const after = test.firestore.makeDocumentSnapshot(afterData, '')
 
                             const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
 
@@ -3482,7 +3485,11 @@ describe('Unit_Test', () => {
                             const carDoc = firestoreStub.data()[`${Stubs.CAR}/${carId}`]
                             const expectedCarDoc = {
                                 [Stubs.DRIVER] : {
-                                    [driverId] : afterData
+                                    [driverId] : {
+                                        [Relations.PIVOT] : {
+                                            [cachedField] : true
+                                        }
+                                    }
                                 }
                             }
 
@@ -3504,7 +3511,10 @@ describe('Unit_Test', () => {
                             }
     
                             const before = test.firestore.makeDocumentSnapshot(beforeData, '')
-                            const after = test.firestore.makeDocumentSnapshot({}, '')
+                            const after = test.firestore.makeDocumentSnapshot({
+                                [Stubs.DRIVER] : { id : driverId },
+                                [Stubs.CAR] : { id : carId }
+                            }, '')
     
                             const driverDoc = firestoreStub.data()[`${Stubs.DRIVER}/${driverId}`]
                             const expectedDriverDoc = {
@@ -3535,17 +3545,17 @@ describe('Unit_Test', () => {
                                 }
                             }
     
-                            const dataAfter = {
+                            const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+    
+                            const after = test.firestore.makeDocumentSnapshot({
                                 [Relations.PIVOT] : {
                                     [cachedField] : {
                                         marts : true
                                     }
-                                }
-                            }
-
-                            const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
-    
-                            const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+                                },
+                                [Stubs.DRIVER] : { id : driverId },
+                                [Stubs.CAR] : { id : carId }
+                            }, '')
     
                             const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
     
@@ -3554,7 +3564,13 @@ describe('Unit_Test', () => {
                             const carDoc = firestoreStub.data()[`${Stubs.CAR}/${carId}`]
                             const expectedCarDoc = {
                                 [Stubs.DRIVER] : {
-                                    [driverId] : dataAfter
+                                    [driverId] : {
+                                        [Relations.PIVOT] : {
+                                            [cachedField] : {
+                                                marts : true
+                                            }
+                                        }
+                                    }
                                 }
                             }
 
@@ -3564,22 +3580,7 @@ describe('Unit_Test', () => {
                                 .to.be.undefined
                         })
 
-                        it.only('Should handle if one nested field is updated and another is deleted', async () => {
-
-                            firestoreStub.data()[`${Stubs.CAR}/${carTwoId}`] = {
-                                [Stubs.DRIVER] : {
-                                    [driverId] : true
-                                }
-                            }
-    
-                            firestoreStub.data()[`${Stubs.DRIVER}/${driverId}`] = {
-                                [Stubs.CAR] : {
-                                    [carId] : true,
-                                    [carTwoId] : true
-                                }
-                            }
-
-                            util.printFormattedJson(firestoreStub.data())
+                        it('Should handle if one nested field is updated and another is deleted', async () => {
 
                             const dataBefore = {
                                 [Relations.PIVOT] : {
@@ -3590,17 +3591,19 @@ describe('Unit_Test', () => {
                                 }
                             }
     
-                            const dataAfter = {
-                                [Relations.PIVOT] : {
-                                    [cachedField] : {
-                                        marts : false,
-                                    }
+                            const dataPivotAfter = {
+                                [cachedField] : {
+                                    marts : false,
                                 }
                             }
 
                             const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
     
-                            const after = test.firestore.makeDocumentSnapshot(dataAfter, '')
+                            const after = test.firestore.makeDocumentSnapshot({
+                                [Relations.PIVOT] : dataPivotAfter,
+                                [Stubs.DRIVER] : { id : driverId },
+                                [Stubs.CAR] : { id : carId },
+                            }, '')
     
                             const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
     
@@ -3609,37 +3612,14 @@ describe('Unit_Test', () => {
                             const carDoc = firestoreStub.data()[`${Stubs.CAR}/${carId}`]
                             const expectedCarDoc = {
                                 [Stubs.DRIVER] : {
-                                    [driverId] : dataAfter
+                                    [driverId] : {
+                                        [Relations.PIVOT] : dataPivotAfter
+                                    }
                                 }
                             }
 
-                            util.printFormattedJson(firestoreStub.data())
-
-                            // expect(carDoc).to.deep.equal(expectedCarDoc)
+                            expect(carDoc).to.deep.equal(expectedCarDoc)
                         })
-
-                        // it('test the test', async () => {
-                        //     firestoreStub.reset()
-
-                        //     const userOneId = uniqid()
-                        //     const userTwoId = uniqid()
-
-                        //     const sensorId = uniqid()
-
-                        //     const userOne = new User(firestoreStub.get(), null, userOneId)
-                        //     const userTwo = new User(firestoreStub.get(), null, userTwoId)
-
-                        //     const sensor = new Sensor(firestoreStub.get(), null, sensorId)
-
-                        //     await userOne.sensors().attach(sensor)
-                        //     await userTwo.sensors().attach(sensor)
-
-                        //     await userOne.sensors().updatePivot(sensorId, {
-                        //         muted : true
-                        //     })
-
-                        //     util.printFormattedJson(firestoreStub.data())
-                        // })
 
                         it('Cached fields should not be updated if no changes has happend to origin', async () => {
                             
@@ -3653,7 +3633,9 @@ describe('Unit_Test', () => {
                                 [Relations.PIVOT] : {
                                     [cachedField] : 'Mustang',
                                     'repaired' : true
-                                }
+                                },
+                                [Stubs.DRIVER] : { id : driverId },
+                                [Stubs.CAR] : { id : carId }
                             }
 
                             firestoreStub.data()[`${Stubs.DRIVER}/${driverId}`] = {
@@ -3677,6 +3659,73 @@ describe('Unit_Test', () => {
                             }
 
                             expect(carDoc).to.deep.equal(expectedCarDoc)
+                        })
+
+                        describe('Reverse relationship', () => {
+
+                            it('Should only update the cache of the correct relationsship', async () => {
+
+                                firestoreStub.reset()
+    
+                                firestoreStub.data()[`${Stubs.CAR}/${carId}`] = {
+                                    [Stubs.DRIVER] : {
+                                        [driverId] : true,
+                                        [driverTwoId] : true
+                                    }
+                                }
+
+                                firestoreStub.data()[`${Stubs.DRIVER}/${driverId}`] = {
+                                    [Stubs.CAR] : {
+                                        [carId] : true,
+                                    }
+                                }
+    
+                                firestoreStub.data()[`${Stubs.DRIVER}/${driverTwoId}`] = {
+                                    [Stubs.CAR] : {
+                                        [carId] : true,
+                                    }
+                                }
+    
+                                const dataBefore = {
+                                    [Relations.PIVOT] : {
+                                        [cachedField] : {
+                                            marts : true,
+                                            april : true
+                                        }
+                                    }
+                                }
+        
+                                const dataPivotAfter = {
+                                    [cachedField] : {
+                                        marts : false,
+                                    }
+                                }
+    
+                                const before = test.firestore.makeDocumentSnapshot(dataBefore, '')
+        
+                                const after = test.firestore.makeDocumentSnapshot({
+                                    [Relations.PIVOT] : dataPivotAfter,
+                                    [Stubs.DRIVER] : { id : driverId },
+                                    [Stubs.CAR] : { id : carId },
+                                }, '')
+        
+                                const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
+        
+                                await carPivotCache.drivers().updateCache(change)
+        
+                                const carDoc = firestoreStub.data()[`${Stubs.CAR}/${carId}`]
+                                const expectedCarDoc = {
+                                    [Stubs.DRIVER] : {
+                                        [driverId] : {
+                                            [Relations.PIVOT] : dataPivotAfter
+                                        },
+                                        [driverTwoId] : true
+                                    }
+                                }
+
+                                expect(carDoc).to.deep.equal(expectedCarDoc)
+                            })
+
                         })
                     })
                 })
@@ -3835,16 +3884,18 @@ describe('Unit_Test', () => {
                     const pivot = new Pivot(firestoreStub.get(), pivotId, car, driver)
 
                     const pivotData = {
-                                [Relations.PIVOT]: {
-                                    crashes : 2
-                                }
-                            }
+                            crashes : 2
+                        }
 
                     const before = test.firestore.makeDocumentSnapshot(pivotData, '')
 
-                    pivotData[Relations.PIVOT].crashes = 3 // change
-
-                    const after = test.firestore.makeDocumentSnapshot(pivotData, '')
+                    const after = test.firestore.makeDocumentSnapshot({
+                        [Relations.PIVOT] : {
+                            crashes : 3
+                        },
+                        [Stubs.DRIVER] : { id : driverId },
+                        [Stubs.CAR] : { id : carId },
+                    }, '')
 
                     const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
 
@@ -3901,17 +3952,19 @@ describe('Unit_Test', () => {
 
                     const pivot = new Pivot(firestoreStub.get(), pivotId, car, driver)
 
-                    const pivotData = {
-                                [Relations.PIVOT]: {
-                                    crashes : 2
-                                }
-                            }
+                    const before = test.firestore.makeDocumentSnapshot({
+                        [Relations.PIVOT]: {
+                            [cachedField] : 2
+                        }
+                    }, '')
 
-                    const before = test.firestore.makeDocumentSnapshot(pivotData, '')
-
-                    pivotData[Relations.PIVOT].crashes = 3 // change
-
-                    const after = test.firestore.makeDocumentSnapshot(pivotData, '')
+                    const after = test.firestore.makeDocumentSnapshot({
+                        [Relations.PIVOT]: {
+                            [cachedField] : 3
+                        },
+                        [Stubs.DRIVER] : { id : driverId },
+                        [Stubs.CAR] : { id : carId },
+                    }, '')
 
                     const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
 
@@ -3973,18 +4026,20 @@ describe('Unit_Test', () => {
 
                     const pivot = new Pivot(firestoreStub.get(), pivotId, car, driver)
 
-                    const pivotData = {
-                                [Relations.PIVOT]: {
-                                    [cachedField] : 2
-                                }
-                            }
+                    const before = test.firestore.makeDocumentSnapshot({
+                        [Relations.PIVOT]: {
+                            [cachedField] : 2
+                        }
+                    }, '')
 
-                    const before = test.firestore.makeDocumentSnapshot(pivotData, '')
-
-                    pivotData[Relations.PIVOT].crashes = 3 // change
-
-                    const after = test.firestore.makeDocumentSnapshot(pivotData, '')
-
+                    const after = test.firestore.makeDocumentSnapshot({
+                        [Relations.PIVOT]: {
+                            [cachedField] : 3
+                        },
+                        [Stubs.DRIVER] : { id : driverId },
+                        [Stubs.CAR] : { id : carId },
+                    }, '')
+                    
                     const change = new Change<FirebaseFirestore.DocumentSnapshot>(before, after)
 
                     await pivot.updateCache(change)

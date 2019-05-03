@@ -350,8 +350,6 @@ export class Many2ManyRelation extends N2ManyRelation {
             const newCacheData = {}
             const newSecureCacheData = {}
 
-            // const propertyIds: Array<string> = await this.getIds()
-            
             this.cacheFromPivot.forEach((field) => {
 
                 const fieldPath = `${Relations.PIVOT}.${field.replace(Models.SECURE_SURFIX,'')}` // remove secure surfix
@@ -363,12 +361,10 @@ export class Many2ManyRelation extends N2ManyRelation {
 
                 const id = afterData[this.propertyModelName].id
 
-                // propertyIds.forEach((id) => {
-                    if(includes(field, Models.SECURE_SURFIX))
-                        newSecureCacheData[`${this.propertyModelName}.${id}.${Relations.PIVOT}.${field.replace(Models.SECURE_SURFIX,'')}`] = cachableFieldAfter
-                    else
-                        newCacheData[`${this.propertyModelName}.${id}.${Relations.PIVOT}.${field}`] = cachableFieldAfter
-                // })
+                if(includes(field, Models.SECURE_SURFIX))
+                    newSecureCacheData[`${this.propertyModelName}.${id}.${Relations.PIVOT}.${field.replace(Models.SECURE_SURFIX,'')}`] = cachableFieldAfter
+                else
+                    newCacheData[`${this.propertyModelName}.${id}.${Relations.PIVOT}.${field}`] = cachableFieldAfter
             })
 
             if(!isEmpty(newCacheData))

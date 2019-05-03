@@ -16,6 +16,7 @@ const { PubSub } = require('@google-cloud/pubsub')
 import * as iot from '@google-cloud/iot'
 
 import * as bodyParser from "body-parser";
+import Sensor from '../lib/ORM/Models/Sensor';
 
 const apiBasePath = '/api/v1'
 
@@ -262,7 +263,7 @@ export default (app: Application) => {
             const topicName = 'sensor-notification'
 
             const attributes = {
-                sensor_UUID : sensorUUID
+                [Sensor.f.ID] : sensorUUID
             }
 
             const dataBuffer = Buffer.from(

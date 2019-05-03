@@ -1393,7 +1393,7 @@ describe('Integration_Test', () => {
                         [cacheField] : true
                     },
                     [Models.USER] : {
-                        [userId] : true
+                        [User.f.ID] : userId
                     }
                 },
                 ref : {
@@ -1448,7 +1448,7 @@ describe('Integration_Test', () => {
                         [Sensor.f.USERS.MUTED] : true
                     },
                     [Models.USER] : {
-                        [userId] : true
+                        [User.f.ID] : userId
                     }
                 },
                 ref : {
