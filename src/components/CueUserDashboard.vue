@@ -2,7 +2,7 @@
     
     <div>
 		
-		<v-toolbar color="cue-green-4" dark tabs>
+		<v-toolbar color="cue-green-6" dark tabs>
 
 			<v-toolbar-title>My Home</v-toolbar-title>
 
@@ -77,7 +77,7 @@
 <script>
 
 import { firestore } from '~/plugins/firebase.js'
-import SensorDetailsCardItem from '~/components/admin/SensorDetailsCardItem.vue'
+import SensorDetailsCardItem from '~/components/SensorDetailsCardItem.vue'
 
 export default {
     data () {

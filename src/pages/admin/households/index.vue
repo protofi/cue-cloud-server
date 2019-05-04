@@ -3,10 +3,8 @@
     <div>
 
         <v-toolbar
-            color="cyan"
-            
+            color="cue-green-6"
             dark
-            tabs
         >
 
 			<v-toolbar-title>Households</v-toolbar-title>

@@ -10,7 +10,6 @@
 					:to="activeHousehold.path"
 					ripple
 					router
-
 				>
 
 					<v-list-tile-action>

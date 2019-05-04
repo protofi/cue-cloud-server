@@ -2,9 +2,9 @@
 
 	<div>
 
-		<v-toolbar color="cue-green-4" dark tabs>
+		<v-toolbar color="cue-green-6" dark tabs>
 
-			<v-toolbar-title>Senosrs</v-toolbar-title>
+			<v-toolbar-title>Sensors</v-toolbar-title>
 
             <v-spacer></v-spacer>
 
@@ -23,7 +23,8 @@
 
 					<v-btn
 						flat
-						@click.stop="">
+						router
+						:to="`/admin/households/${householdId}`">
 						<v-icon left>home</v-icon>
 						{{ householdId }}
 					</v-btn>
@@ -65,7 +66,7 @@
 
 import { firestore } from '~/plugins/firebase.js'
 import _ from 'lodash'
-import SensorDetailsCardItem from '~/components/admin/SensorDetailsCardItem.vue'
+import SensorDetailsCardItem from '~/components/SensorDetailsCardItem.vue'
 
 export default {
 	data () {

@@ -3,7 +3,7 @@
     <div>
 
         <v-toolbar
-            color="cyan"
+            color="cue-green-6"
             dark
             tabs
         >
@@ -41,7 +41,7 @@
                                         primary-title
                                     >
 
-                                        <v-avatar color="blue-grey lighten-1">
+                                        <v-avatar color="cue-green-4">
                                             <v-icon dark>router</v-icon>
                                         </v-avatar>
 
@@ -139,159 +139,148 @@
             <v-subheader>
                 Sensors
             </v-subheader>
-            
-            <v-layout column fill-height justify-center>
-                
-                <v-layout row wrap>
-                    
-                    <v-flex xs12 sm11 md10 lg9 xl9>
+
+            <v-layout row wrap>
+    
+                <sensor-details-card-item
+                    v-for="sensor in sensors"
+                    :key="sensor.id"
+                    :sensor="sensor"
+                >
+
+                </sensor-details-card-item>
+                <!-- <v-card>
+
+                    <v-card-title
+                        primary-title
+                    >
+
+                        <v-avatar color="blue-grey lighten-1">
+                            <v-icon dark>settings_remote</v-icon>
+                        </v-avatar>
+
+                        &nbsp;
+                        &nbsp;
+
+                        <span class="subheading font-weight-thin"> {{ sensor.id }} </span>
                         
-                        <v-layout column>
+                        <v-spacer></v-spacer>
 
-                            <v-flex 
-                                v-for="sensor in sensors"
-                                :key="sensor.id"
-                            >
-                                <v-card>
+                        <v-btn
+                            ripple icon outline color="red"
+                            v-if="sensor.data.event_has_happened"
+                            @click="dismissNotification(sensor.id)"
+                        >
+                            <v-icon>notifications_active</v-icon>
+                        </v-btn>
 
-                                    <v-card-title
-                                        primary-title
-                                    >
+                    </v-card-title>
 
-                                        <v-avatar color="blue-grey lighten-1">
-                                            <v-icon dark>settings_remote</v-icon>
-                                        </v-avatar>
+                    <v-card-actions class="headline">
 
-                                        &nbsp;
-                                        &nbsp;
+                        {{ sensor.data.name }}
+                        
+                        <span v-if="sensor.data.location">
+                            &nbsp;i
+                            {{ sensor.data.location }}
+                        </span>
 
-                                        <span class="subheading font-weight-thin"> {{ sensor.id }} </span>
-                                        
-                                        <v-spacer></v-spacer>
+                    </v-card-actions>
 
-                                        <v-btn
-                                            ripple icon outline color="red"
-                                            v-if="sensor.data.event_has_happened"
-                                            @click="dismissNotification(sensor.id)"
-                                        >
-                                            <v-icon>notifications_active</v-icon>
-                                        </v-btn>
+                    <v-card-actions>
+                        
+                        <span v-if="sensor.data.battery_level">
 
-                                    </v-card-title>
-
-                                    <v-card-actions class="headline">
-
-                                        {{ sensor.data.name }}
-                                        
-                                        <span v-if="sensor.data.location">
-                                            &nbsp;i
-                                            {{ sensor.data.location }}
-                                        </span>
-
-                                    </v-card-actions>
-
-                                    <v-card-actions>
-                                        
-                                        <span v-if="sensor.data.battery_level">
-
-                                            <span class="subheading font-weight-medium">
-                                                <v-icon>battery_std</v-icon>
-                                                
-                                                {{ sensor.data.battery_level }}
-                                                
-                                            </span>
-                                            
-                                            &nbsp;
-                                        
-                                        </span>
-
-                                        <span v-if="sensor.data.signal_strength">
-                                            
-                                            &nbsp;
-                                            &nbsp;
-                                            &nbsp;
-                                        
-                                            <span class="subheading font-weight-medium">
-                                                
-                                                <v-icon>wifi</v-icon>
-                                                {{ sensor.data.signal_strength }}
-                                                
-                                            </span>
-
-                                            &nbsp;
-                                            
-                                        </span>
-
-                                        <span v-if="sensor.data.db_threshold">
-                                            
-                                            &nbsp;
-                                            &nbsp;
-                                            &nbsp;
-                                        
-                                            <span class="subheading font-weight-medium">
-                                                
-                                                <v-icon>hearing</v-icon>
-                                                {{ sensor.data.db_threshold }}
-                                                
-                                            </span>
-
-                                            &nbsp;
-                                            
-                                        </span>
-
-                                        <span v-if="sensor.data.last_heartbeat">
-                                            
-                                            &nbsp;
-                                            &nbsp;
-                                            &nbsp;
-                                        
-                                            <span class="subheading font-weight-medium">
-                                                
-                                                <v-icon>favorite</v-icon>
-                                                {{ sensor.data.last_heartbeat }}
-                                                
-                                            </span>
-
-                                            &nbsp;
-                                            
-                                        </span>
-
-                                        <span v-if="sensor.data.notification_counter">
-                                            
-                                            &nbsp;
-                                            &nbsp;
-                                            &nbsp;
-                                        
-                                            <span class="subheading font-weight-medium">
-                                                
-                                                <v-icon>notifications</v-icon>
-                                                {{ sensor.data.notification_counter }}
-                                                
-                                            </span>
-
-                                            &nbsp;
-                                            
-                                        </span>
-
-                                        <v-spacer></v-spacer>
-                                        
-                                        <v-btn icon large ripple
-                                            @click.stop="deleteSensor(sensor.id)"
-                                        >
-                                            <v-icon>delete</v-icon>
-                                        </v-btn>   
-
-                                    </v-card-actions>
-
-                                </v-card>
-
-                            </v-flex>
+                            <span class="subheading font-weight-medium">
+                                <v-icon>battery_std</v-icon>
+                                
+                                {{ sensor.data.battery_level }}
+                                
+                            </span>
                             
-                        </v-layout> 
-                
-                    </v-flex>
-                    
-                </v-layout>
+                            &nbsp;
+                        
+                        </span>
+
+                        <span v-if="sensor.data.signal_strength">
+                            
+                            &nbsp;
+                            &nbsp;
+                            &nbsp;
+                        
+                            <span class="subheading font-weight-medium">
+                                
+                                <v-icon>wifi</v-icon>
+                                {{ sensor.data.signal_strength }}
+                                
+                            </span>
+
+                            &nbsp;
+                            
+                        </span>
+
+                        <span v-if="sensor.data.db_threshold">
+                            
+                            &nbsp;
+                            &nbsp;
+                            &nbsp;
+                        
+                            <span class="subheading font-weight-medium">
+                                
+                                <v-icon>hearing</v-icon>
+                                {{ sensor.data.db_threshold }}
+                                
+                            </span>
+
+                            &nbsp;
+                            
+                        </span>
+
+                        <span v-if="sensor.data.last_heartbeat">
+                            
+                            &nbsp;
+                            &nbsp;
+                            &nbsp;
+                        
+                            <span class="subheading font-weight-medium">
+                                
+                                <v-icon>favorite</v-icon>
+                                {{ sensor.data.last_heartbeat }}
+                                
+                            </span>
+
+                            &nbsp;
+                            
+                        </span>
+
+                        <span v-if="sensor.data.notification_counter">
+                            
+                            &nbsp;
+                            &nbsp;
+                            &nbsp;
+                        
+                            <span class="subheading font-weight-medium">
+                                
+                                <v-icon>notifications</v-icon>
+                                {{ sensor.data.notification_counter }}
+                                
+                            </span>
+
+                            &nbsp;
+                            
+                        </span>
+
+                        <v-spacer></v-spacer>
+                        
+                        <v-btn icon large ripple
+                            @click.stop="deleteSensor(sensor.id)"
+                        >
+                            <v-icon>delete</v-icon>
+                        </v-btn>   
+
+                    </v-card-actions>
+
+                </v-card> -->
 
             </v-layout>
 
@@ -322,6 +311,7 @@
 <script>
 
 import { firebase, firestore } from '~/plugins/firebase.js'
+import SensorDetailsCardItem from '~/components/SensorDetailsCardItem.vue'
 
 export default {
     data () {
@@ -330,6 +320,9 @@ export default {
             baseStations : {},
             sensors : {}
         }
+    },
+    components : {
+        SensorDetailsCardItem,
     },
     async mounted() {
 

@@ -2,7 +2,7 @@
     
 	<div>
 		
-		<v-toolbar color="cyan" dark tabs>
+		<v-toolbar color="cue-green-6" dark tabs>
 
 			<v-toolbar-title>Base Stations</v-toolbar-title>
 
@@ -10,7 +10,26 @@
 
 		</v-toolbar>
 
-        <v-container
+        <v-tabs
+            v-model="activeTab"
+            color="cue-green-6"
+            dark
+            slider-color="cue-yellow-3"
+        >
+            <v-tab
+                v-for="(tab, i) in tabs"
+                :key="i"
+                ripple
+            >
+                {{ tab.name }}
+
+            </v-tab>
+
+            <v-tab-item
+                v-for="(tab, i) in tabs"
+                :key="i"
+            >
+                 <v-container
             grid-list-md
         >
             <v-layout column fill-height justify-center>
@@ -22,7 +41,7 @@
                         <v-layout column>
 
                             <v-flex
-                                v-for="baseStation in baseStations"
+                                v-for="baseStation in filteredBaseStation"
                                 :key="baseStation.id"
                             >
                                 <v-card>
@@ -57,7 +76,7 @@
 
                                         <v-btn
                                             v-if="baseStation.data.households"
-                                            color="teal"
+                                            color="cue-green-5"
                                             class="white--text"
                                             round
                                             :to="`households/${baseStation.data.households.id}`"
@@ -139,19 +158,6 @@
                 </v-layout>
 
             </v-layout>
-        
-            <v-btn
-                color="pink"
-                dark
-                fixed
-                bottom
-                right
-                fab
-                :loading="registerBaseStationLoading"
-                @click="registerBaseStation"
-            >
-                <v-icon>add</v-icon>
-            </v-btn>
                 
             <v-dialog v-model="settingsDialog.show" max-width="600px">
                 
@@ -242,7 +248,24 @@
             </v-dialog>
             
         </v-container>
-                    
+
+            </v-tab-item>
+
+        </v-tabs>
+
+        <v-btn
+            color="cue-yellow-5"
+            dark
+            fixed
+            bottom
+            right
+            fab
+            :loading="registerBaseStationLoading"
+            @click="registerBaseStation"
+        >
+            <v-icon>add</v-icon>
+        </v-btn>
+
 	</div>
 
 </template>
@@ -254,7 +277,7 @@ import { websocket } from '~/plugins/websocket.js'
 export default {
     data () {
         return {
-            baseStationDocs : [],
+            baseStations : {},
             registerBaseStationLoading: false,
             unlinkBaseStationLoading: false,
             deleteBaseStationLoadingIds: [],
@@ -279,34 +302,61 @@ export default {
                      v => !!v || 'You have to provide a pin code',
                 ],
                 id: null,
-            }
+            },
+            activeTab: 0,
+            tabs : [
+                {
+                    name : 'all',
+                    filter : () => {
+                        return true
+                    }
+                }, {
+                    name : 'unclaimed',
+                    filter : (baseStation) => {
+                        return (baseStation.data.households == null || baseStation.data.households.id == null)
+                    }
+                }, {
+                    name : 'claimed',
+                    filter : (baseStation) => {
+                        return (baseStation.data.households != null && baseStation.data.households.id != null)
+                    }
+                }
+            ]
         }
     },
-    async mounted() {
 
-        firestore.collection('base_stations').onSnapshot(({docs}) => {
-            this.baseStationDocs = docs
-        }, console.error)
-    },
+    created ()
+	{
+		firestore.collection('base_stations')
+			.onSnapshot(({ docs }) => {
+
+			const baseStations = {}
+
+			docs.forEach(doc => {
+
+				const oldBaseStation = this.baseStations[doc.id]
+				const meta = (oldBaseStation) ? oldBaseStation.meta : {}
+
+				const data = doc.data()
+
+				const baseStation = {
+					id      : doc.id,
+					path    : `/admin/base-stations/${doc.id}`,
+					data    : data,
+					meta    : meta
+				}
+
+				baseStations[doc.id] = baseStation
+			})
+
+			this.baseStations = baseStations
+		})
+	},
 
     computed : {
-        baseStations () {
-            const baseStations = {}
-            this.baseStationDocs.forEach(doc => {
-
-                const data = doc.data()
-
-                const baseStation = {
-                    id      : doc.id,
-                    path    : `/sensors/${doc.id}`,
-                    data    : data
-                }
-    
-                baseStations[doc.id] = baseStation
-            })
-
-            return baseStations
-        },
+        filteredBaseStation() {
+            return Object.values(this.baseStations).filter(this.tabs[this.activeTab].filter)
+        }
     },
 
     methods : {

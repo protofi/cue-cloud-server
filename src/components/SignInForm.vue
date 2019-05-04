@@ -29,15 +29,15 @@
             
             </v-layout>
 
-                <v-btn
-                    type="submit"
-                    :loading="$store.getters['auth/processing']"
-                    @click="submit"
-                >
-                    Sign in
-                </v-btn>
+            <v-btn
+                type="submit"
+                :loading="$store.getters['auth/processing']"
+                @click="submit"
+            >
+                Sign in
+            </v-btn>
 
-                <v-btn @click="clear">Reset</v-btn>
+            <v-btn @click="clear">Reset</v-btn>
 
         </v-container>
         

@@ -67,7 +67,7 @@
                                 v-if="sensor.data.battery_level"
                             >
                                 <v-icon>battery_std</v-icon>
-                                <span>{{ sensor.data.battery_level.toFixed(2) }}v</span>
+                                <span>{{ sensor.data.battery_level.toFixed(2) }}V</span>
                             </v-flex>
 
                             <v-flex xs3 sm12
@@ -109,11 +109,13 @@
                 <v-spacer></v-spacer>
                         
                 <v-btn icon large ripple
+                    @click.stop="showDialog('delete')"
                 >
                     <v-icon>delete</v-icon>
                 </v-btn>
 
                 <v-btn icon large ripple
+                    @click.stop="showDialog('edit')"
                 >
                     <v-icon>settings</v-icon>
                 </v-btn>   
@@ -122,6 +124,37 @@
             
         </v-card>
 
+        <c-dialog
+            :show="dialog.show"
+            v-on:confirmed="onConfirmed"
+            v-on:dismissed="onDismissed"
+            :actions="dialog.type == 'delete'"
+            :cancable="dialog.type == 'delete'"
+        >   
+            
+            <template v-if="dialog.type == 'edit'">
+
+                <template slot="headliner">Edit Sensor</template>
+                
+                <form-edit-sensor
+                    :sensor="sensor"
+                    :cancable="true"
+                    v-on:submitted="onSubmitted"
+                    v-on:dismissed="onDismissed">
+                </form-edit-sensor>
+            
+            </template>
+
+            <template v-if="dialog.type == 'delete'">
+
+                <template slot="headliner">Delete Sensor</template>
+
+                <template slot="body">Are you sure you want to delete this sensor?</template>
+
+            </template>
+
+        </c-dialog>
+
     </v-flex>
 
 </template>
@@ -129,14 +162,24 @@
 <script>
 
 import { firestore } from '~/plugins/firebase.js'
+import FormEditSensor from '~/components/FormEditSensor.vue'
+import CDialog from '~/components/Dialog.vue'
 
 export default {
 	props : [
 		'sensor'
     ],
+    components : {
+        FormEditSensor,
+        CDialog
+    },
 	data () {
         return {
-          
+            dialog : {
+                show : false,
+                type : null,
+                loading : false
+            }
         }
     },
 
@@ -154,6 +197,51 @@ export default {
 				console.log(e)
 			}
         },
+
+        showDialog (type)
+        {
+            this.dialog.show = true
+            this.dialog.type = type
+        },
+
+        onSubmitted () 
+        {
+            console.log('submitted')
+
+            this.dialog.show = false
+        },
+
+        async onConfirmed () 
+        {
+            switch(this.dialog.type)
+            {
+                case('delete') :
+                    await this.deleteSensor(this.sensor.id)
+                break
+            }
+        },
+
+        onDismissed ()
+        {
+            console.log('dismissed')
+
+            this.dialog.show = false
+        },
+
+        async deleteSensor(sensorId)
+        {
+            this.dialog.loading = true
+            try{
+				await firestore.collection('sensors').doc(sensorId).delete()
+			}
+			catch(e)
+			{
+				console.log(e)
+            }
+            this.dialog.show = false
+            this.dialog.loading = false
+        },
+
 	}
 }
 

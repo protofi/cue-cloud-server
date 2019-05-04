@@ -79,6 +79,16 @@ module.exports = {
       'cue-green-7' : '#187E64',
       'cue-green-8' : '#0D6C59',
       'cue-green-9' : '#044E41',
+      'cue-yellow-0' : '#FFFAEB',
+      'cue-yellow-1' : '#FCEFC7',
+      'cue-yellow-2' : '#F8E3A3',
+      'cue-yellow-3' : '#F9DA8B',
+      'cue-yellow-4' : '#F7D070',
+      'cue-yellow-5' : '#E9B949',
+      'cue-yellow-6' : '#C99A2E',
+      'cue-yellow-7' : '#A27C1A',
+      'cue-yellow-8' : '#7C5E10',
+      'cue-yellow-9' : '#513C06',
     }
   },
 
