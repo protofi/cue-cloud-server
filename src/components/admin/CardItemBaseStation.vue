@@ -10,7 +10,7 @@
                     
                     <v-card-title>
                         
-                        <v-avatar size="56" color="cue-green-4">
+                        <v-avatar size="56" color="cue-green-2 darken-1">
                         
                             <v-icon dark>router</v-icon>
                         
@@ -46,7 +46,7 @@
             
                 </v-flex>
 
-                <v-flex xs12 sm4>
+                <v-flex xs12 sm4 v-if="!simple">
                     
                     <v-card-title>
 
@@ -67,15 +67,12 @@
                                 v-if="baseStation.data.households"
                             >
                                 <v-btn
-                                    round
-                                    color="cue-yellow-5"
-                                    class="white--text"
+                                    color="cue-green-6 darken-1"
+                                    outline
                                     :to="`/admin/households/${baseStation.data.households.id}`"
-                                    ripple
-                                    small
-                                    router
+                                    round ripple router
                                 >
-                                    <v-icon left small dark >home</v-icon>
+                                    <v-icon left>home</v-icon>
                                     Claimed
                                 </v-btn>
 
@@ -94,13 +91,13 @@
             <v-card-actions>
                 
                 <v-btn
-                    icon
-                    large
-                    ripple
+                    icon large ripple
                     @click.stop="toggleWebsocketConnection(baseStation.id)"
                 >
-                    
-                    <v-icon dark :color="this.websocket.connection ? 'green' : 'primary'">power</v-icon>
+                    <v-icon dark :color="this.websocket.connection ? 'cue-green-6' : 'grey darken-1'">
+                        power{{(!this.websocket.connection) ? '_off' : ''}}
+                    </v-icon>
+                
                 </v-btn>
 
                 <v-menu
@@ -112,8 +109,7 @@
 
                         <v-btn
                             slot="activator"
-                            large
-                            icon
+                            large icon
                         >
                             <v-icon>arrow_drop_down</v-icon>
                         </v-btn>
@@ -144,18 +140,22 @@
                 <slot name="additional-actions-left"></slot>
 
                 <v-btn icon large ripple
+                    v-if="baseStation.data.households"
                     @click.stop="showDialog('unlink')"
                 >
                     <v-icon>link_off</v-icon>
                 </v-btn>
 
-                <v-btn icon large ripple
+                <v-btn
+                    v-if="!simple"
+                    icon large ripple
                     @click.stop="showDialog('delete')"
                 >
                     <v-icon>delete</v-icon>
                 </v-btn>
 
-                <v-btn icon large ripple
+                <v-btn
+                    icon large ripple
                     @click.stop="showDialog('edit')"
                 >
                     <v-icon>settings</v-icon>
@@ -169,6 +169,7 @@
             :show="dialog.show"
             v-on:confirmed="onConfirmed"
             v-on:dismissed="onDismissed"
+            :loading="dialog.loading"
             :actions="dialog.type != 'edit'"
             :cancable="dialog.type != 'edit'"
         >   
@@ -218,7 +219,8 @@ import CDialog from '~/components/Dialog.vue'
 
 export default {
 	props : [
-		'base-station'
+        'base-station',
+        'simple'
     ],
     components : {
         FormEditBaseStation,
@@ -266,7 +268,7 @@ export default {
             switch(this.dialog.type)
             {
                 case('delete') :
-                    // await this.deleteSensor(this.sensor.id)
+                    await this.deleteBaseStation()
                 break
 
                 case('unlink') :
@@ -280,19 +282,19 @@ export default {
             this.dialog.show = false
         },
 
-        // async deleteSensor(sensorId)
-        // {
-        //     this.dialog.loading = true
-        //     try{
-		// 		await firestore.collection('sensors').doc(sensorId).delete()
-		// 	}
-		// 	catch(e)
-		// 	{
-		// 		console.log(e)
-        //     }
-        //     this.dialog.show = false
-        //     this.dialog.loading = false
-        // }
+        async deleteBaseStation()
+        {
+            this.dialog.loading = true
+            try{
+				await firestore.collection('base_stations').doc(this.baseStation.id).delete()
+			}
+			catch(e)
+			{
+				console.log(e)
+            }
+            this.dialog.show = false
+            this.dialog.loading = false
+        },
 
         toggleWebsocketConnection()
         {
@@ -366,6 +368,19 @@ export default {
 
         async unlink()
         {
+            this.dialog.loading = true
+            const householdId = this.baseStation.data.households.id
+
+			try{
+				await firestore.collection('households').doc(householdId).update({
+						[`base_stations.${this.baseStation.id}`] : firebase.firestore.FieldValue.delete()
+					})
+			}
+			catch(e)
+			{
+				console.log(e)
+            }
+
             try{
 				await firestore.collection('base_stations').doc(this.baseStation.id).update({
 					households : firebase.firestore.FieldValue.delete()
@@ -379,18 +394,9 @@ export default {
                     return
                 }
 			}
-
-            const householdId = this.baseStation.data.households.id
-
-			try{
-				await firestore.collection('households').doc(householdId).update({
-						[`base_stations.${this.baseStation.id}`] : firebase.firestore.FieldValue.delete()
-					})
-			}
-			catch(e)
-			{
-				console.log(e)
-			}
+            
+            this.dialog.show = false
+            this.dialog.loading = false
         },
 
         sendWebsocketCommand(command) 

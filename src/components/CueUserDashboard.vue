@@ -37,27 +37,27 @@
                         <template slot="additional-actions">
                             
                             <v-hover>
-                            <v-btn
-                                ripple flat color="cue-green-8"
-                                @click.stop="toggleMute(sensor)"
-                                :loading="sensorLoading == sensor.id"
-                                slot-scope="{ hover }"
-                            >
-                                <v-icon left dark color="grey darken-1"
-                                    v-if="sensor.muted && hover"
+                                <v-btn
+                                    ripple flat color="cue-green-8"
+                                    @click.stop="toggleMute(sensor)"
+                                    :loading="sensorLoading == sensor.id"
+                                    slot-scope="{ hover }"
                                 >
-                                    notifications
-                                </v-icon>
+                                    <v-icon left dark color="grey darken-1"
+                                        v-if="sensor.muted && hover"
+                                    >
+                                        notifications
+                                    </v-icon>
 
-                                <v-icon left dark color="grey darken-1"
-                                    v-if="sensor.muted && !hover"
-                                >
-                                    notifications_off
-                                </v-icon>
+                                    <v-icon left dark color="grey darken-1"
+                                        v-if="sensor.muted && !hover"
+                                    >
+                                        notifications_off
+                                    </v-icon>
 
-                                {{ (sensor.muted) ? 'Unmute' : 'mute' }}
-                                
-                            </v-btn>
+                                    {{ (sensor.muted) ? 'Unmute' : 'mute' }}
+                                    
+                                </v-btn>
                             </v-hover>
                         
                         </template>

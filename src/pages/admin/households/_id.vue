@@ -13,6 +13,40 @@
 			<v-spacer></v-spacer>
 
             {{ $route.params.id }}
+
+            <v-menu
+                offset-y
+            >
+                <v-btn
+                    slot="activator"
+                    icon
+                >
+                    <v-icon>more_vert</v-icon>
+
+                </v-btn>
+        
+                <v-list>
+        
+                    <v-list-tile
+                        @click.stop="showDialog('delete')"
+                    >
+                        <v-list-tile-action>
+                    
+                            <v-icon>delete</v-icon>
+                    
+                        </v-list-tile-action>
+
+                        <v-list-tile-content>
+                    
+                            <v-list-tile-title>Delete</v-list-tile-title>
+                    
+                        </v-list-tile-content>
+
+                    </v-list-tile>
+                    
+                </v-list>
+
+            </v-menu>
 		
         </v-toolbar>
         
@@ -34,7 +68,8 @@
                             <card-item-base-station
                                 v-for="baseStation in baseStations"
                                 :key="baseStation.id"
-                                :base-station="baseStation"    
+                                :base-station="baseStation"
+                                :simple="true" 
                             >
                             </card-item-base-station>
                             
@@ -64,161 +99,29 @@
                 >
 
                 </sensor-details-card-item>
-                <!-- <v-card>
-
-                    <v-card-title
-                        primary-title
-                    >
-
-                        <v-avatar color="blue-grey lighten-1">
-                            <v-icon dark>settings_remote</v-icon>
-                        </v-avatar>
-
-                        &nbsp;
-                        &nbsp;
-
-                        <span class="subheading font-weight-thin"> {{ sensor.id }} </span>
-                        
-                        <v-spacer></v-spacer>
-
-                        <v-btn
-                            ripple icon outline color="red"
-                            v-if="sensor.data.event_has_happened"
-                            @click="dismissNotification(sensor.id)"
-                        >
-                            <v-icon>notifications_active</v-icon>
-                        </v-btn>
-
-                    </v-card-title>
-
-                    <v-card-actions class="headline">
-
-                        {{ sensor.data.name }}
-                        
-                        <span v-if="sensor.data.location">
-                            &nbsp;i
-                            {{ sensor.data.location }}
-                        </span>
-
-                    </v-card-actions>
-
-                    <v-card-actions>
-                        
-                        <span v-if="sensor.data.battery_level">
-
-                            <span class="subheading font-weight-medium">
-                                <v-icon>battery_std</v-icon>
-                                
-                                {{ sensor.data.battery_level }}
-                                
-                            </span>
-                            
-                            &nbsp;
-                        
-                        </span>
-
-                        <span v-if="sensor.data.signal_strength">
-                            
-                            &nbsp;
-                            &nbsp;
-                            &nbsp;
-                        
-                            <span class="subheading font-weight-medium">
-                                
-                                <v-icon>wifi</v-icon>
-                                {{ sensor.data.signal_strength }}
-                                
-                            </span>
-
-                            &nbsp;
-                            
-                        </span>
-
-                        <span v-if="sensor.data.db_threshold">
-                            
-                            &nbsp;
-                            &nbsp;
-                            &nbsp;
-                        
-                            <span class="subheading font-weight-medium">
-                                
-                                <v-icon>hearing</v-icon>
-                                {{ sensor.data.db_threshold }}
-                                
-                            </span>
-
-                            &nbsp;
-                            
-                        </span>
-
-                        <span v-if="sensor.data.last_heartbeat">
-                            
-                            &nbsp;
-                            &nbsp;
-                            &nbsp;
-                        
-                            <span class="subheading font-weight-medium">
-                                
-                                <v-icon>favorite</v-icon>
-                                {{ sensor.data.last_heartbeat }}
-                                
-                            </span>
-
-                            &nbsp;
-                            
-                        </span>
-
-                        <span v-if="sensor.data.notification_counter">
-                            
-                            &nbsp;
-                            &nbsp;
-                            &nbsp;
-                        
-                            <span class="subheading font-weight-medium">
-                                
-                                <v-icon>notifications</v-icon>
-                                {{ sensor.data.notification_counter }}
-                                
-                            </span>
-
-                            &nbsp;
-                            
-                        </span>
-
-                        <v-spacer></v-spacer>
-                        
-                        <v-btn icon large ripple
-                            @click.stop="deleteSensor(sensor.id)"
-                        >
-                            <v-icon>delete</v-icon>
-                        </v-btn>   
-
-                    </v-card-actions>
-
-                </v-card> -->
 
             </v-layout>
 
         </v-container>
-        
-        <v-container>
-        
-            <v-btn
-                color="error"
-                :loading="deleteLoading"
-                @click.stop="deletion"
-            >
 
-                <v-icon left dark>
-                    delete
-                </v-icon>
-                
-                Delete
- 
-            </v-btn>
-    
-        </v-container>
+        <c-dialog
+            :show="dialog.show"
+            v-on:confirmed="onConfirmed"
+            v-on:dismissed="onDismissed"
+            :loading="dialog.loading"
+            actions="true"
+            cancable="true"
+        >   
+            <template v-if="dialog.type == 'delete'">
 
+                <template slot="headliner">Delete Household</template>
+
+                <template slot="body">Are you sure you want to delete this Household?</template>
+
+            </template>
+
+        </c-dialog>
+        
     </div>
 
 </template>
@@ -228,18 +131,26 @@
 import { firebase, firestore } from '~/plugins/firebase.js'
 import SensorDetailsCardItem from '~/components/SensorDetailsCardItem.vue'
 import CardItemBaseStation from '~/components/admin/CardItemBaseStation.vue'
+import CDialog from '~/components/Dialog.vue'
+
 
 export default {
     data () {
         return {
             deleteLoading : false,
             baseStations : {},
-            sensors : {}
+            sensors : {},
+            dialog : {
+                show : false,
+                type : null,
+                loading : false
+            }
         }
     },
     components : {
         SensorDetailsCardItem,
-        CardItemBaseStation
+        CardItemBaseStation,
+        CDialog
     },
     async mounted() {
 
@@ -293,75 +204,47 @@ export default {
     },
 
     methods : {
-        async deletion()
+        showDialog (type)
         {
-            this.deleteLoading = true
-            const _this = this
-
-            firestore.collection('households').doc(this.$route.params.id).delete()
-            .then(() => {
-                _this.$router.push('/admin/households')
-            }).catch(console.log)
+            this.dialog.show = true
+            this.dialog.type = type
         },
 
-        async unlink(baseStationId)
+        onSubmitted ()
         {
-            const baseStations = this.baseStations
-            baseStations[baseStationId].meta.unlinkLoading = !baseStations[baseStationId].meta.unlinkLoading
-            
-            this.baseStations = {}
-            this.baseStations = baseStations
-
-            try{
-				await firestore.collection('base_stations').doc(baseStationId).update({
-					households : firebase.firestore.FieldValue.delete()
-				})
-			}
-			catch(e)
-			{
-				if(!e.message.includes('No document to update'))
-                {
-                    console.log(e)
-                    return
-                }
-			}
-
-            const householdId = baseStation.data().households.id
-
-			try{
-				await firestore.collection('households').doc(householdId).update({
-						[`base_stations.${baseStationId}`] : firebase.firestore.FieldValue.delete()
-					})
-			}
-			catch(e)
-			{
-				console.log(e)
-			}
+            this.dialog.show = false
         },
 
-        async deleteSensor(sensorId)
+        async onConfirmed () 
         {
-            try{
-				await firestore.collection('sensors').doc(sensorId).delete()
-			}
-			catch(e)
-			{
-				console.log(e)
-			}
+            switch(this.dialog.type)
+            {
+                case('delete') :
+                    await this.deleteHousehold()
+                break
+            }
         },
 
-        async dismissNotification(sensorId)
+        onDismissed ()
         {
+            this.dialog.show = false
+        },
+
+        async deleteHousehold()
+        {
+            this.dialog.loading = true
+
             try{
-				await firestore.collection('sensors').doc(sensorId).update({
-                    event_has_happened : false
-                })
-			}
-			catch(e)
-			{
-				console.log(e)
-			}
-        }
+                await firestore.collection('households').doc(this.$route.params.id).delete()
+                this.$router.push('/admin/households')
+            }
+            catch(e)
+            {
+                console.log(e)
+            }
+
+            this.dialog.loading = false
+        },
     }
 }
 </script>

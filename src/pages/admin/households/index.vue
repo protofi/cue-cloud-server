@@ -16,11 +16,11 @@
             <v-container class="text-xs-center" v-if="loading">
 
                 <v-progress-circular
-                    :size="50"
-                    color="cyan"
+                    :size="60"
+                    width="6"
+                    color="cue-green-4"
                     indeterminate
                 ></v-progress-circular>
-
             </v-container>
 
             <v-layout v-if="!loading" row wrap>

@@ -91,7 +91,7 @@ service cloud.firestore{
 								&& 	request.resource.data.households.id is string // update data must contain households field with an id key of type string
 								&& 	!requestHasAny(['id', 'pin', 'websocket']) // update data cannot contain fields: id, pin, websocket
 							) || isAdmin()
-			allow delete: if false
+			allow delete: if isAdmin()
 
 			// Helper functions
 			function baseStationIsClaimed() { return resourceHasAny(['households']) }

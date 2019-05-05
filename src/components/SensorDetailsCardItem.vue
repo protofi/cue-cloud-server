@@ -10,7 +10,7 @@
                     
                     <v-card-title>
                         
-                        <v-avatar size="72" color="cue-green-4">
+                        <v-avatar size="72" color="cue-green-2 darken-1">
                         
                             <v-icon dark large>settings_remote</v-icon>
                         
@@ -214,7 +214,7 @@ export default {
             switch(this.dialog.type)
             {
                 case('delete') :
-                    await this.deleteSensor(this.sensor.id)
+                    await this.deleteSensor()
                 break
             }
         },
@@ -224,11 +224,11 @@ export default {
             this.dialog.show = false
         },
 
-        async deleteSensor(sensorId)
+        async deleteSensor()
         {
             this.dialog.loading = true
             try{
-				await firestore.collection('sensors').doc(sensorId).delete()
+				await firestore.collection('sensors').doc(this.sensor.id).delete()
 			}
 			catch(e)
 			{

@@ -38,6 +38,7 @@
                     flat
                     type="submit"
                     @click.stop="confirm"
+                    :loading="loading"
                 >
                     OK
                 </v-btn>
@@ -55,7 +56,8 @@ export default {
     props : [
         'show',
         'cancable',
-        'actions'
+        'actions',
+        'loading'
 	],
     data() {
         return {
