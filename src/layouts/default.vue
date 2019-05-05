@@ -39,7 +39,6 @@
 					Sign in
 				</v-btn>
 
-
 				<v-menu
 					offset-y
 					v-show="!$store.getters['auth/isGuest']"

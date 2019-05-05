@@ -147,7 +147,7 @@
 
             <template v-if="dialog.type == 'delete'">
 
-                <template slot="headliner">Delete Sensor</template>
+                <template slot="headliner">Delete sensor</template>
 
                 <template slot="body">Are you sure you want to delete this sensor?</template>
 
@@ -204,10 +204,8 @@ export default {
             this.dialog.type = type
         },
 
-        onSubmitted () 
+        onSubmitted ()
         {
-            console.log('submitted')
-
             this.dialog.show = false
         },
 
@@ -223,8 +221,6 @@ export default {
 
         onDismissed ()
         {
-            console.log('dismissed')
-
             this.dialog.show = false
         },
 

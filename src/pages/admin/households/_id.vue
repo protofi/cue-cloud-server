@@ -12,7 +12,7 @@
 
 			<v-spacer></v-spacer>
 
-            ID: {{$route.params.id}}
+            {{ $route.params.id }}
 		
         </v-toolbar>
         
@@ -31,97 +31,12 @@
                         
                         <v-layout column>
 
-                            <v-flex 
+                            <card-item-base-station
                                 v-for="baseStation in baseStations"
                                 :key="baseStation.id"
+                                :base-station="baseStation"    
                             >
-                                <v-card>
-
-                                    <v-card-title
-                                        primary-title
-                                    >
-
-                                        <v-avatar color="cue-green-4">
-                                            <v-icon dark>router</v-icon>
-                                        </v-avatar>
-
-                                        &nbsp;
-                                        &nbsp;
-                                        
-                                        <span class="subheading font-weight-thin"> {{ baseStation.id }} </span>
-                                        
-                                        <v-spacer></v-spacer>
-
-                                        <p class="headline"> {{ baseStation.data.pin }} </p>
-
-                                    </v-card-title>
-
-                                    <v-card-actions>
-
-                                        <p v-if="baseStation.data.websocket"
-                                            class="headline">
-                                            &nbsp;{{baseStation.data.websocket.address}}:{{baseStation.data.websocket.port}}
-                                        </p>
-
-                                        <v-spacer></v-spacer>
-
-                                    </v-card-actions>
-
-                                    <v-card-actions>
-
-                                        <!-- <v-btn
-                                            @click="showSettingsDialog(baseStation.id)"
-                                            icon large ripple>
-                                            <v-icon dark>settings</v-icon>
-                                        </v-btn>
-                                        
-                                        <v-btn
-                                            icon
-                                            large
-                                            ripple
-                                            :loading="websocketBaseStationLoadingIds.includes(baseStation.id)"
-                                            @click.stop="toggleWebsocketConnection(baseStation.id)"
-                                        >
-                                            
-                                            <v-icon dark :color="hasWebsocket.includes(baseStation.id) ? 'green' : 'primary'">power</v-icon>
-                                        </v-btn>
-
-                                        <div>
-                                            <v-btn
-                                                :disabled="!hasWebsocket.includes(baseStation.id)"
-                                                @click.stop="publishMessage('pairing', baseStation.id)"                                                
-                                                >
-                                                Pairing
-                                            </v-btn>
-                                            <v-btn
-                                                :disabled="!hasWebsocket.includes(baseStation.id)"
-                                                @click.stop="publishMessage('calibration', baseStation.id)">
-                                                Calibration
-                                            </v-btn>
-                                            <v-btn
-                                                :disabled="!hasWebsocket.includes(baseStation.id)"
-                                                @click.stop="publishMessage('disconnect', baseStation.id)">
-                                                Disconnect peripheral
-                                            </v-btn>
-                                        </div>
-                                       
-                                         -->
-                                        <v-spacer></v-spacer>
-
-                                        <v-btn
-                                            icon large ripple
-                                            :loading="baseStation.meta.unlinkLoading"
-                                            v-if="baseStation.data.households"
-                                            @click.stop="unlink(baseStation.id)"
-                                        >
-                                            <v-icon>link_off</v-icon>
-                                        </v-btn>
-
-                                    </v-card-actions>
-
-                                </v-card>
-
-                            </v-flex>
+                            </card-item-base-station>
                             
                         </v-layout> 
                 
@@ -312,6 +227,7 @@
 
 import { firebase, firestore } from '~/plugins/firebase.js'
 import SensorDetailsCardItem from '~/components/SensorDetailsCardItem.vue'
+import CardItemBaseStation from '~/components/admin/CardItemBaseStation.vue'
 
 export default {
     data () {
@@ -323,6 +239,7 @@ export default {
     },
     components : {
         SensorDetailsCardItem,
+        CardItemBaseStation
     },
     async mounted() {
 

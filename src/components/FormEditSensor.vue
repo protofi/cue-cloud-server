@@ -11,7 +11,10 @@
                     <v-layout wrap>
 
                         <v-flex xs12>
-                            {{sensor.id}}
+                            
+                            <div class="caption">Sensor id:</div>
+                            <div class="subheading">{{sensor.id}}</div>
+                            
                         </v-flex>
 
                         <v-flex xs12>

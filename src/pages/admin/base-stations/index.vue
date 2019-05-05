@@ -181,7 +181,6 @@
                                         xs12
                                         md5
                                     >
-
                                         <v-text-field
                                             v-model="settingsDialog.pin"
                                             :rules="settingsDialog.pinRules"
