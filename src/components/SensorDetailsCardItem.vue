@@ -84,6 +84,13 @@
                                 <span>{{ sensor.data.db_threshold }} dB</span>
                             </v-flex>
 
+                            <v-flex xs3 sm12
+                                v-if="sensor.data.notification_counter"
+                            >
+                                <v-icon>add_alert</v-icon>
+                                <span>{{ sensor.data.notification_counter }}</span>
+                            </v-flex>
+
                         </v-layout>
 
                     </v-card-title>
