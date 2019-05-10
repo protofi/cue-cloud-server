@@ -20,26 +20,21 @@
 					v-for="(sensors, householdId) in sensorsByHousehold"
 					:key="householdId"
 				>
-					<v-subheader>
-						<v-btn
-							flat
-							router
-							:to="`/admin/households/${householdId}`">
-							<v-icon left>home</v-icon>
-							{{ householdId }}
-						</v-btn>
+					<v-card flat color="transparent">
 
-						<v-spacer></v-spacer>
+						<v-subheader>
+							<v-btn
+								flat
+								router
+								:to="`/admin/households/${householdId}`">
+								<v-icon left>home</v-icon>
+								{{ householdId }}
+							</v-btn>
 
-						<!-- <v-btn
-							icon large>
-							<v-icon>add_circle</v-icon>
-						</v-btn> -->
+							<v-spacer></v-spacer>
 
-					</v-subheader>
+						</v-subheader>
 
-					<v-card color="transparent" flat>
-						
 						<v-container
 							fluid
 							grid-list-lg

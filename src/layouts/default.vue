@@ -39,7 +39,7 @@
 					Sign in
 				</v-btn>
 
-				<v-menu
+				<!-- <v-menu
 					offset-y
 					v-show="!$store.getters['auth/isGuest']"
 				>
@@ -142,7 +142,7 @@
 
 					</v-list>
 
-				</v-menu>
+				</v-menu> -->
 
 			</v-toolbar>
 

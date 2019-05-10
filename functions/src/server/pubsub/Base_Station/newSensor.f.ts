@@ -7,6 +7,7 @@ import { Errors } from '../../lib/const'
 import { kebabCase } from 'lodash'
 import { basename } from 'path'
 import * as logger from 'loglevel'
+import Sensor from '../../lib/ORM/Models/Sensor';
 
 const file = basename(__filename).slice(0, -5)
 const ctrl = basename(__dirname)
@@ -20,18 +21,17 @@ exports = module.exports = functions.pubsub
     {
         const db = new DataORMImpl(admin.firestore())
 
-        const decodePayload = Buffer.from(message.data, 'base64').toString('ascii')
-        const payload = JSON.parse(decodePayload)
+        const decodePayload     = Buffer.from(message.data, 'base64').toString('ascii')
+        const payload           = JSON.parse(decodePayload)
 
         const baseStationUUID   = message.attributes.deviceId
-        const sensorUUID        = payload.sensor_UUID
+        const sensorUUID        = payload[Sensor.f.ID]
 
         if(!sensorUUID)
-            throw Error(Errors.NO_SENSOR_UUID)
+            throw Error(Errors.NO_SENSOR_ID)
 
-        const baseStation = await db.baseStation().findOrFail(baseStationUUID) as BaseStation
-
-        const household = await baseStation.household().get() as Household
+        const baseStation   = await db.baseStation().findOrFail(baseStationUUID) as BaseStation
+        const household     = await baseStation.household().get() as Household
     
         if(!household)
             throw Error(Errors.BASE_STATION_NOT_CLAIMED)

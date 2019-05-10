@@ -89,27 +89,30 @@
             <v-divider light></v-divider>
             
             <v-card-actions>
-                
+
                 <v-btn
                     icon large ripple
+                    :loading="this.websocket.loading"
                     @click.stop="toggleWebsocketConnection(baseStation.id)"
                 >
                     <v-icon dark :color="this.websocket.connection ? 'cue-green-6' : 'grey darken-1'">
                         power{{(!this.websocket.connection) ? '_off' : ''}}
                     </v-icon>
-                
+
                 </v-btn>
 
                 <v-menu
+                    v-if="!this.websocket.loading"
                     v-show="this.websocket.connection"
                     transition="slide-y-transition"
                     bottom
                 >
-                    <template>
+                    <template v-slot:activator="{ on }">
 
                         <v-btn
                             slot="activator"
                             large icon
+                            v-on="on"
                         >
                             <v-icon>arrow_drop_down</v-icon>
                         </v-btn>
@@ -121,7 +124,7 @@
                         <v-list-tile
                             v-for="(command, i) in websocket.commands"
                             :key="i"
-                            @click="sendWebsocketCommand(command.name)"
+                            @click="sendWebsocketCommand(command.action)"
                         >
                     
                             <v-list-tile-title>
@@ -232,13 +235,16 @@ export default {
                 connection : null,
                 commands : [
                     {
-                        name : 'Pair'
+                        name : 'Pair',
+                        action : 'pairing'
                     },
                     {
-                        name : 'Calibrate'
+                        name : 'Calibrate',
+                        action : 'calibration'
                     },
                     {
-                        name : 'Disconnect'
+                        name : 'Disconnect',
+                        action : 'disconnect'
                     }
                 ]
             },
@@ -298,15 +304,13 @@ export default {
 
         toggleWebsocketConnection()
         {
-            // this.websocket.connected = !this.websocket.connected
-            
             if(!this.baseStation.data.websocket || !this.baseStation.data.websocket.address || !this.baseStation.data.websocket.port)
             {
             //     this.showSettingsDialog(baseStationId)                
                 return
             } 
 
-            // this.websocketBaseStationLoadingIds.push(baseStationId)
+            this.websocket.loading = true
 
             const data = this.baseStation.data
             const address = `ws://${data.websocket.address}:${data.websocket.port}`
@@ -316,14 +320,7 @@ export default {
             if(ws)
             {
                 ws.close()
-                delete _this.websocket.connection
-                // const i = this.hasWebsocket.indexOf(baseStationId)
-                // this.hasWebsocket.splice(i,1)
-
-                // delete this.websockets[baseStationId]
-                
-                // const j = this.websocketBaseStationLoadingIds.indexOf(baseStationId)
-                // this.websocketBaseStationLoadingIds.splice(j,1)
+                this.websocket.loading = true
 
                 return
             }
@@ -331,32 +328,24 @@ export default {
             const _this = this
 
             ws = new websocket(address)
-            
+
             ws.onerror = event => {
                 console.log('Connection Error', event)
 
                 console.log('CLIENT', ws)
-
-                // const j = _this.websocketBaseStationLoadingIds.indexOf(baseStationId)
-                // _this.websocketBaseStationLoadingIds.splice(j,1)
             }
 
             ws.onopen = () => {
                 console.log('WebSocket client Connected')
-                
-                // _this.hasWebsocket.push(baseStationId)
-                _this.websocket.connection = ws
 
-                // const j = _this.websocketBaseStationLoadingIds.indexOf(baseStationId)
-                // _this.websocketBaseStationLoadingIds.splice(j,1)
+                _this.websocket.connection = ws
+                this.websocket.loading = false
             }
 
             ws.onclose = () => {
-                // const i = this.hasWebsocket.indexOf(baseStationId)
-                // this.hasWebsocket.splice(i,1)
-
-                delete _this.websocket.connection
                 console.log('client Closed')
+                this.websocket.loading = false
+                _this.websocket.connection = null
             }
             
             ws.onmessage = e => {
@@ -401,7 +390,7 @@ export default {
 
         sendWebsocketCommand(command) 
         {
-            const ws = this.websockets.connection
+            const ws = this.websocket.connection
             if(!ws) return
             
             if (ws.readyState === ws.OPEN)

@@ -10,6 +10,8 @@ export default class UpdateFCMTokenSecureCache extends AbstractActionableFieldCo
     {
         const tokens = await user.getField(User.f.FCM_TOKENS._)
         
+        if(!tokens) return
+
         const sensors = (await user.sensors().get()).filter(sensor => {
             return includes(keys(changes), sensor.getId())
         })

@@ -61,7 +61,6 @@ describe('Integration_Test', () => {
             }
         })
 
-   
         adminMessagingStub = sinon.stub(admin, 'messaging')
         .get(() => {
             return () => {
@@ -1685,7 +1684,7 @@ describe('Integration_Test', () => {
                 
                 try{
                     const payload = {
-                        sensor_UUID: sensorOneUUID
+                        [Sensor.f.ID] : sensorOneUUID
                     }
                     await wrappedPubsubBaseStationNewSensor({
                         data: Buffer.from(JSON.stringify(payload)),
@@ -1734,7 +1733,7 @@ describe('Integration_Test', () => {
                 expect(error).to.be.null
 
                 const consoleError = loggerErrorStub.getCall(0).args[0]
-                expect(consoleError.message).to.equal(Errors.NO_SENSOR_UUID)
+                expect(consoleError.message).to.equal(Errors.NO_SENSOR_ID)
 
                 expect(firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]).to.not.exist
                 expect(firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
@@ -1767,7 +1766,7 @@ describe('Integration_Test', () => {
                 expect(error).to.be.null
 
                 const consoleError = loggerErrorStub.getCall(0).args[0]
-                expect(consoleError.message).to.equal(Errors.NO_SENSOR_UUID)
+                expect(consoleError.message).to.equal(Errors.NO_SENSOR_ID)
 
                 expect(firestoreStub.data()[`${Models.SENSOR}/${sensorOneUUID}`]).to.not.exist
                 expect(firestoreStub.data()[`${Models.HOUSEHOLD}/${householdId}`]).to.not.exist
@@ -1781,7 +1780,7 @@ describe('Integration_Test', () => {
                 try{
 
                     const payload = {
-                        sensor_UUID: sensorOneUUID
+                        [Sensor.f.ID] : sensorOneUUID
                     }
                     await wrappedPubsubBaseStationNewSensor({
                         data: Buffer.from(JSON.stringify(payload)),
@@ -1814,7 +1813,7 @@ describe('Integration_Test', () => {
 
                 try{
                     const payload = {
-                        sensor_UUID: sensorOneUUID
+                        [Sensor.f.ID] : sensorOneUUID
                     }
                     await wrappedPubsubBaseStationNewSensor({
                         data: Buffer.from(JSON.stringify(payload)),
@@ -1858,7 +1857,7 @@ describe('Integration_Test', () => {
                 try{
 
                     const payload = {
-                        sensor_UUID: sensorOneUUID
+                        [Sensor.f.ID] : sensorOneUUID
                     }
                     await wrappedPubsubBaseStationNewSensor({
                         data: Buffer.from(JSON.stringify(payload)),
@@ -1906,7 +1905,7 @@ describe('Integration_Test', () => {
                 try{
 
                     const payload = {
-                        sensor_UUID: sensorOneUUID
+                        [Sensor.f.ID] : sensorOneUUID
                     }
                     await wrappedPubsubBaseStationNewSensor({
                         data: Buffer.from(JSON.stringify(payload)),
@@ -2644,7 +2643,6 @@ describe('Integration_Test', () => {
                                 }
                             }
                         }
-
                     }
                 }
 

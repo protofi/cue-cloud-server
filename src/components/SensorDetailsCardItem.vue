@@ -10,7 +10,7 @@
                     
                     <v-card-title>
                         
-                        <v-avatar size="72" color="cue-green-2 darken-1">
+                        <v-avatar size="64" color="cue-green-2 darken-1">
                         
                             <v-icon dark large>settings_remote</v-icon>
                         
@@ -74,7 +74,7 @@
                                 v-if="sensor.data.signal_strength"
                             >
                                 <v-icon>wifi</v-icon>
-                                <span>{{ sensor.data.signal_strength }}</span>
+                                <span>{{ sensor.data.signal_strength }}dBm</span>
                             </v-flex>
 
                             <v-flex xs3 sm12
