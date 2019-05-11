@@ -45,6 +45,8 @@ const nuxt = new Nuxt({
     }
 })
 
+nuxt.ready()
+
 //Handling requests for Nuxt front end
 function handleNuxtRequest(req: express.Request, res: express.Response)
 {

@@ -28,13 +28,14 @@
     "lodash": "^4.17.11",
     "moment": "^2.23.0",
     "node-fetch": "^2.3.0",
-    "nuxt": "^2.4.3",
+    "nuxt": "^2.5.0",
     "nuxt-validate": "^0.1.2",
     "vuetify": "^1.5.14",
     "vuetify-loader": "^1.2.1",
     "websocket": "^1.0.28"
   },
   "devDependencies": {
+    "@nuxt/typescript": "^2.6.3",
     "babel-eslint": "^8.2.1",
     "eslint": "^3.18.0",
     "eslint-loader": "^2.0.0",

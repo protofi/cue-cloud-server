@@ -70,7 +70,7 @@
     "loglevel": "^1.6.1",
     "moment": "^2.23.0",
     "nodejs-base64": "^1.0.3",
-    "nuxt": "^2.4.5",
+    "nuxt": "^2.5.0",
     "nuxt-validate": "^0.1.2",
     "pluralize": "^7.0.0",
     "pug": "^2.0.3",

@@ -99,6 +99,9 @@ module.exports = {
   build: {
     publicPath: '/assets/',
     extractCSS: true,
+    typescript : {
+      typeCheck: false
+    },
     /*
     ** You can extend webpack config here
     */
