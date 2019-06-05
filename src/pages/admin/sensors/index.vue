@@ -117,10 +117,12 @@ export default {
 
 			_.forOwn(this.sensors, sensor => {
 				
-				if(!sorted[sensor.data.households.id])
-					sorted[sensor.data.households.id] = []
+				const householdId = (sensor.data.households) ? sensor.data.households.id : 'orphan'
 
-				sorted[sensor.data.households.id].push(sensor)
+				if(!sorted[householdId])
+					sorted[householdId] = []
+
+				sorted[householdId].push(sensor)
 			})
 
 			return sorted

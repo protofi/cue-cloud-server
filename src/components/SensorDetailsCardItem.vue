@@ -10,9 +10,9 @@
                     
                     <v-card-title>
                         
-                        <v-avatar size="64" color="cue-green-2 darken-1">
+                        <v-avatar size="56" color="cue-green-2 darken-1">
                         
-                            <v-icon dark large>settings_remote</v-icon>
+                            <v-icon dark>settings_remote</v-icon>
                         
                         </v-avatar>
                         
@@ -61,7 +61,7 @@
                     
                     <v-card-title>
 
-                        <v-layout row wrap>
+                        <v-layout row wrap class="icon-list">
 
                             <v-flex xs3 sm12
                                 v-if="sensor.data.battery_level"
@@ -73,15 +73,22 @@
                             <v-flex xs3 sm12
                                 v-if="sensor.data.signal_strength"
                             >
-                                <v-icon>wifi</v-icon>
+                                <v-icon>bluetooth_searching</v-icon>
                                 <span>{{ sensor.data.signal_strength }}dBm</span>
+                            </v-flex>
+
+                            <v-flex xs3 sm12
+                                v-if="sensor.data.rssi_to_base_station"
+                            >
+                                <v-icon>router</v-icon>
+                                <span>{{ sensor.data.rssi_to_base_station }}dBm</span>
                             </v-flex>
 
                             <v-flex xs3 sm12
                                 v-if="sensor.data.db_threshold"
                             >
                                 <v-icon>hearing</v-icon>
-                                <span>{{ sensor.data.db_threshold }} dB</span>
+                                <span>{{ sensor.data.db_threshold }}dB</span>
                             </v-flex>
 
                             <v-flex xs3 sm12
@@ -104,9 +111,10 @@
             <v-card-actions>
                 
                 <v-btn
+                    large
                     v-if="sensor.data.event_has_happened"
                     ripple icon outline color="red"
-                    @click="dismissNotification()"
+                    @click.stop.prevent="dismissNotification()"
                 >
                     <v-icon>notifications_active</v-icon>
                 </v-btn>
@@ -116,13 +124,13 @@
                 <v-spacer></v-spacer>
                         
                 <v-btn icon large ripple
-                    @click.stop="showDialog('delete')"
+                    @click.stop.prevent="showDialog('delete')"
                 >
                     <v-icon>delete</v-icon>
                 </v-btn>
 
                 <v-btn icon large ripple
-                    @click.stop="showDialog('edit')"
+                    @click.stop.prevent="showDialog('edit')"
                 >
                     <v-icon>settings</v-icon>
                 </v-btn>   
@@ -214,6 +222,8 @@ export default {
         onSubmitted ()
         {
             this.dialog.show = false
+            setTimeout(() => this.dialog.type = null, 200)
+
         },
 
         async onConfirmed () 
@@ -224,11 +234,13 @@ export default {
                     await this.deleteSensor()
                 break
             }
+            setTimeout(() => this.dialog.type = null, 200)
         },
 
         onDismissed ()
         {
             this.dialog.show = false
+            setTimeout(() => this.dialog.type = null, 200)
         },
 
         async deleteSensor()
@@ -249,3 +261,10 @@ export default {
 }
 
 </script>
+
+<style lang="scss" scoped>
+    .icon-list > *{
+        align-items: center;
+        display: flex;
+    }
+</style>

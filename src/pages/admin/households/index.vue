@@ -21,6 +21,7 @@
                     color="cue-green-4"
                     indeterminate
                 ></v-progress-circular>
+                
             </v-container>
 
             <v-layout v-if="!loading" row wrap>

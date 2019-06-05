@@ -1,6 +1,6 @@
 <template>
     
-    <v-dialog v-model="visible" max-width="400px">
+    <v-dialog v-model="visible" :max-width="(maxWidth) ? maxWidth : '400px'">
         
         <v-card>
 
@@ -57,7 +57,8 @@ export default {
         'show',
         'cancable',
         'actions',
-        'loading'
+        'loading',
+        'max-width'
 	],
     data() {
         return {

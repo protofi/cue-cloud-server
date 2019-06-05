@@ -192,6 +192,31 @@ export default (app: Application) => {
             }
         })
 
+        .get(async (req: Request, res: Response) => {
+
+            const users = []
+            try{
+                const userList = await auth().listUsers(100)
+
+                userList.users.forEach((user) => {
+                    users.push(user.toJSON())
+                })
+            }
+            catch(e)
+            {
+                res.json({
+                    success : false,
+                    error   : e
+                })
+                return
+            }
+
+            res.json({
+                success: true,
+                users : users
+            })
+        })
+
     authRouter.route('/households/:id/sensors')
         
         .put(async (req: Request, res: Response) => {

@@ -91,12 +91,13 @@
             <v-card-actions>
 
                 <v-btn
+                    v-if="!this.websocket.connection"
                     icon large ripple
                     :loading="this.websocket.loading"
                     @click.stop="toggleWebsocketConnection(baseStation.id)"
                 >
-                    <v-icon dark :color="this.websocket.connection ? 'cue-green-6' : 'grey darken-1'">
-                        power{{(!this.websocket.connection) ? '_off' : ''}}
+                    <v-icon dark :color="this.websocket.connection ? 'cue-green-6' : (this.websocket.error ? 'red darken-2' : '')">
+                        power{{(this.websocket.error) ? '_off' : ''}}
                     </v-icon>
 
                 </v-btn>
@@ -114,7 +115,7 @@
                             large icon
                             v-on="on"
                         >
-                            <v-icon>arrow_drop_down</v-icon>
+                            <v-icon color="cue-green-6">power</v-icon>
                         </v-btn>
 
                     </template>
@@ -124,13 +125,21 @@
                         <v-list-tile
                             v-for="(command, i) in websocket.commands"
                             :key="i"
-                            @click="sendWebsocketCommand(command.action)"
+                            @click="handleWebsocketAction(command)"
                         >
                     
                             <v-list-tile-title>
                                 {{ command.name }}
                             </v-list-tile-title>
                     
+                        </v-list-tile>
+
+                        <v-divider></v-divider>
+
+                        <v-list-tile
+                            @click="toggleWebsocketConnection(baseStation.id)"
+                            >
+                            Disconnect
                         </v-list-tile>
                     
                     </v-list>
@@ -173,9 +182,10 @@
             v-on:confirmed="onConfirmed"
             v-on:dismissed="onDismissed"
             :loading="dialog.loading"
-            :actions="dialog.type != 'edit'"
-            :cancable="dialog.type != 'edit'"
-        >   
+            :actions="dialog.type != 'edit' && dialog.type != 'calibration'"
+            :max-width="(dialog.type == 'calibration') ? '600px' : false"
+            :cancable="true"
+        >
             
             <template v-if="dialog.type == 'edit'">
 
@@ -206,6 +216,22 @@
 
             </template>
 
+            <template v-if="dialog.type == 'calibration'">
+
+                <template slot="headliner">Calibrate sensor</template>
+
+                <sensor-calibration-flow
+                    :sensors="sensors"
+                    :probeCount="calibration.probeCount"
+                    :probeIndex="calibration.probeIndex"
+                    v-on:initializeCalibration="onInitializaCalibration"
+                    v-on:calibrationProbe="onCalibrationProbe"
+                    v-on:submitted="onSubmitted"
+                    v-on:dismissed="onDismissed"
+                ></sensor-calibration-flow>
+
+            </template>
+
         </c-dialog>
 
     </v-flex>
@@ -217,34 +243,64 @@
 import { firebase, firestore } from '~/plugins/firebase.js'
 import { websocket } from '~/plugins/websocket.js'
 
+import SensorCalibrationFlow from '~/components/admin/SensorCalibrationFlow.vue'
 import FormEditBaseStation from '~/components/FormEditBaseStation.vue'
 import CDialog from '~/components/Dialog.vue'
 
 export default {
 	props : [
         'base-station',
-        'simple'
+        'sensors',
+        'simple',
     ],
     components : {
         FormEditBaseStation,
+        SensorCalibrationFlow,
         CDialog
     },
 	data () {
         return {
             websocket: {
                 connection : null,
+                error : false,
+                loading : false,
                 commands : [
+                    {
+                        name : 'Listen',
+                        action : 'listen'
+                    },
+                    {
+                        name : 'Connect',
+                        action : 'connect'
+                    },
                     {
                         name : 'Pair',
                         action : 'pairing'
                     },
                     {
-                        name : 'Calibrate',
-                        action : 'calibration'
+                        name : 'Calibrate Sensor',
+                        action : 'calibration',
+                        dialog : true
                     },
                     {
-                        name : 'Disconnect',
+                        name : 'Disconnect Sensor',
                         action : 'disconnect'
+                    },
+                    {
+                        name : 'Forget sensors',
+                        action : 'forget'
+                    },
+                    {
+                        name : 'Stop scanner',
+                        action : 'stop'
+                    },
+                    {
+                        name : 'Sync sensor list',
+                        action : 'sync-sensors'
+                    },
+                    {
+                        name : 'Debug 1',
+                        action : 'debug'
                     }
                 ]
             },
@@ -252,7 +308,12 @@ export default {
                 show : false,
                 type : null,
                 loading : false
-            }
+            },
+            calibration : {
+                initialized : false,
+                probeCount : 3,
+                probeIndex : 0
+            },
         }
     },
 
@@ -267,6 +328,7 @@ export default {
         onSubmitted ()
         {
             this.dialog.show = false
+            setTimeout(() => this.dialog.type = null, 200)
         },
 
         async onConfirmed () 
@@ -285,7 +347,14 @@ export default {
 
         onDismissed ()
         {
+            if(this.dialog.type == 'calibration')
+            {
+                this.calibration.probeIndex = 0
+                this.sendWebsocketCommand('calibration-end', {})
+            }
+
             this.dialog.show = false
+            setTimeout(() => this.dialog.type = null, 200)
         },
 
         async deleteBaseStation()
@@ -304,6 +373,12 @@ export default {
 
         toggleWebsocketConnection()
         {
+            if(this.websocket.error)
+            {
+                this.websocket.error = false    
+                return
+            }
+    
             if(!this.baseStation.data.websocket || !this.baseStation.data.websocket.address || !this.baseStation.data.websocket.port)
             {
             //     this.showSettingsDialog(baseStationId)                
@@ -320,7 +395,7 @@ export default {
             if(ws)
             {
                 ws.close()
-                this.websocket.loading = true
+                this.websocket.loading = false
 
                 return
             }
@@ -331,26 +406,34 @@ export default {
 
             ws.onerror = event => {
                 console.log('Connection Error', event)
-
+                this.websocket.error = true
+                this.websocket.loading = false
                 console.log('CLIENT', ws)
             }
 
             ws.onopen = () => {
                 console.log('WebSocket client Connected')
 
-                _this.websocket.connection = ws
+                this.websocket.connection = ws
                 this.websocket.loading = false
+                this.websocket.error = false
             }
 
             ws.onclose = () => {
                 console.log('client Closed')
                 this.websocket.loading = false
-                _this.websocket.connection = null
+                this.websocket.connection = null
             }
-            
-            ws.onmessage = e => {
-                if (typeof e.data === 'string') {
-                    console.log("Received: '" + e.data + "'")
+
+            ws.onmessage = (payload) => {
+                const data = JSON.parse(payload.data)
+
+                console.log('DATA RECEIVED: ', data)
+
+                if(data.action == 'calibration' || data.action == 'calibration-probe')
+                {
+                    if(this.dialog.type == 'calibration')
+                        this.calibration.probeIndex++
                 }
             }
         },
@@ -388,19 +471,64 @@ export default {
             this.dialog.loading = false
         },
 
-        sendWebsocketCommand(command) 
+        handleWebsocketAction(command) 
+        {
+            if(command.dialog)
+            {
+                this.showDialog(command.action)
+                return
+            }
+
+            let payload = {}
+
+            switch(command.action)
+            {
+                case('sync-sensors') :
+                    payload = {
+                        sensors : Object.keys(this.sensors)
+                    }
+                break
+            }
+
+            this.sendWebsocketCommand(command.action, payload)
+        },
+
+        sendWebsocketCommand(action, payload)
         {
             const ws = this.websocket.connection
             if(!ws) return
-            
+
             if (ws.readyState === ws.OPEN)
             {
                 ws.send(
                     JSON.stringify({
-                        action: command
+                        action  : action,
+                        payload : payload
                     })
                 )
             }
+        },
+
+        onInitializaCalibration(sensorId)
+        {
+            const payload = {
+                sensorId    : sensorId,
+                probeCount  : this.calibration.probeCount,
+                probeIndex  : this.calibration.probeIndex
+            }
+
+            this.sendWebsocketCommand('calibration', payload)
+        },
+
+        onCalibrationProbe(sensorId)
+        {
+            const payload = {
+                sensorId    : sensorId,
+                probeCount  : this.calibration.probeCount,
+                probeIndex  : this.calibration.probeIndex
+            }
+
+            this.sendWebsocketCommand('calibration-probe', payload)
         }
 	}
 }

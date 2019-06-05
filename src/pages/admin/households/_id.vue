@@ -63,20 +63,32 @@
                     
                     <v-flex xs12 sm11 md10 lg9 xl9>
                         
-                        <v-layout column>
+                        <v-layout column v-if="!loading.baseStations">
 
                             <card-item-base-station
                                 v-for="baseStation in baseStations"
                                 :key="baseStation.id"
                                 :base-station="baseStation"
+                                :sensors="sensors"
                                 :simple="true" 
                             >
                             </card-item-base-station>
                             
+                        </v-layout>
+
+                        <v-layout column align-center v-else>
+                        
+                            <v-progress-circular
+                                :size="60"
+                                width="6"
+                                color="cue-green-4"
+                                indeterminate
+                            ></v-progress-circular>
+                        
                         </v-layout> 
                 
                     </v-flex>
-                    
+
                 </v-layout>
 
             </v-layout>
@@ -90,7 +102,7 @@
                 Sensors
             </v-subheader>
 
-            <v-layout row wrap>
+            <v-layout row wrap v-if="!loading.sensors">
     
                 <sensor-details-card-item
                     v-for="sensor in sensors"
@@ -101,6 +113,19 @@
                 </sensor-details-card-item>
 
             </v-layout>
+
+
+            <v-layout column align-center v-else>
+                        
+                <v-progress-circular
+                    :size="60"
+                    width="6"
+                    color="cue-green-4"
+                    indeterminate
+                ></v-progress-circular>
+            
+            </v-layout> 
+
 
         </v-container>
 
@@ -133,11 +158,15 @@ import SensorDetailsCardItem from '~/components/SensorDetailsCardItem.vue'
 import CardItemBaseStation from '~/components/admin/CardItemBaseStation.vue'
 import CDialog from '~/components/Dialog.vue'
 
+import _ from 'lodash'
 
 export default {
     data () {
         return {
-            deleteLoading : false,
+            loading : {
+                baseStations : true,
+                sensors : true
+            },
             baseStations : {},
             sensors : {},
             dialog : {
@@ -156,7 +185,7 @@ export default {
 
         firestore.collection('base_stations').where('households.id', '==', this.$route.params.id).onSnapshot(({docs}) => {
             const baseStations = {}
-            
+
             docs.forEach(doc => {
 
                 const oldBaseStation = this.baseStations[doc.id]
@@ -174,13 +203,14 @@ export default {
                 baseStations[doc.id] = baseStation
             })
 
+            this.loading.baseStations = false
             this.baseStations = baseStations
 
         }, console.error)
 
         firestore.collection('sensors').where('households.id', '==', this.$route.params.id).onSnapshot(({docs}) => {
             const sensors = {}
-           
+
             docs.forEach(doc => {
 
                 const oldSensor = this.sensors[doc.id]
@@ -198,6 +228,7 @@ export default {
                 sensors[doc.id] = sensor
             })
 
+            this.loading.sensors = false
             this.sensors = sensors
 
         }, console.error)
