@@ -97,7 +97,7 @@ module.exports = {
   */
   buildDir: '../functions/nuxt',
   build: {
-    publicPath: '/assets/',
+    publicPath: '/assets/client',
     extractCSS: true,
     typescript : {
       typeCheck: false

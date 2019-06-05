@@ -41,22 +41,28 @@ const nuxt = new Nuxt({
     dev: false,
     buildDir: 'nuxt',
     build: {
-        publicPath: '/assets/'
+        publicPath: '/assets/client'
     }
 })
 
 nuxt.ready()
 
 //Handling requests for Nuxt front end
-function handleNuxtRequest(req: express.Request, res: express.Response)
+async function handleNuxtRequest(req: express.Request, res: express.Response)
 {
-    res.set('Cache-Control', 'public, max-age=600, s-maxage=1200')
+    const isProduction = (process.env.NODE_ENV === "development") ? false : true
+ 
+    if(isProduction)
+        res.set('Cache-Control', 'public, max-age=600, s-maxage=1200')
 
-    return new Promise((resolve, reject) => {
-        nuxt.render(req, res, (promise) => {
-            promise.then(resolve).catch(reject)
-        });
-    });
+    try
+    {
+        nuxt.render(req, res)
+    }
+    catch (error)
+    {
+        console.error(error)
+    }
 }
 
 app.use(handleNuxtRequest)
