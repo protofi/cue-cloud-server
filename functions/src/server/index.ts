@@ -12,7 +12,7 @@ app.use(cors({ origin: true }))
 try{
     admin.initializeApp()
 }
-catch(e){ console.log(e.message) }
+catch(e) { console.log(e.message) }
 
 const settings = { timestampsInSnapshots: true }
 
@@ -33,7 +33,7 @@ for(let f=0,fl=files.length; f<fl; f++)
     }
 }
 
-//Import of API routes
+//Import and enable API routes
 import apiRoutes from './routes/api'
 exports.api = apiRoutes(app)
 
@@ -41,34 +41,18 @@ const nuxt = new Nuxt({
     dev: false,
     buildDir: 'nuxt',
     build: {
-        publicPath: '/assets/client'
+        publicPath: '/assets/'
     }
 })
 
 nuxt.ready()
 
-//Handling requests for Nuxt front end
-async function handleNuxtRequest(req: express.Request, res: express.Response)
-{
-    const isProduction = (process.env.NODE_ENV === "development") ? false : true
- 
-    if(isProduction)
-        res.set('Cache-Control', 'public, max-age=600, s-maxage=1200')
+app.use((req, res) => {
+    
+    // if(process.env.NODE_ENV === 'production')
+        // res.set('Cache-Control', 'public, max-age=600, s-maxage=1200')
 
-    try
-    {
-        nuxt.render(req, res)
-    }
-    catch (error)
-    {
-        console.error(error)
-    }
-}
+    nuxt.render(req, res)
+})
 
-app.use(handleNuxtRequest)
-
-//Exporting HTTPS Function
-exports.httpOnRequest = functions.runWith({
-    timeoutSeconds: 300,
-    memory: '1GB'
-}).https.onRequest(app)
+exports.httpOnRequest = functions.https.onRequest(app)
